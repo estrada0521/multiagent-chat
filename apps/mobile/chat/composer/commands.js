@@ -2,7 +2,17 @@
     let _cmdTimeout = null;
     let _lastCmdItemsData = [];
     const _cmdItems = () => cmdDrop.querySelectorAll(".cmd-item");
-    const closeCmdDrop = () => {
+    const closeCmdDrop = ({ immediate = false } = {}) => {
+      if (immediate) {
+        if (_cmdTimeout) {
+          clearTimeout(_cmdTimeout);
+          _cmdTimeout = null;
+        }
+        cmdDrop.classList.remove("visible", "closing");
+        cmdDrop.style.display = "none";
+        _cmdActiveIdx = -1;
+        return;
+      }
       if (cmdDrop.classList.contains("visible")) {
         cmdDrop.classList.remove("visible");
         cmdDrop.classList.add("closing");
@@ -17,6 +27,7 @@
       }
       _cmdActiveIdx = -1;
     };
+    document.addEventListener("composer-overlay-close-start", () => closeCmdDrop({ immediate: true }));
     const selectCmd = (idx) => {
       const item = _lastCmdItemsData[idx];
       if (!item) return;
@@ -241,4 +252,3 @@
         markCopied(btn);
       }).catch(() => {});
     });
-

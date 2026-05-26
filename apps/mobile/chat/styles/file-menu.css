@@ -119,7 +119,7 @@
       background: var(--glass-bg-64, rgba(var(--bg-rgb, 38, 38, 36), 0.64));
       backdrop-filter: var(--glass-filter-18, blur(18px) saturate(160%));
       -webkit-backdrop-filter: var(--glass-filter-18, blur(18px) saturate(160%));
-      border-bottom: 0.5px solid rgba(255, 255, 255, 0.05);
+      border-bottom: 0.5px solid var(--composer-menu-row-border);
       scrollbar-width: none;
       -webkit-overflow-scrolling: touch;
     }
@@ -167,8 +167,8 @@
 
     .has-hover .file-category-tab:hover {
       color: var(--fg);
-      border-bottom-color: rgba(255, 255, 255, 0.16);
-      background: rgba(255, 255, 255, 0.04);
+      border-bottom-color: var(--composer-menu-row-border);
+      background: var(--composer-menu-row-hover-bg);
     }
 
     .file-category-count {
@@ -284,5 +284,5 @@
 
     .has-hover .file-menu-jump:hover {
       color: var(--icon-hover);
-      background: rgba(255, 255, 255, 0.08);
+      background: var(--composer-menu-row-hover-bg);
     }

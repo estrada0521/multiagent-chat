@@ -57,6 +57,9 @@
       --panel-row-border: __PANEL_ROW_BORDER__;
       --panel-row-hover-bg: __PANEL_ROW_HOVER_BG__;
       --panel-row-active-bg: __PANEL_ROW_ACTIVE_BG__;
+      --composer-menu-row-border: rgba(255, 255, 255, 0.05);
+      --composer-menu-row-hover-bg: rgba(255, 255, 255, 0.05);
+      --composer-menu-row-active-bg: rgba(255, 255, 255, 0.07);
       --glass-bg-64: rgba(var(--bg-rgb), 0.64);
       --glass-bg-72: rgba(var(--bg-rgb), 0.72);
       --glass-bg-90: rgba(var(--bg-rgb), 0.90);
@@ -106,6 +109,9 @@
       --panel-row-border: rgba(0, 0, 0, 0.08);
       --panel-row-hover-bg: rgba(0, 0, 0, 0.08);
       --panel-row-active-bg: rgba(0, 0, 0, 0.10);
+      --composer-menu-row-border: rgba(0, 0, 0, 0.05);
+      --composer-menu-row-hover-bg: rgba(0, 0, 0, 0.04);
+      --composer-menu-row-active-bg: rgba(0, 0, 0, 0.06);
       --surface: rgb(250, 250, 250);
       --surface-alt: rgb(245, 245, 245);
       --bg-hover: rgb(235, 235, 235);

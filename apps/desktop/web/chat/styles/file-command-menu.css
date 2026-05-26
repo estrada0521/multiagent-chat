@@ -166,7 +166,7 @@
       background: var(--glass-bg-64, rgba(var(--bg-rgb, 38, 38, 36), 0.64));
       backdrop-filter: var(--glass-filter-18, blur(18px) saturate(160%));
       -webkit-backdrop-filter: var(--glass-filter-18, blur(18px) saturate(160%));
-      border-bottom: 0.5px solid rgba(255,255,255,0.05);
+      border-bottom: 0.5px solid var(--composer-menu-row-border);
       scrollbar-width: none;
       -webkit-overflow-scrolling: touch;
     }
@@ -208,8 +208,8 @@
     }
     .has-hover .file-category-tab:hover {
       color: var(--fg);
-      border-bottom-color: rgba(255,255,255,0.16);
-      background: rgba(255,255,255,0.04);
+      border-bottom-color: var(--composer-menu-row-border);
+      background: var(--composer-menu-row-hover-bg);
     }
     .file-category-count {
       color: inherit;
@@ -300,7 +300,7 @@
     }
     .has-hover .file-menu-jump:hover {
       color: var(--fg);
-      background: rgba(255,255,255,0.08);
+      background: var(--composer-menu-row-hover-bg);
     }
     @keyframes hub-inline-loading-spin {
       to { transform: rotate(360deg); }
@@ -611,10 +611,14 @@
       pointer-events: none;
     }
     .file-item:not(:last-child) {
-      border-bottom: 0.5px solid rgba(255,255,255,0.05);
+      border-bottom: 0.5px solid var(--composer-menu-row-border);
     }
-    .has-hover .file-item:hover, .file-item.active {
-      background: rgba(255,255,255,0.08);
+    .has-hover .file-item:hover {
+      background: var(--composer-menu-row-hover-bg);
+      color: var(--fg);
+    }
+    .file-item.active {
+      background: var(--composer-menu-row-active-bg);
       color: var(--fg);
     }
     #cmdDropdown {
@@ -665,10 +669,14 @@
       transition: background 120ms ease;
     }
     .cmd-item:not(:last-child) {
-      border-bottom: 0.5px solid rgba(255,255,255,0.05);
+      border-bottom: 0.5px solid var(--composer-menu-row-border);
     }
-    .has-hover .cmd-item:hover, .cmd-item.active {
-      background: rgba(255,255,255,0.08);
+    .has-hover .cmd-item:hover {
+      background: var(--composer-menu-row-hover-bg);
+      color: var(--fg);
+    }
+    .cmd-item.active {
+      background: var(--composer-menu-row-active-bg);
       color: var(--fg);
     }
     .cmd-item-name {

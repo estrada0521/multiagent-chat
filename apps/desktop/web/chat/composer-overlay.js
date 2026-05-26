@@ -58,6 +58,7 @@
     };
     const closeComposerOverlay = ({ restoreFocus = false } = {}) => {
       if (!composerOverlay || composerOverlay.hidden) return;
+      document.dispatchEvent(new CustomEvent("composer-overlay-close-start"));
       composerOverlay.classList.remove("visible");
       composerOverlay.classList.add("closing");
       document.body.classList.remove("composer-overlay-open");

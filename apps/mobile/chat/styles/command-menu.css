@@ -53,12 +53,16 @@
     }
 
     .cmd-item:not(:last-child) {
-      border-bottom: 0.5px solid rgba(255, 255, 255, 0.05);
+      border-bottom: 0.5px solid var(--composer-menu-row-border);
     }
 
-    .has-hover .cmd-item:hover,
+    .has-hover .cmd-item:hover {
+      background: var(--composer-menu-row-hover-bg);
+      color: var(--fg);
+    }
+
     .cmd-item.active {
-      background: rgba(255, 255, 255, 0.08);
+      background: var(--composer-menu-row-active-bg);
       color: var(--fg);
     }
 

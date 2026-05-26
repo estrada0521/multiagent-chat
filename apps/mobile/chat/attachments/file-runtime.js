@@ -69,7 +69,17 @@
       }, 260);
     };
     const _dropItems = () => fileDrop.querySelectorAll(".file-item");
-    const closeDrop = () => {
+    const closeDrop = ({ immediate = false } = {}) => {
+      if (immediate) {
+        if (_dropTimeout) {
+          clearTimeout(_dropTimeout);
+          _dropTimeout = null;
+        }
+        fileDrop.classList.remove("visible", "closing");
+        fileDrop.style.display = "none";
+        _dropActiveIdx = -1;
+        return;
+      }
       if (fileDrop.classList.contains("visible")) {
         fileDrop.classList.remove("visible");
         fileDrop.classList.add("closing");
@@ -86,6 +96,7 @@
       }
       _dropActiveIdx = -1;
     };
+    document.addEventListener("composer-overlay-close-start", () => closeDrop({ immediate: true }));
 __CHAT_INCLUDE:../../../shared/chat/file-autocomplete.js__
     const LINKIFY_INLINE_CODE_CHUNK = 20;
     let _linkifyInlineCodeRunSeq = 0;
