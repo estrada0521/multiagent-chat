@@ -535,7 +535,6 @@ __CHAT_INCLUDE:composer/commands.js__
 __CHAT_INCLUDE:runtime/thinking.js__
 __CHAT_INCLUDE:runtime/agent-status.js__
 __CHAT_INCLUDE:panes/pane-viewer.js__
-__CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__
     const desktopRightPanel = document.getElementById("desktopRightPanel");
     const desktopRightPanelResizer = document.getElementById("desktopRightPanelResizer");
     const dpSplitPanel = document.getElementById("dpSplitPanel");
