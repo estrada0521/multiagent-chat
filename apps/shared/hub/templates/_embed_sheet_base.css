@@ -1,0 +1,87 @@
+/* ──────────────────────────────────────────────────────────────────────────
+   Shared base for hub embed sheet pages (e.g. new_session.html).
+   Included via __HUB_INCLUDE:_embed_sheet_base.css__ inside <style>.
+   All __TOKEN__ placeholders are replaced server-side by apply_color_tokens().
+   ────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  color-scheme: __COLOR_SCHEME__;
+
+  /* Core theme colours */
+  --bg: __DARK_BG__;
+  --bg-rgb: __DARK_BG_CHANNELS__;
+  --fg: __LIGHT_FG__;
+  --muted: __GRAY_MUTED__;
+  --icon-fg: __ICON_FG__;
+  --icon-muted: __ICON_MUTED__;
+  --icon-hover: __ICON_HOVER__;
+  --line: __LINE__;
+  --line-strong: __LINE_STRONG__;
+
+  /* Accent (matches mobile chat base.css dark default) */
+  --link-blue: rgb(88, 166, 255);
+
+  /* Typography */
+  --settings-text-size: __MESSAGE_TEXT_SIZE__px;
+
+  /* Layout */
+  --hub-embed-sheet-offset: 68px;
+
+  /* Row interaction colours */
+  --row-hover-bg: __PANEL_ROW_HOVER_BG__;
+  --row-active-bg: __PANEL_ROW_ACTIVE_BG__;
+}
+
+html[data-theme="light"] {
+  --link-blue: rgb(9, 105, 218);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: "SF Pro Text", "Segoe UI", sans-serif;
+  overscroll-behavior: contain;
+}
+
+/* ── Interactive row ──────────────────────────────────────────────────────────
+   Apply `.hub-row` to any tappable list row in a hub embed sheet.
+
+   The ::before pseudo-element renders the press/hover highlight.
+   • <button> with touch-action: manipulation → :active fires on touchstart ✓
+   • <div> / non-interactive tags → CSS :active doesn't fire on iOS Safari;
+     JS must add .tap-active on touchstart and remove it on touchend/cancel.
+   ─────────────────────────────────────────────────────────────────────────── */
+.hub-row {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  position: relative;
+  isolation: isolate;
+}
+
+.hub-row::before {
+  content: "";
+  position: absolute;
+  inset: 3px 8px;
+  border-radius: 10px;
+  background: var(--row-active-bg);
+  opacity: 0;
+  z-index: -1;
+  pointer-events: none;
+  transition: opacity 80ms ease;
+}
+
+/* <button> rows: :active fires reliably via touch-action: manipulation */
+.hub-row:active::before,
+/* <div> rows: JS adds .tap-active on touchstart for immediate feedback */
+.hub-row.tap-active::before { opacity: 1; }
+
+@media (hover: hover) and (pointer: fine) {
+  .hub-row:hover::before {
+    background: var(--row-hover-bg);
+    opacity: 1;
+  }
+}

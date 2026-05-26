@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="__THEME__" data-view-variant="__VIEW_VARIANT__">
+<html lang="en" data-theme="__THEME__" data-view-variant="__VIEW_VARIANT__" data-bold-mode="__BOLD_MODE_MOBILE__">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -29,26 +29,9 @@
     })();
   </script>
   <style>
-    :root {
-      color-scheme: __COLOR_SCHEME__;
-      --bg: __DARK_BG__;
-      --fg: __LIGHT_FG__;
-      --muted: __GRAY_MUTED__;
-      --icon-fg: __ICON_FG__;
-      --icon-muted: __ICON_MUTED__;
-      --icon-hover: __ICON_HOVER__;
-      --line: __LINE__;
-      --accent: var(--link-blue);
-      --settings-text-size: __MESSAGE_TEXT_SIZE__px;
-      --hub-embed-sheet-offset: 68px;
-    }
-    * { box-sizing: border-box; }
-    html, body {
-      margin: 0; min-height: 100%;
-      background: var(--bg); color: var(--fg);
-      font-family: "SF Pro Text", "Segoe UI", sans-serif;
-      overscroll-behavior: contain;
-    }
+    __HUB_INCLUDE:_embed_sheet_base.css__
+    /* Page-specific extensions */
+    :root { --accent: var(--link-blue); }
     body { padding: 0 0 max(18px, env(safe-area-inset-bottom)) 0; }
     __HUB_HEADER_CSS__
     .hub-page-header {
@@ -121,119 +104,124 @@
       position: absolute; inset: 0;
       overflow: hidden;
     }
+    .dir-header {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      min-height: 44px;
+      padding: 6px 14px;
+      position: relative;
+    }
     .dir-back-btn {
-      background: transparent; border: none; color: var(--icon-muted);
-      font: inherit; font-size: 17px;
-      display: flex; align-items: center; justify-content: center;
+      appearance: none; -webkit-appearance: none;
+      width: 36px; height: 36px;
+      border: none; border-radius: 8px;
+      padding: 0; background: transparent;
+      color: var(--icon-muted);
+      display: inline-flex; align-items: center; justify-content: center;
       cursor: pointer; -webkit-tap-highlight-color: transparent;
-      width: 44px; height: 44px; flex-shrink: 0; border-radius: 12px;
-      margin: 0 2px 0 -10px;
-      padding: 0;
+      flex: 0 0 auto;
+      margin: 0;
+      transition: color 120ms ease;
     }
-    .dir-back-btn:active { color: var(--icon-hover); }
+    .dir-back-btn:active {
+      color: var(--icon-hover);
+    }
     .dir-back-btn[hidden] { display: none; }
-    .dir-back-btn svg { display: block; width: 17px; height: 17px; }
-    .dir-path-text {
-      flex: 1; min-width: 0;
-      color: var(--muted);
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      direction: rtl; text-align: left;
+    .dir-back-btn svg {
+      width: 18px; height: 18px;
+      display: block; stroke-width: 1.8;
     }
-    .dir-action-list { flex-shrink: 0; padding-bottom: 4px; }
+    .dir-path-text {
+      position: absolute;
+      left: 50%; top: 50%;
+      transform: translate(-50%, -50%);
+      max-width: calc(100% - 160px);
+      font-size: 15px; font-weight: 600;
+      color: var(--fg);
+      text-align: center;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      pointer-events: none;
+    }
     .dir-list {
       flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
-      padding: 4px 10px max(16px, env(safe-area-inset-bottom));
+      padding: 4px 0 calc(20px + env(safe-area-inset-bottom, 0px));
       display: grid;
       grid-template-columns: 1fr;
       gap: 2px;
       align-content: start;
-      -webkit-mask-image: linear-gradient(to bottom, transparent 0, rgba(0,0,0,0.72) 14px, #000 30px, #000 100%);
-      mask-image: linear-gradient(to bottom, transparent 0, rgba(0,0,0,0.72) 14px, #000 30px, #000 100%);
       will-change: transform, opacity;
     }
     .dir-list.slide-out-forward {
       opacity: 0;
-      transform: translateX(-30px);
+      transform: translateX(-16px);
       transition: transform 150ms ease, opacity 120ms ease;
       overflow: hidden;
     }
     .dir-list.slide-out-back {
       opacity: 0;
-      transform: translateX(30px);
+      transform: translateX(16px);
       transition: transform 150ms ease, opacity 120ms ease;
       overflow: hidden;
     }
     .dir-list.slide-in-forward {
       opacity: 0;
-      transform: translateX(30px);
+      transform: translateX(16px);
     }
     .dir-list.slide-in-back {
       opacity: 0;
-      transform: translateX(-30px);
+      transform: translateX(-16px);
     }
     .dir-list.slide-settle {
       opacity: 1;
       transform: translateX(0);
-      transition: transform 210ms cubic-bezier(0.22, 1, 0.36, 1), opacity 160ms ease;
+      transition: transform 170ms cubic-bezier(0.22, 1, 0.36, 1), opacity 140ms ease;
     }
-    .dir-item,
-    .dir-control-row {
+    /* .hub-row provides: position:relative, isolation:isolate,
+       touch-action:manipulation, -webkit-tap-highlight-color, ::before highlight */
+    .dir-item {
       display: flex; align-items: center;
-      padding: 8px 12px;
-      cursor: pointer; -webkit-tap-highlight-color: transparent;
+      padding: 6px 14px;
+      cursor: pointer;
       gap: 12px;
       border: none; background: transparent; color: var(--fg);
       width: 100%; font: inherit; text-align: left;
     }
-    .dir-item {
-      border-radius: 8px;
-      transition: background 120ms ease;
-    }
-    .dir-current-row { cursor: default; }
-    .dir-item:active,
-    .dir-control-row:active { background: rgba(255,255,255,0.05); }
-    .dir-item.tap-highlight { background: rgba(255,255,255,0.05); }
-    .has-hover .dir-item:hover { background: rgba(255,255,255,0.04); }
-    @media (hover: hover) and (pointer: fine) {
-      .dir-item:hover { background: rgba(255,255,255,0.04); }
-    }
-    .dir-current-row:active { background: transparent; }
-    .dir-control-row[disabled] { color: var(--muted); cursor: default; }
-    .dir-control-row[disabled]:active { background: transparent; }
-    .dir-item-icon,
-    .dir-control-icon {
-      flex-shrink: 0; color: var(--icon-fg); display: flex; align-items: center; justify-content: center;
+    .dir-item-icon {
       width: 22px; height: 22px;
+      flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+      color: var(--icon-fg);
     }
-    .dir-item-icon svg,
-    .dir-control-icon svg { display: block; width: 17px; height: 17px; }
-    .dir-item-name,
-    .dir-control-label {
+    .dir-item-icon svg { display: block; width: 17px; height: 17px; stroke-width: 1.7; }
+    .dir-item-name {
       flex: 1; min-width: 0;
-      font-size: var(--settings-text-size, 15px); font-weight: 700;
-      letter-spacing: 0;
+      font-size: var(--settings-text-size);
+      line-height: 1.3;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       color: var(--fg);
+      font-weight: 400;
     }
-    .dir-current-row .dir-control-label { color: var(--muted); }
-    .dir-start-btn {
-      appearance: none; -webkit-appearance: none;
-      border: none; background: transparent; color: var(--fg);
-      font: inherit; font-size: var(--settings-text-size, 15px);
-      font-weight: 700; line-height: 1;
-      padding: 8px 0 8px 10px; border-radius: 8px;
-      margin-right: 12px;
-      flex-shrink: 0; cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
+    html[data-bold-mode="1"] .dir-item-name { font-weight: 700; }
+    html[data-bold-mode="1"] .dir-create-label { font-weight: 700; }
+    html[data-bold-mode="1"] .dir-path-text { font-weight: 700; }
+    html[data-bold-mode="1"] .dir-start-btn { font-weight: 700; }
+    .dir-item-chevron {
+      width: 14px; height: 14px;
+      color: var(--icon-muted);
+      flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
     }
-    .dir-start-btn:active { color: var(--muted); }
-    .dir-start-btn[disabled] { color: var(--muted); cursor: default; }
-    .dir-item-chevron { flex-shrink: 0; color: var(--icon-muted); display: flex; align-items: center; }
-    .dir-item-chevron svg { display: block; width: 14px; height: 14px; }
+    .dir-item-chevron svg { display: block; width: 100%; height: 100%; stroke-width: 1.8; }
     .dir-item.leaf .dir-item-chevron { visibility: hidden; }
+    .dir-create-icon {
+      color: var(--accent);
+    }
+    .dir-create-label {
+      color: var(--accent);
+      font-weight: 500;
+    }
     .dir-empty {
       padding: 40px 24px; text-align: center;
-      font-size: var(--settings-text-size, 15px); color: var(--muted);
+      font-size: var(--settings-text-size); color: var(--muted);
     }
     .dir-loading {
       padding: 40px 24px;
@@ -254,8 +242,8 @@
     .inline-loading-spinner {
       width: 18px;
       height: 18px;
-      border: 2px solid var(--icon-muted, rgba(255,255,255,0.3));
-      border-top-color: var(--icon-fg, #fff);
+      border: 2px solid var(--icon-muted);
+      border-top-color: var(--icon-fg);
       border-radius: 50%;
       animation: hub-inline-loading-spin 800ms linear infinite;
       flex: 0 0 auto;
@@ -265,8 +253,69 @@
       color: var(--muted); flex-shrink: 0;
       min-height: 0;
     }
-    .dir-status:not(:empty) { padding: 2px 12px 4px; min-height: 1.6em; }
+    .dir-status:not(:empty) { padding: 4px 14px; min-height: 1.6em; }
     .dir-status.error { color: rgb(232, 146, 146); }
+    .dir-start-btn {
+      appearance: none; -webkit-appearance: none;
+      flex: 0 0 auto;
+      height: 32px;
+      padding: 0 12px;
+      border-radius: 999px;
+      border: 0.5px solid rgba(255, 255, 255, 0.14);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.018) 48%, rgba(255, 255, 255, 0.045)),
+        rgba(var(--bg-rgb), 0.52);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.20),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.055),
+        inset 0 0 18px rgba(255, 255, 255, 0.024),
+        0 4px 14px rgba(0, 0, 0, 0.25);
+      backdrop-filter: blur(28px) saturate(220%) contrast(114%);
+      -webkit-backdrop-filter: blur(28px) saturate(220%) contrast(114%);
+      color: var(--fg);
+      font: inherit;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+      margin-left: auto;
+      transition:
+        background 160ms ease,
+        border-color 160ms ease,
+        box-shadow 160ms ease,
+        transform 160ms ease;
+    }
+    .dir-start-btn:active {
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.095), rgba(255, 255, 255, 0.024) 48%, rgba(255, 255, 255, 0.055)),
+        rgba(var(--bg-rgb), 0.60);
+      border-color: rgba(255, 255, 255, 0.18);
+      transform: scale(0.94);
+    }
+    .dir-start-btn[disabled] {
+      opacity: 0.4;
+      cursor: default;
+      box-shadow: none;
+    }
+    html[data-theme="light"] .dir-start-btn {
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.28) 44%, rgba(255, 255, 255, 0.48)),
+        rgba(var(--bg-rgb), 0.25);
+      border-color: rgba(0, 0, 0, 0.10);
+      box-shadow:
+        inset 0 1px 1px rgba(255, 255, 255, 0.92),
+        0 4px 14px rgba(0, 0, 0, 0.10),
+        0 1px 0 rgba(255, 255, 255, 0.56);
+    }
+    html[data-theme="light"] .dir-start-btn:active {
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.80), rgba(255, 255, 255, 0.36) 44%, rgba(255, 255, 255, 0.56)),
+        rgba(var(--bg-rgb), 0.35);
+    }
     .dir-create-overlay {
       position: fixed; inset: 0; z-index: 50;
       display: flex; align-items: center; justify-content: center;
@@ -310,11 +359,14 @@
       z-index: 1;
       border-radius: 24px;
       min-height: 54px;
-      border: none;
-      background: transparent;
-      box-shadow: none;
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid var(--line-strong, rgba(255, 255, 255, 0.15));
+      background: rgba(20, 20, 20, 0.72);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    }
+    html[data-theme="light"] .dir-create-field {
+      background: rgba(240, 240, 240, 0.88);
+      border-color: rgba(0, 0, 0, 0.15);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
     }
     .dir-create-input {
       display: block;
@@ -353,7 +405,7 @@
       border-radius: 8px;
       border: 1px solid rgba(215, 225, 238, 0.18);
       background: linear-gradient(180deg, rgba(245, 248, 252, 0.98) 0%, rgba(215, 225, 238, 0.98) 100%);
-      color: var(--fg);
+      color: #121212;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
@@ -378,22 +430,13 @@
       <div class="status" id="statusText"></div>
     </section>
     <div id="dirBrowser">
-      <div class="dir-action-list">
-        <div class="dir-control-row dir-current-row">
-          <button type="button" class="dir-back-btn" id="dirBackBtn" hidden>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 20 7 12 17 4"/></svg>
-          </button>
-          <span class="dir-control-label dir-path-text" id="dirPathText"></span>
-          <button type="button" class="dir-start-btn" id="dirStartBtn" disabled>Start New Session</button>
-        </div>
-        <button type="button" class="dir-control-row" id="dirCreateBtn">
-          <span class="dir-control-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          </span>
-          <span class="dir-control-label">Create New Directory</span>
+      <div class="dir-header">
+        <button type="button" class="dir-back-btn" id="dirBackBtn" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg>
         </button>
+        <span class="dir-path-text" id="dirPathText"></span>
+        <button type="button" class="dir-start-btn" id="dirStartBtn" disabled>Start</button>
       </div>
-      <div class="dir-status" id="dirStatus"></div>
       <div class="dir-list" id="dirList">
         <div class="dir-loading">
           <span class="inline-loading">
@@ -401,6 +444,7 @@
           </span>
         </div>
       </div>
+      <div class="dir-status" id="dirStatus"></div>
     </div>
     <div class="dir-create-overlay" id="dirCreateOverlay" hidden>
       <form class="dir-create-composer" id="dirCreateForm">
@@ -520,19 +564,20 @@
       const dirBackBtn = document.getElementById("dirBackBtn");
       const dirPathText = document.getElementById("dirPathText");
       const dirStartBtn = document.getElementById("dirStartBtn");
-      const dirCreateBtn = document.getElementById("dirCreateBtn");
       const dirCreateOverlay = document.getElementById("dirCreateOverlay");
       const dirCreateForm = document.getElementById("dirCreateForm");
       const dirCreateInput = document.getElementById("dirCreateInput");
       const dirCreateSubmit = document.getElementById("dirCreateSubmit");
       const dirList = document.getElementById("dirList");
 
+      const getDirCreateBtn = () => document.getElementById("dirCreateBtn");
+
       let _currentPath = "";
       let _parentPath = null;
       let _loading = false;
 
-      const folderSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>';
-      const chevronSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>';
+      const folderSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h5.1a1.5 1.5 0 0 1 1.06.44l1.9 1.9a1.5 1.5 0 0 0 1.06.44H19.5A1.5 1.5 0 0 1 21 9.28V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
+      const chevronSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>';
 
       function shortPath(p) {
         const parts = (p || "").replace(/\/$/, "").split("/").filter(Boolean);
@@ -573,7 +618,8 @@
           return;
         }
         const target = childPath(_currentPath, name);
-        if (dirCreateBtn) dirCreateBtn.disabled = true;
+        const activeCreateBtn = getDirCreateBtn();
+        if (activeCreateBtn) activeCreateBtn.disabled = true;
         if (dirCreateSubmit) dirCreateSubmit.disabled = true;
         if (dirStatus) { dirStatus.textContent = "Creating…"; dirStatus.className = "dir-status"; }
         try {
@@ -589,7 +635,8 @@
         } catch (err) {
           if (dirStatus) { dirStatus.textContent = err?.message || "Failed."; dirStatus.className = "dir-status error"; }
         } finally {
-          if (dirCreateBtn) dirCreateBtn.disabled = false;
+          const activeCreateBtn2 = getDirCreateBtn();
+          if (activeCreateBtn2) activeCreateBtn2.disabled = false;
           if (dirCreateSubmit) dirCreateSubmit.disabled = false;
         }
       }
@@ -597,27 +644,50 @@
       const dirTransitionDelay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
       function dirEntriesHtml(entries) {
-        if (!entries.length) return '<div class="dir-empty">No subfolders</div>';
-        return entries.map(e => {
+        let html = `<button type="button" class="dir-item hub-row dir-create-item" id="dirCreateBtn">` +
+          `<span class="dir-item-icon dir-create-icon">` +
+          `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>` +
+          `</span>` +
+          `<span class="dir-item-name dir-create-label">Create New Directory</span>` +
+          `</button>`;
+        if (!entries.length) {
+          html += '<div class="dir-empty">No subfolders</div>';
+          return html;
+        }
+        html += entries.map(e => {
           const leaf = !e.has_children;
-          return `<div class="dir-item${leaf ? " leaf" : ""}" data-path="${escAttr(e.path)}">` +
+          return `<div class="dir-item hub-row${leaf ? " leaf" : ""}" data-path="${escAttr(e.path)}">` +
             `<span class="dir-item-icon">${folderSvg}</span>` +
             `<span class="dir-item-name">${esc(e.name)}</span>` +
             `<span class="dir-item-chevron">${chevronSvg}</span>` +
             `</div>`;
         }).join("");
+        return html;
       }
 
       function attachDirItemHandlers() {
-        dirList.querySelectorAll(".dir-item").forEach(el => {
+        dirList.querySelectorAll(".dir-item:not(.dir-create-item)").forEach(el => {
           el.addEventListener("click", () => {
-            const p = el.dataset.path;
-            el.classList.add("tap-highlight");
-            setTimeout(() => el.classList.remove("tap-highlight"), 150);
-            loadDir(p, "forward");
+            loadDir(el.dataset.path, "forward");
           });
         });
+        const activeCreateBtn = getDirCreateBtn();
+        if (activeCreateBtn) {
+          activeCreateBtn.addEventListener("click", openCreateOverlay);
+        }
       }
+
+      // Touch feedback for <div> rows — CSS :active doesn't fire on iOS Safari
+      // for non-interactive elements, so we add .tap-active on touchstart.
+      dirList.addEventListener("touchstart", (e) => {
+        const row = e.target.closest(".dir-item:not(.dir-create-item)");
+        if (row) row.classList.add("tap-active");
+      }, { passive: true });
+      ["touchend", "touchcancel"].forEach(evt => {
+        dirList.addEventListener(evt, () => {
+          dirList.querySelectorAll(".tap-active").forEach(el => el.classList.remove("tap-active"));
+        }, { passive: true });
+      });
 
       async function renderDirList(html, direction) {
         const animated = direction === "forward" || direction === "back";
@@ -647,7 +717,8 @@
         if (_loading) return;
         _loading = true;
         if (dirStartBtn) dirStartBtn.disabled = true;
-        if (dirCreateBtn) dirCreateBtn.disabled = true;
+        const activeCreateBtn = getDirCreateBtn();
+        if (activeCreateBtn) activeCreateBtn.disabled = true;
         if (!_currentPath) dirList.innerHTML = '<div class="dir-loading"><span class="inline-loading"><span class="inline-loading-spinner" aria-hidden="true"></span></span></div>';
         if (dirStatus) { dirStatus.textContent = ""; dirStatus.className = "dir-status"; }
         try {
@@ -670,13 +741,13 @@
         } finally {
           _loading = false;
           if (dirStartBtn) dirStartBtn.disabled = !_currentPath;
-          if (dirCreateBtn) dirCreateBtn.disabled = !_currentPath;
+          const activeCreateBtn2 = getDirCreateBtn();
+          if (activeCreateBtn2) activeCreateBtn2.disabled = !_currentPath;
         }
       }
 
       dirBackBtn.addEventListener("click", () => { if (_parentPath) loadDir(_parentPath, "back"); });
       if (dirStartBtn) dirStartBtn.addEventListener("click", () => { if (_currentPath) startSession(_currentPath); });
-      if (dirCreateBtn) dirCreateBtn.addEventListener("click", openCreateOverlay);
       if (dirCreateOverlay) {
         dirCreateOverlay.addEventListener("click", (event) => {
           if (event.target === dirCreateOverlay) closeCreateOverlay();
