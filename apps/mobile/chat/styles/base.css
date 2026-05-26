@@ -66,6 +66,7 @@
       --mobile-sheet-pill-bg: rgba(255, 255, 255, 0.22);
       --mobile-top-gradient-rgb: __DARK_BG_CHANNELS__;
       --mobile-sheet-gradient-rgb: var(--mobile-top-gradient-rgb);
+      --bottom-sheet-top-gradient-rgb: var(--mobile-sheet-gradient-rgb);
       --mobile-sheet-content-offset: 68px;
       --git-summary-floating-bg: var(--mobile-sheet-floating-bg);
       --user-accent: #b0b8c0;
@@ -399,19 +400,19 @@
       top: 0;
       left: 0;
       right: 0;
-      height: 50px;
+      height: var(--bottom-sheet-top-gradient-height, 50px);
       z-index: 4;
       pointer-events: none;
       background: linear-gradient(
-        rgba(var(--mobile-sheet-gradient-rgb), 0.68) 0%,
-        rgba(var(--mobile-sheet-gradient-rgb), 0.68) 50%,
-        rgba(var(--mobile-sheet-gradient-rgb), 0.50) 64%,
-        rgba(var(--mobile-sheet-gradient-rgb), 0.28) 78%,
-        rgba(var(--mobile-sheet-gradient-rgb), 0.10) 90%,
-        rgba(var(--mobile-sheet-gradient-rgb), 0) 100%
+        rgba(var(--bottom-sheet-top-gradient-rgb), var(--bottom-sheet-top-gradient-strong, 0.68)) 0%,
+        rgba(var(--bottom-sheet-top-gradient-rgb), var(--bottom-sheet-top-gradient-strong, 0.68)) 50%,
+        rgba(var(--bottom-sheet-top-gradient-rgb), var(--bottom-sheet-top-gradient-mid, 0.50)) 64%,
+        rgba(var(--bottom-sheet-top-gradient-rgb), var(--bottom-sheet-top-gradient-soft, 0.28)) 78%,
+        rgba(var(--bottom-sheet-top-gradient-rgb), var(--bottom-sheet-top-gradient-faint, 0.10)) 90%,
+        rgba(var(--bottom-sheet-top-gradient-rgb), 0) 100%
       );
-      backdrop-filter: blur(0.9px);
-      -webkit-backdrop-filter: blur(0.9px);
+      backdrop-filter: blur(var(--bottom-sheet-top-gradient-blur, 0.9px));
+      -webkit-backdrop-filter: blur(var(--bottom-sheet-top-gradient-blur, 0.9px));
     }
 
     .mobile-bottom-sheet .mobile-bottom-sheet-nav,

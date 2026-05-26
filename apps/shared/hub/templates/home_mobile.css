@@ -24,6 +24,7 @@
       --mob-sheet-floating-hover-bg: var(--panel-2);
       --mob-sheet-pill-bg: rgba(255, 255, 255, 0.22);
       --mob-sheet-gradient-rgb: var(--mob-top-gradient-rgb);
+      --bottom-sheet-top-gradient-rgb: var(--mob-sheet-gradient-rgb);
       --code-bg: rgba(255, 255, 255, 0.05);
     }
     html[data-theme="light"] {
@@ -966,19 +967,19 @@
       top: 0;
       left: 0;
       right: 0;
-      height: 50px;
+      height: var(--bottom-sheet-top-gradient-height, 50px);
       z-index: 4;
       pointer-events: none;
       background: linear-gradient(
-        rgba(var(--mob-sheet-gradient-rgb), 0.68) 0%,
-        rgba(var(--mob-sheet-gradient-rgb), 0.68) 50%,
-        rgba(var(--mob-sheet-gradient-rgb), 0.50) 64%,
-        rgba(var(--mob-sheet-gradient-rgb), 0.28) 78%,
-        rgba(var(--mob-sheet-gradient-rgb), 0.10) 90%,
-        rgba(var(--mob-sheet-gradient-rgb), 0) 100%
+        rgba(var(--bottom-sheet-top-gradient-rgb), var(--bottom-sheet-top-gradient-strong, 0.68)) 0%,
+        rgba(var(--bottom-sheet-top-gradient-rgb), var(--bottom-sheet-top-gradient-strong, 0.68)) 50%,
+        rgba(var(--bottom-sheet-top-gradient-rgb), var(--bottom-sheet-top-gradient-mid, 0.50)) 64%,
+        rgba(var(--bottom-sheet-top-gradient-rgb), var(--bottom-sheet-top-gradient-soft, 0.28)) 78%,
+        rgba(var(--bottom-sheet-top-gradient-rgb), var(--bottom-sheet-top-gradient-faint, 0.10)) 90%,
+        rgba(var(--bottom-sheet-top-gradient-rgb), 0) 100%
       );
-      backdrop-filter: blur(0.9px);
-      -webkit-backdrop-filter: blur(0.9px);
+      backdrop-filter: blur(var(--bottom-sheet-top-gradient-blur, 0.9px));
+      -webkit-backdrop-filter: blur(var(--bottom-sheet-top-gradient-blur, 0.9px));
     }
 
     .mob-sheet-backdrop.sheet-open .mob-sheet-panel {
