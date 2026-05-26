@@ -63,6 +63,7 @@
     const headerRoot = document.querySelector(".hub-page-header");
     const hasOpenHeaderMenu = () => !!(gitBranchPanel?.classList.contains("open") || rightMenuPanel?.classList.contains("open") || attachedFilesPanel?.classList.contains("open") || paneTracePanel?.classList.contains("open"));
     const MOBILE_BOTTOM_SHEET_CLOSE_MS = 300;
+    const mobileSheetCloseIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
     const animateBottomSheetOpen = (panel, onOpened = () => { }) => {
       if (!panel) return;
       panel.hidden = false;
@@ -74,90 +75,145 @@
         });
       });
     };
-    const ATTACHED_FILES_SHEET_CLOSE_MS = MOBILE_BOTTOM_SHEET_CLOSE_MS;
-    let attachedFilesSheetCloseTimer = 0;
-    let attachedFilesSheetScrollY = 0;
-    let attachedFilesSheetScrollLocked = false;
-    const clearAttachedFilesSheetCloseTimer = () => {
-      if (!attachedFilesSheetCloseTimer) return;
-      clearTimeout(attachedFilesSheetCloseTimer);
-      attachedFilesSheetCloseTimer = 0;
+    const wireMobileSheetNavDrag = (sheetNav, sheetPanel, onClose) => {
+      let startY = 0;
+      let dragY = 0;
+      let dragging = false;
+      sheetNav.addEventListener("touchstart", (event) => {
+        const touch = event.touches?.[0];
+        if (!touch) return;
+        startY = touch.clientY;
+        dragY = 0;
+        dragging = true;
+        sheetPanel.style.transition = "none";
+      }, { passive: true });
+      sheetNav.addEventListener("touchmove", (event) => {
+        if (!dragging) return;
+        const touch = event.touches?.[0];
+        if (!touch) return;
+        dragY = Math.max(0, touch.clientY - startY);
+        sheetPanel.style.transform = `translateY(${dragY}px)`;
+      }, { passive: true });
+      const finishDrag = () => {
+        if (!dragging) return;
+        dragging = false;
+        sheetPanel.style.transition = "";
+        sheetPanel.style.transform = "";
+        if (dragY > 80) onClose();
+      };
+      sheetNav.addEventListener("touchend", finishDrag, { passive: true });
+      sheetNav.addEventListener("touchcancel", finishDrag, { passive: true });
     };
-    const lockAttachedFilesSheetScroll = () => {
-      if (attachedFilesSheetScrollLocked) return;
-      attachedFilesSheetScrollLocked = true;
-      attachedFilesSheetScrollY = window.scrollY || document.documentElement.scrollTop || 0;
-      document.documentElement.classList.add("attached-files-sheet-active");
-      document.body.classList.add("attached-files-sheet-active");
-      document.body.style.top = `-${attachedFilesSheetScrollY}px`;
+    const buildMobileBottomSheet = ({
+      kind,
+      title = "",
+      closeLabel = "Close",
+      onClose = () => { },
+      leadingButtonHtml = "",
+    }) => {
+      const sheet = document.createElement("div");
+      sheet.className = `${kind}-sheet mobile-bottom-sheet mobile-floating-sheet`;
+      const sheetPanel = document.createElement("div");
+      sheetPanel.className = `${kind}-sheet-panel mobile-bottom-sheet-panel mobile-floating-sheet-panel`;
+      const sheetNav = document.createElement("div");
+      sheetNav.className = `${kind}-sheet-nav mobile-bottom-sheet-nav mobile-floating-sheet-nav`;
+      const leading = leadingButtonHtml || "";
+      sheetNav.innerHTML = `
+        <div class="${kind}-sheet-pill mobile-bottom-sheet-pill mobile-floating-sheet-pill"></div>
+        <div class="${kind}-sheet-nav-bar mobile-bottom-sheet-nav-bar mobile-floating-sheet-nav-bar">
+          ${leading}
+          <div class="${kind}-sheet-title mobile-bottom-sheet-title mobile-floating-sheet-title"></div>
+          <button type="button" class="${kind}-sheet-close mobile-bottom-sheet-button mobile-floating-sheet-button" aria-label="${closeLabel}">
+            ${mobileSheetCloseIcon}
+          </button>
+        </div>`;
+      const titleEl = sheetNav.querySelector(`.${kind}-sheet-title`);
+      if (titleEl) titleEl.textContent = title;
+      const contentEl = document.createElement("div");
+      contentEl.className = `${kind}-sheet-content mobile-bottom-sheet-content`;
+      const closeBtn = sheetNav.querySelector(`.${kind}-sheet-close`);
+      closeBtn?.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        onClose();
+      });
+      wireMobileSheetNavDrag(sheetNav, sheetPanel, onClose);
+      sheetPanel.append(sheetNav, contentEl);
+      sheet.appendChild(sheetPanel);
+      return { sheet, sheetPanel, sheetNav, contentEl, titleEl, closeBtn };
     };
-    const unlockAttachedFilesSheetScroll = () => {
-      if (!attachedFilesSheetScrollLocked) return;
-      attachedFilesSheetScrollLocked = false;
-      document.documentElement.classList.remove("attached-files-sheet-active");
-      document.body.classList.remove("attached-files-sheet-active");
-      document.body.style.top = "";
-      try { window.scrollTo(0, attachedFilesSheetScrollY || 0); } catch (_) { }
-    };
-    const closeAttachedFilesSheet = ({ immediate = false } = {}) => {
-      if (!attachedFilesPanel) return;
-      clearAttachedFilesSheetCloseTimer();
-      attachedFilesPanel.classList.remove("open");
-      if (immediate) {
-        attachedFilesPanel.classList.remove("sheet-closing");
-        attachedFilesPanel.hidden = true;
-        unlockAttachedFilesSheetScroll();
+    const createMobileSheetController = (panel, activeClass, { onOpened = () => { }, onClosed = () => { } } = {}) => {
+      let closeTimer = 0;
+      let scrollY = 0;
+      let scrollLocked = false;
+      const clearCloseTimer = () => {
+        if (!closeTimer) return;
+        clearTimeout(closeTimer);
+        closeTimer = 0;
+      };
+      const lockScroll = () => {
+        if (scrollLocked) return;
+        scrollLocked = true;
+        scrollY = window.scrollY || document.documentElement.scrollTop || 0;
+        document.documentElement.classList.add(activeClass);
+        document.body.classList.add(activeClass);
+        document.body.style.top = `-${scrollY}px`;
+      };
+      const unlockScroll = () => {
+        if (!scrollLocked) return;
+        scrollLocked = false;
+        document.documentElement.classList.remove(activeClass);
+        document.body.classList.remove(activeClass);
+        document.body.style.top = "";
+        try { window.scrollTo(0, scrollY || 0); } catch (_) { }
+      };
+      const close = ({ immediate = false } = {}) => {
+        if (!panel) return;
+        clearCloseTimer();
+        panel.classList.remove("open");
+        if (immediate) {
+          panel.classList.remove("sheet-closing");
+          panel.hidden = true;
+          unlockScroll();
+          onClosed();
+          syncHeaderMenuFocus();
+          return;
+        }
+        panel.classList.add("sheet-closing");
+        closeTimer = window.setTimeout(() => {
+          closeTimer = 0;
+          panel.classList.remove("sheet-closing");
+          panel.hidden = true;
+          unlockScroll();
+          onClosed();
+          syncHeaderMenuFocus();
+        }, MOBILE_BOTTOM_SHEET_CLOSE_MS);
         syncHeaderMenuFocus();
-        return;
-      }
-      attachedFilesPanel.classList.add("sheet-closing");
-      attachedFilesSheetCloseTimer = window.setTimeout(() => {
-        attachedFilesSheetCloseTimer = 0;
-        attachedFilesPanel.classList.remove("sheet-closing");
-        attachedFilesPanel.hidden = true;
-        unlockAttachedFilesSheetScroll();
-        syncHeaderMenuFocus();
-      }, ATTACHED_FILES_SHEET_CLOSE_MS);
-      syncHeaderMenuFocus();
+      };
+      const open = (afterOpen = () => { }) => {
+        if (!panel) return;
+        clearCloseTimer();
+        lockScroll();
+        animateBottomSheetOpen(panel, () => {
+          syncHeaderMenuFocus();
+          onOpened();
+          afterOpen();
+        });
+      };
+      return { open, close, clearCloseTimer, lockScroll, unlockScroll };
     };
+    const attachedFilesSheet = createMobileSheetController(attachedFilesPanel, "attached-files-sheet-active");
+    const closeAttachedFilesSheet = (options) => attachedFilesSheet.close(options);
     const openAttachedFilesSheet = () => {
       if (!attachedFilesPanel) return;
-      clearAttachedFilesSheetCloseTimer();
-      lockAttachedFilesSheetScroll();
-      animateBottomSheetOpen(attachedFilesPanel, () => {
-        syncHeaderMenuFocus();
-      });
+      attachedFilesSheet.open();
       if (typeof attachedFilesPanel._syncCategoryUi === "function") {
         requestAnimationFrame(() => {
           requestAnimationFrame(() => attachedFilesPanel._syncCategoryUi());
         });
       }
     };
-    const PANE_TRACE_SHEET_CLOSE_MS = MOBILE_BOTTOM_SHEET_CLOSE_MS;
-    let paneTraceSheetCloseTimer = 0;
-    let paneTraceSheetScrollY = 0;
-    let paneTraceSheetScrollLocked = false;
-    const clearPaneTraceSheetCloseTimer = () => {
-      if (!paneTraceSheetCloseTimer) return;
-      clearTimeout(paneTraceSheetCloseTimer);
-      paneTraceSheetCloseTimer = 0;
-    };
-    const lockPaneTraceSheetScroll = () => {
-      if (paneTraceSheetScrollLocked) return;
-      paneTraceSheetScrollLocked = true;
-      paneTraceSheetScrollY = window.scrollY || document.documentElement.scrollTop || 0;
-      document.documentElement.classList.add("pane-trace-sheet-active");
-      document.body.classList.add("pane-trace-sheet-active");
-      document.body.style.top = `-${paneTraceSheetScrollY}px`;
-    };
-    const unlockPaneTraceSheetScroll = () => {
-      if (!paneTraceSheetScrollLocked) return;
-      paneTraceSheetScrollLocked = false;
-      document.documentElement.classList.remove("pane-trace-sheet-active");
-      document.body.classList.remove("pane-trace-sheet-active");
-      document.body.style.top = "";
-      try { window.scrollTo(0, paneTraceSheetScrollY || 0); } catch (_) { }
-    };
+    const paneTraceSheet = createMobileSheetController(paneTracePanel, "pane-trace-sheet-active");
     const paneTraceSheetContentEl = () => paneTracePanel?.querySelector(".pane-trace-sheet-content");
     const ensurePaneTraceSheetDom = () => {
       if (!paneTracePanel) return null;
@@ -167,121 +223,27 @@
       const existing = document.createDocumentFragment();
       while (paneTracePanel.firstChild) existing.appendChild(paneTracePanel.firstChild);
 
-      const sheet = document.createElement("div");
-      sheet.className = "pane-trace-sheet mobile-floating-sheet";
-      const sheetPanel = document.createElement("div");
-      sheetPanel.className = "pane-trace-sheet-panel mobile-floating-sheet-panel";
-      const sheetNav = document.createElement("div");
-      sheetNav.className = "pane-trace-sheet-nav mobile-floating-sheet-nav";
-      sheetNav.innerHTML = `
-        <div class="pane-trace-sheet-pill mobile-floating-sheet-pill"></div>
-        <div class="pane-trace-sheet-nav-bar mobile-floating-sheet-nav-bar">
-          <div class="pane-trace-sheet-title mobile-floating-sheet-title">Pane Trace</div>
-          <button type="button" class="pane-trace-sheet-close mobile-floating-sheet-button" aria-label="Close pane trace">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-          </button>
-        </div>`;
-
-      contentEl = document.createElement("div");
-      contentEl.className = "pane-trace-sheet-content";
-      contentEl.appendChild(existing);
-
-      const closeBtn = sheetNav.querySelector(".pane-trace-sheet-close");
-      closeBtn?.addEventListener("click", (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        exitPaneTraceMode();
+      const { sheet, contentEl: sheetContentEl } = buildMobileBottomSheet({
+        kind: "pane-trace",
+        title: "Pane Trace",
+        closeLabel: "Close pane trace",
+        onClose: () => exitPaneTraceMode(),
       });
-
-      let startY = 0;
-      let dragY = 0;
-      let dragging = false;
-      sheetNav.addEventListener("touchstart", (event) => {
-        const touch = event.touches?.[0];
-        if (!touch) return;
-        startY = touch.clientY;
-        dragY = 0;
-        dragging = true;
-        sheetPanel.style.transition = "none";
-      }, { passive: true });
-      sheetNav.addEventListener("touchmove", (event) => {
-        if (!dragging) return;
-        const touch = event.touches?.[0];
-        if (!touch) return;
-        dragY = Math.max(0, touch.clientY - startY);
-        sheetPanel.style.transform = `translateY(${dragY}px)`;
-      }, { passive: true });
-      const finishDrag = () => {
-        if (!dragging) return;
-        dragging = false;
-        sheetPanel.style.transition = "";
-        sheetPanel.style.transform = "";
-        if (dragY > 80) exitPaneTraceMode();
-      };
-      sheetNav.addEventListener("touchend", finishDrag, { passive: true });
-      sheetNav.addEventListener("touchcancel", finishDrag, { passive: true });
-
-      sheetPanel.append(sheetNav, contentEl);
-      sheet.appendChild(sheetPanel);
+      contentEl = sheetContentEl;
+      contentEl.appendChild(existing);
       paneTracePanel.appendChild(sheet);
       return contentEl;
     };
     const closePaneTraceSheet = ({ immediate = false } = {}) => {
       if (!paneTracePanel) return;
-      clearPaneTraceSheetCloseTimer();
-      paneTracePanel.classList.remove("open");
-      if (immediate) {
-        paneTracePanel.classList.remove("sheet-closing");
-        paneTracePanel.hidden = true;
-        unlockPaneTraceSheetScroll();
-        syncHeaderMenuFocus();
-        return;
-      }
-      paneTracePanel.classList.add("sheet-closing");
-      paneTraceSheetCloseTimer = window.setTimeout(() => {
-        paneTraceSheetCloseTimer = 0;
-        paneTracePanel.classList.remove("sheet-closing");
-        paneTracePanel.hidden = true;
-        unlockPaneTraceSheetScroll();
-        syncHeaderMenuFocus();
-      }, PANE_TRACE_SHEET_CLOSE_MS);
-      syncHeaderMenuFocus();
+      paneTraceSheet.close({ immediate });
     };
     const openPaneTraceSheet = (onOpened = () => { }) => {
       if (!paneTracePanel) return;
       ensurePaneTraceSheetDom();
-      clearPaneTraceSheetCloseTimer();
-      lockPaneTraceSheetScroll();
-      animateBottomSheetOpen(paneTracePanel, () => {
-        syncHeaderMenuFocus();
-        onOpened();
-      });
+      paneTraceSheet.open(onOpened);
     };
-    const GIT_BRANCH_SHEET_CLOSE_MS = MOBILE_BOTTOM_SHEET_CLOSE_MS;
-    let gitBranchSheetCloseTimer = 0;
-    let gitBranchSheetScrollY = 0;
-    let gitBranchSheetScrollLocked = false;
-    const clearGitBranchSheetCloseTimer = () => {
-      if (!gitBranchSheetCloseTimer) return;
-      clearTimeout(gitBranchSheetCloseTimer);
-      gitBranchSheetCloseTimer = 0;
-    };
-    const lockGitBranchSheetScroll = () => {
-      if (gitBranchSheetScrollLocked) return;
-      gitBranchSheetScrollLocked = true;
-      gitBranchSheetScrollY = window.scrollY || document.documentElement.scrollTop || 0;
-      document.documentElement.classList.add("git-branch-sheet-active");
-      document.body.classList.add("git-branch-sheet-active");
-      document.body.style.top = `-${gitBranchSheetScrollY}px`;
-    };
-    const unlockGitBranchSheetScroll = () => {
-      if (!gitBranchSheetScrollLocked) return;
-      gitBranchSheetScrollLocked = false;
-      document.documentElement.classList.remove("git-branch-sheet-active");
-      document.body.classList.remove("git-branch-sheet-active");
-      document.body.style.top = "";
-      try { window.scrollTo(0, gitBranchSheetScrollY || 0); } catch (_) { }
-    };
+    const gitBranchSheet = createMobileSheetController(gitBranchPanel, "git-branch-sheet-active");
     const gitBranchSheetContentEl = () => gitBranchPanel?.querySelector(".git-branch-sheet-content");
     const ensureGitBranchSheetDom = () => {
       if (!gitBranchPanel) return null;
@@ -291,95 +253,26 @@
       const existing = document.createDocumentFragment();
       while (gitBranchPanel.firstChild) existing.appendChild(gitBranchPanel.firstChild);
 
-      const sheet = document.createElement("div");
-      sheet.className = "git-branch-sheet mobile-floating-sheet";
-      const sheetPanel = document.createElement("div");
-      sheetPanel.className = "git-branch-sheet-panel mobile-floating-sheet-panel";
-      const sheetNav = document.createElement("div");
-      sheetNav.className = "git-branch-sheet-nav mobile-floating-sheet-nav";
-      sheetNav.innerHTML = `
-        <div class="git-branch-sheet-pill mobile-floating-sheet-pill"></div>
-        <div class="git-branch-sheet-nav-bar mobile-floating-sheet-nav-bar">
-          <div class="git-branch-sheet-title mobile-floating-sheet-title">Git Branches</div>
-          <button type="button" class="git-branch-sheet-close mobile-floating-sheet-button" aria-label="Close git branches">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-          </button>
-        </div>`;
-
-      contentEl = document.createElement("div");
-      contentEl.className = "git-branch-sheet-content";
-      contentEl.appendChild(existing);
-
-      const closeBtn = sheetNav.querySelector(".git-branch-sheet-close");
-      closeBtn?.addEventListener("click", (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        closeGitBranchSheet();
+      const { sheet, contentEl: sheetContentEl } = buildMobileBottomSheet({
+        kind: "git-branch",
+        title: "Git Branches",
+        closeLabel: "Close git branches",
+        onClose: () => closeGitBranchSheet(),
       });
-
-      let startY = 0;
-      let dragY = 0;
-      let dragging = false;
-      sheetNav.addEventListener("touchstart", (event) => {
-        const touch = event.touches?.[0];
-        if (!touch) return;
-        startY = touch.clientY;
-        dragY = 0;
-        dragging = true;
-        sheetPanel.style.transition = "none";
-      }, { passive: true });
-      sheetNav.addEventListener("touchmove", (event) => {
-        if (!dragging) return;
-        const touch = event.touches?.[0];
-        if (!touch) return;
-        dragY = Math.max(0, touch.clientY - startY);
-        sheetPanel.style.transform = `translateY(${dragY}px)`;
-      }, { passive: true });
-      const finishDrag = () => {
-        if (!dragging) return;
-        dragging = false;
-        sheetPanel.style.transition = "";
-        sheetPanel.style.transform = "";
-        if (dragY > 80) closeGitBranchSheet();
-      };
-      sheetNav.addEventListener("touchend", finishDrag, { passive: true });
-      sheetNav.addEventListener("touchcancel", finishDrag, { passive: true });
-
-      sheetPanel.append(sheetNav, contentEl);
-      sheet.appendChild(sheetPanel);
+      contentEl = sheetContentEl;
+      contentEl.appendChild(existing);
       gitBranchPanel.appendChild(sheet);
       return contentEl;
     };
     const closeGitBranchSheet = ({ immediate = false } = {}) => {
       if (!gitBranchPanel) return;
-      clearGitBranchSheetCloseTimer();
-      gitBranchPanel.classList.remove("open");
-      if (immediate) {
-        gitBranchPanel.classList.remove("sheet-closing");
-        gitBranchPanel.hidden = true;
-        unlockGitBranchSheetScroll();
-        syncHeaderMenuFocus();
-        return;
-      }
-      gitBranchPanel.classList.add("sheet-closing");
-      gitBranchSheetCloseTimer = window.setTimeout(() => {
-        gitBranchSheetCloseTimer = 0;
-        gitBranchPanel.classList.remove("sheet-closing");
-        gitBranchPanel.hidden = true;
-        unlockGitBranchSheetScroll();
-        syncHeaderMenuFocus();
-      }, GIT_BRANCH_SHEET_CLOSE_MS);
-      syncHeaderMenuFocus();
+      gitBranchSheet.close({ immediate });
     };
     const openGitBranchSheet = async () => {
       if (!gitBranchPanel) return;
-      clearGitBranchSheetCloseTimer();
       ensureGitBranchSheetDom();
       setGitBranchSheetTitle("Git Branches");
-      lockGitBranchSheetScroll();
-      animateBottomSheetOpen(gitBranchPanel, () => {
-        syncHeaderMenuFocus();
-      });
+      gitBranchSheet.open();
       await updateGitBranchPanel();
     };
     const updateHeaderMenuViewportMetrics = () => {
@@ -1054,26 +947,14 @@
           };
         };
         const mountInMobileSheet = (contentEl) => {
-          const sheet = document.createElement("div");
-          sheet.className = "attached-files-sheet mobile-floating-sheet";
-          const sheetPanel = document.createElement("div");
-          sheetPanel.className = "attached-files-sheet-panel mobile-floating-sheet-panel";
-          const sheetNav = document.createElement("div");
-          sheetNav.className = "attached-files-sheet-nav mobile-floating-sheet-nav";
-          sheetNav.innerHTML = `
-            <div class="attached-files-sheet-pill mobile-floating-sheet-pill"></div>
-            <div class="attached-files-sheet-nav-bar mobile-floating-sheet-nav-bar">
-              <button type="button" class="attached-files-sheet-back mobile-floating-sheet-button" aria-label="Go to parent directory">${backIcon}</button>
-              <div class="attached-files-sheet-title mobile-floating-sheet-title"></div>
-              <button type="button" class="attached-files-sheet-close mobile-floating-sheet-button" aria-label="Close attached files">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-              </button>
-            </div>`;
+          const { sheet, sheetNav, contentEl: sheetContentEl } = buildMobileBottomSheet({
+            kind: "attached-files",
+            title: path ? `Repository / ${path}` : "Repository",
+            closeLabel: "Close attached files",
+            onClose: () => closeAttachedFilesSheet(),
+            leadingButtonHtml: `<button type="button" class="attached-files-sheet-back mobile-bottom-sheet-button mobile-floating-sheet-button" aria-label="Go to parent directory">${backIcon}</button>`,
+          });
           const backBtn = sheetNav.querySelector(".attached-files-sheet-back");
-          const titleEl = sheetNav.querySelector(".attached-files-sheet-title");
-          if (titleEl) {
-            titleEl.textContent = path ? `Repository / ${path}` : "Repository";
-          }
           if (backBtn) {
             if (!path) backBtn.disabled = true;
             backBtn.addEventListener("click", (event) => {
@@ -1082,41 +963,6 @@
               goToParentPath();
             });
           }
-          const closeBtn = sheetNav.querySelector(".attached-files-sheet-close");
-          closeBtn?.addEventListener("click", (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            closeAttachedFilesSheet();
-          });
-          let startY = 0;
-          let dragY = 0;
-          let dragging = false;
-          sheetNav.addEventListener("touchstart", (event) => {
-            const touch = event.touches?.[0];
-            if (!touch) return;
-            startY = touch.clientY;
-            dragY = 0;
-            dragging = true;
-            sheetPanel.style.transition = "none";
-          }, { passive: true });
-          sheetNav.addEventListener("touchmove", (event) => {
-            if (!dragging) return;
-            const touch = event.touches?.[0];
-            if (!touch) return;
-            dragY = Math.max(0, touch.clientY - startY);
-            sheetPanel.style.transform = `translateY(${dragY}px)`;
-          }, { passive: true });
-          const finishDrag = () => {
-            if (!dragging) return;
-            dragging = false;
-            sheetPanel.style.transition = "";
-            sheetPanel.style.transform = "";
-            if (dragY > 80) {
-              closeAttachedFilesSheet();
-            }
-          };
-          sheetNav.addEventListener("touchend", finishDrag, { passive: true });
-          sheetNav.addEventListener("touchcancel", finishDrag, { passive: true });
           let swipeStartX = 0;
           let swipeStartY = 0;
           let swipeTracking = false;
@@ -1160,8 +1006,7 @@
             }
           }, { passive: true });
           contentEl.addEventListener("touchcancel", resetSwipeBack, { passive: true });
-          sheetPanel.append(sheetNav, contentEl);
-          sheet.appendChild(sheetPanel);
+          sheetContentEl.appendChild(contentEl);
           attachedFilesPanel.appendChild(sheet);
         };
 

@@ -40,24 +40,24 @@ __CHAT_MAIN_STYLE_BLOCK____CHAT_SHELL_STYLE_BLOCK__  <style id="chatFontSettings
 <body>
   <div id="fileDropdown"></div>
   <div id="cmdDropdown"></div>
-  <div id="fileModal" class="file-modal" hidden>
+  <div id="fileModal" class="file-modal mobile-bottom-sheet-backdrop" hidden>
     <div class="file-modal-backdrop" data-close-file-modal></div>
-    <div class="file-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="fileModalTitle">
-      <div class="file-modal-header">
-        <div class="file-modal-sheet-pill"></div>
-        <div class="file-modal-sheet-nav-bar">
+    <div class="file-modal-dialog mobile-bottom-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="fileModalTitle">
+      <div class="file-modal-header mobile-bottom-sheet-nav">
+        <div class="file-modal-sheet-pill mobile-bottom-sheet-pill"></div>
+        <div class="file-modal-sheet-nav-bar mobile-bottom-sheet-nav-bar">
           <div class="file-modal-meta">
-            <button type="button" id="fileModalBackBtn" class="file-modal-close file-modal-back" hidden aria-label="Back to repository">
+            <button type="button" id="fileModalBackBtn" class="file-modal-close file-modal-back mobile-bottom-sheet-button" hidden aria-label="Back to repository">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M15 19l-7-7 7-7"></path>
               </svg>
             </button>
           </div>
-          <div class="file-modal-text">
+          <div class="file-modal-text mobile-bottom-sheet-title">
             <div id="fileModalTitle" class="file-modal-title">Preview</div>
           </div>
           <div class="file-modal-actions">
-            <button type="button" id="fileModalThemeToggleBtn" class="file-modal-open-editor file-modal-theme-toggle"
+            <button type="button" id="fileModalThemeToggleBtn" class="file-modal-open-editor file-modal-theme-toggle mobile-bottom-sheet-button"
               hidden aria-label="Switch markdown preview theme" title="Switch markdown preview theme">
               <svg id="fileModalThemeToggleIcon" width="15" height="15" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
@@ -72,7 +72,7 @@ __CHAT_MAIN_STYLE_BLOCK____CHAT_SHELL_STYLE_BLOCK__  <style id="chatFontSettings
                 <path d="m19.07 4.93-1.41 1.41"></path>
               </svg>
             </button>
-            <button type="button" id="fileModalHtmlModeBtn" class="file-modal-open-editor file-modal-icon-btn" hidden
+            <button type="button" id="fileModalHtmlModeBtn" class="file-modal-open-editor file-modal-icon-btn mobile-bottom-sheet-button" hidden
               aria-label="Switch HTML preview to web" title="Switch HTML preview to web">
               <svg id="fileModalHtmlModeIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                 stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
@@ -84,7 +84,7 @@ __CHAT_MAIN_STYLE_BLOCK____CHAT_SHELL_STYLE_BLOCK__  <style id="chatFontSettings
                 <path d="M9.5 16.5h4"></path>
               </svg>
             </button>
-            <button type="button" id="fileModalCloseBtn" class="file-modal-close" aria-label="Close file preview">
+            <button type="button" id="fileModalCloseBtn" class="file-modal-close mobile-bottom-sheet-button" aria-label="Close file preview">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
                 stroke-linecap="round" stroke-linejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
