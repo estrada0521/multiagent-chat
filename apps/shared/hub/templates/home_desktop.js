@@ -630,7 +630,7 @@
 
       function open() {
         cancelDismiss();
-        if (isDeskSidePaneOpen()) return;
+        if (isDeskSidebarOpen()) return;
         if (hoverPopover) return;
         if (!_deskSessionList) return;
 
@@ -676,7 +676,7 @@
 
       if (_deskWorkbench) {
         new MutationObserver(() => {
-          if (isDeskSidePaneOpen()) dismiss();
+          if (isDeskSidebarOpen()) dismiss();
         }).observe(_deskWorkbench, { attributes: true, attributeFilter: ["class"] });
       }
     }

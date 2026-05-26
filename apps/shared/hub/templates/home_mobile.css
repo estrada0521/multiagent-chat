@@ -19,7 +19,7 @@
       --top-gradient-50: rgba(var(--mob-top-gradient-rgb), 0.50);
       --top-gradient-28: rgba(var(--mob-top-gradient-rgb), 0.28);
       --top-gradient-10: rgba(var(--mob-top-gradient-rgb), 0.10);
-      --mob-sheet-floating-height: 32px;
+      --mob-sheet-floating-height: 44px;
       --mob-sheet-floating-bg: var(--session-hover-bg);
       --mob-sheet-floating-hover-bg: var(--panel-2);
       --mob-sheet-pill-bg: rgba(255, 255, 255, 0.22);
@@ -1023,14 +1023,15 @@
       display: flex;
       align-items: center;
       width: 100%;
-      padding: 6px 14px;
+      /* safe-area padding aligns buttons with the fixed chat top-bar buttons */
+      padding: 6px calc(14px + env(safe-area-inset-right, 0px)) 6px calc(14px + env(safe-area-inset-left, 0px));
       position: relative;
-      min-height: 44px;
+      min-height: var(--mob-sheet-floating-height);
       pointer-events: auto;
     }
 
     .mob-sheet-nav-gap {
-      flex: 0 0 44px;
+      flex: 0 0 var(--mob-sheet-floating-height);
     }
 
     .mob-sheet-nav-title {
@@ -1038,45 +1039,111 @@
       left: 50%;
       top: 50%;
       transform: translate(-50%, -50%);
-      height: var(--mob-sheet-floating-height);
       font-size: 17px;
       font-weight: 600;
       color: var(--fg);
       white-space: nowrap;
       pointer-events: none;
-      background: transparent;
-      border-radius: 8px;
-      padding: 0 10px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
+      max-width: calc(100% - calc(var(--mob-sheet-floating-height) * 2 + 20px));
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
-    .mob-sheet-close {
-      background: transparent;
-      border: none;
-      color: var(--icon-muted);
-      width: var(--mob-sheet-floating-height);
-      height: var(--mob-sheet-floating-height);
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    /* ── Sheet liquid-glass buttons ───────────────────────────────────────────
+       Close (×) and Start New Session share this visual style.
+       Note: display is intentionally NOT set here so the `hidden` attribute
+       is respected. Each element sets its own display via its own class.
+       ─────────────────────────────────────────────────────────────────────── */
+    .mob-sheet-glass-btn {
+      appearance: none; -webkit-appearance: none;
+      border: 0.5px solid rgba(255, 255, 255, 0.14);
+      border-radius: 999px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.018) 48%, rgba(255, 255, 255, 0.045)),
+        rgba(var(--bg-rgb), 0.52);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.20),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.055),
+        inset 0 0 18px rgba(255, 255, 255, 0.024),
+        0 4px 14px rgba(0, 0, 0, 0.25);
+      backdrop-filter: blur(28px) saturate(220%) contrast(114%);
+      -webkit-backdrop-filter: blur(28px) saturate(220%) contrast(114%);
+      color: var(--icon-fg);
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
-      flex-shrink: 0;
-      border-radius: 8px;
-      margin-left: auto;
+      align-items: center;
+      justify-content: center;
       padding: 0;
       pointer-events: auto;
+      transition:
+        background 160ms ease,
+        border-color 160ms ease,
+        box-shadow 160ms ease,
+        transform 160ms ease;
     }
 
-    .mob-sheet-close:active {
-      background: transparent;
-      color: var(--icon-hover);
+    .mob-sheet-glass-btn:not([hidden]) {
+      display: inline-flex;
+    }
+
+    .mob-sheet-glass-btn:active {
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.095), rgba(255, 255, 255, 0.024) 48%, rgba(255, 255, 255, 0.055)),
+        rgba(var(--bg-rgb), 0.60);
+      border-color: rgba(255, 255, 255, 0.18);
+      transform: scale(0.94);
+    }
+
+    html[data-theme="light"] .mob-sheet-glass-btn {
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.28) 44%, rgba(255, 255, 255, 0.48)),
+        rgba(var(--bg-rgb), 0.25);
+      border-color: rgba(0, 0, 0, 0.10);
+      box-shadow:
+        inset 0 1px 1px rgba(255, 255, 255, 0.92),
+        0 4px 14px rgba(0, 0, 0, 0.10),
+        0 1px 0 rgba(255, 255, 255, 0.56);
+    }
+
+    html[data-theme="light"] .mob-sheet-glass-btn:active {
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.80), rgba(255, 255, 255, 0.36) 44%, rgba(255, 255, 255, 0.56)),
+        rgba(var(--bg-rgb), 0.35);
+    }
+
+    /* Close ×: fixed-size circle, flex-end */
+    .mob-sheet-close {
+      flex-shrink: 0;
+      margin-left: auto;
+      width: var(--mob-sheet-floating-height);
+      height: var(--mob-sheet-floating-height);
     }
 
     .mob-sheet-close svg {
       display: block;
+    }
+
+    /* Start New Session: absolutely centered like .mob-sheet-nav-title */
+    .mob-sheet-start-btn {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      height: var(--mob-sheet-floating-height);
+      padding: 0 14px;
+      font: inherit;
+      font-size: 15px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .mob-sheet-start-btn[disabled] {
+      opacity: 0.4;
+      cursor: default;
+    }
+
+    html[data-bold-mode="1"] .mob-sheet-start-btn {
+      font-weight: 700;
     }
 
     #mobSheetFrame {

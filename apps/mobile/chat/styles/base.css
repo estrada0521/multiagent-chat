@@ -63,14 +63,14 @@
       --glass-filter-16: blur(16px) saturate(180%);
       --glass-filter-18: blur(18px) saturate(160%);
       --glass-filter-20: blur(20px) saturate(180%);
-      --mobile-sheet-floating-height: 32px;
+      --mobile-sheet-floating-height: 44px;
       --mobile-sheet-floating-bg: var(--panel-row-bg);
       --mobile-sheet-floating-hover-bg: var(--panel-row-hover-bg);
       --mobile-sheet-pill-bg: rgba(255, 255, 255, 0.22);
       --mobile-top-gradient-rgb: __DARK_BG_CHANNELS__;
       --mobile-sheet-gradient-rgb: var(--mobile-top-gradient-rgb);
       --bottom-sheet-top-gradient-rgb: var(--mobile-sheet-gradient-rgb);
-      --mobile-sheet-content-offset: 68px;
+      --mobile-sheet-content-offset: 72px;
       --git-summary-floating-bg: var(--mobile-sheet-floating-bg);
       --user-accent: #b0b8c0;
       --system-accent: #5a6068;
@@ -458,8 +458,8 @@
     .mobile-bottom-sheet .mobile-bottom-sheet-nav-bar,
     .mobile-floating-sheet-nav-bar {
       width: 100%;
-      min-height: 44px;
-      padding: 6px 14px;
+      min-height: var(--mobile-sheet-floating-height);
+      padding: 6px calc(14px + env(safe-area-inset-right, 0px)) 6px calc(14px + env(safe-area-inset-left, 0px));
       display: flex;
       align-items: center;
       position: relative;
@@ -468,19 +468,35 @@
     .mobile-bottom-sheet .mobile-bottom-sheet-button,
     .mobile-floating-sheet-button {
       appearance: none;
+      -webkit-appearance: none;
       width: var(--mobile-sheet-floating-height);
       height: var(--mobile-sheet-floating-height);
-      border: none;
-      border-radius: 8px;
+      border: 0.5px solid rgba(255, 255, 255, 0.14);
+      border-radius: 999px;
       padding: 0;
-      background: transparent;
-      color: var(--icon-muted);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.018) 48%, rgba(255, 255, 255, 0.045)),
+        rgba(var(--bg-rgb), 0.52);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.20),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.055),
+        inset 0 0 18px rgba(255, 255, 255, 0.024),
+        0 4px 14px rgba(0, 0, 0, 0.25);
+      backdrop-filter: blur(28px) saturate(220%) contrast(114%);
+      -webkit-backdrop-filter: blur(28px) saturate(220%) contrast(114%);
+      color: var(--icon-fg);
       display: inline-flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
       flex: 0 0 auto;
+      pointer-events: auto;
+      transition:
+        background 160ms ease,
+        border-color 160ms ease,
+        box-shadow 160ms ease,
+        transform 160ms ease;
     }
 
     .mobile-bottom-sheet .mobile-bottom-sheet-nav-bar > .mobile-bottom-sheet-button:last-child,
@@ -490,8 +506,30 @@
 
     .mobile-bottom-sheet .mobile-bottom-sheet-button:active,
     .mobile-floating-sheet-button:active {
-      background: transparent;
-      color: var(--icon-hover);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.095), rgba(255, 255, 255, 0.024) 48%, rgba(255, 255, 255, 0.055)),
+        rgba(var(--bg-rgb), 0.60);
+      border-color: rgba(255, 255, 255, 0.18);
+      transform: scale(0.94);
+    }
+
+    html[data-theme="light"] .mobile-bottom-sheet .mobile-bottom-sheet-button,
+    html[data-theme="light"] .mobile-floating-sheet-button {
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.28) 44%, rgba(255, 255, 255, 0.48)),
+        rgba(var(--bg-rgb), 0.25);
+      border-color: rgba(0, 0, 0, 0.10);
+      box-shadow:
+        inset 0 1px 1px rgba(255, 255, 255, 0.92),
+        0 4px 14px rgba(0, 0, 0, 0.10),
+        0 1px 0 rgba(255, 255, 255, 0.56);
+    }
+
+    html[data-theme="light"] .mobile-bottom-sheet .mobile-bottom-sheet-button:active,
+    html[data-theme="light"] .mobile-floating-sheet-button:active {
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.80), rgba(255, 255, 255, 0.36) 44%, rgba(255, 255, 255, 0.56)),
+        rgba(var(--bg-rgb), 0.35);
     }
 
     .mobile-bottom-sheet .mobile-bottom-sheet-button svg,

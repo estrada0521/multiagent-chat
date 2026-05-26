@@ -869,6 +869,7 @@
       var sheetNav = document.getElementById("mobSheetNav");
       var sheetTitle = document.getElementById("mobSheetTitle");
       var sheetClose = document.getElementById("mobSheetClose");
+      var sheetStartBtn = document.getElementById("mobSheetStartBtn");
       if (!sheet || !sheetFrame || !sheetPanel) return;
 
       var _sheetCloseTimer = 0;
@@ -900,7 +901,11 @@
 
       function openSheet(url, isNewSession, title) {
         _sheetIsNewSession = !!isNewSession;
-        if (sheetTitle) sheetTitle.textContent = title || "";
+        if (sheetTitle) sheetTitle.textContent = _sheetIsNewSession ? "" : (title || "");
+        if (sheetStartBtn) {
+          sheetStartBtn.hidden = !_sheetIsNewSession;
+          sheetStartBtn.disabled = true;
+        }
         if (_sheetCloseTimer) { clearTimeout(_sheetCloseTimer); _sheetCloseTimer = 0; }
         var loadToken = ++_sheetFrameLoadToken;
         sheetFrame.classList.remove("sheet-frame-ready");
@@ -925,6 +930,7 @@
       function finishSheetClose(refreshSessionList) {
         var wasNewSession = _sheetIsNewSession;
         _sheetIsNewSession = false;
+        if (sheetStartBtn) { sheetStartBtn.hidden = true; sheetStartBtn.disabled = true; }
         sheet.classList.remove("sheet-closing");
         sheet.hidden = true;
         _sheetFrameLoadToken++;
@@ -989,10 +995,22 @@
         }, { passive: true });
       }
 
+      if (sheetStartBtn) {
+        sheetStartBtn.addEventListener("click", function () {
+          if (sheetStartBtn.disabled || !sheetFrame || !sheetFrame.contentWindow) return;
+          sheetFrame.contentWindow.postMessage({ type: "multiagent-hub-sheet-start-session" }, "*");
+        });
+      }
+
       window.addEventListener("message", function (e) {
         if (!sheetFrame || e.source !== sheetFrame.contentWindow) return;
         if (e.data && e.data.type === "multiagent-hub-close-sidebar-page") closeSheet();
         if (e.data === "hub_close_chat") closeSheet();
+        if (e.data && e.data.type === "multiagent-hub-sheet-dir-state") {
+          if (_sheetIsNewSession && sheetStartBtn) {
+            sheetStartBtn.disabled = !e.data.path;
+          }
+        }
         if (e.data && e.data.type === "multiagent-hub-open-chat-session") {
           if (_sheetOpeningChat) return;
           _sheetOpeningChat = true;

@@ -25,7 +25,8 @@
   --settings-text-size: __MESSAGE_TEXT_SIZE__px;
 
   /* Layout */
-  --hub-embed-sheet-offset: 68px;
+  /* pill(15px) + nav-bar(6+44+6=56px) = 71px; +1px buffer */
+  --hub-embed-sheet-offset: 72px;
 
   /* Row interaction colours */
   --row-hover-bg: __PANEL_ROW_HOVER_BG__;

@@ -556,6 +556,7 @@ def hub_new_session_html(variant="desktop"):
         message_text_size = int(current_settings.get("message_text_size", 13) or 13)
     except Exception:
         message_text_size = 13
+    bold_mode_mobile = bool(current_settings.get("bold_mode_mobile", False))
     header_html = render_hub_page_header(
         title_href="/",
         title_id="hubPageTitleLink",
@@ -571,6 +572,7 @@ def hub_new_session_html(variant="desktop"):
         .replace("__HUB_HEADER_JS__", _HUB_PAGE_HEADER_JS)
         .replace("__VIEW_VARIANT__", "mobile" if is_mobile else "desktop")
         .replace("__MESSAGE_TEXT_SIZE__", str(message_text_size))
+        .replace("__BOLD_MODE_MOBILE__", "1" if bold_mode_mobile else "")
     )
     return apply_color_tokens(page, settings=current_settings)
 
