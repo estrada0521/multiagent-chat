@@ -276,7 +276,7 @@
       position: fixed; inset: 0; z-index: 50;
       display: flex; align-items: center; justify-content: center;
       padding: 24px 12px;
-      background: rgba(0,0,0,0.10);
+      background: rgba(var(--bg-rgb), 0.10);
       backdrop-filter: blur(0px);
       -webkit-backdrop-filter: blur(0px);
       opacity: 0; pointer-events: none;
@@ -285,44 +285,30 @@
     .dir-create-overlay[hidden] { display: none; }
     .dir-create-overlay.visible {
       opacity: 1; pointer-events: auto;
-      background: rgba(0,0,0,0.16);
+      background: rgba(var(--bg-rgb), 0.16);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
     }
     .dir-create-composer {
-      width: min(900px, calc(100vw - 24px));
+      width: 100%;
       max-width: 900px;
-      padding: 8px 7px 10px;
-      margin: 0;
+      padding: 8px 7px 10px 7px;
+      margin: 0 auto;
       border: none;
       background: transparent;
       position: relative;
       opacity: 0;
-      filter: blur(18px);
       transform: translateY(42px) scale(0.952);
-      transition: opacity 320ms ease, transform 620ms cubic-bezier(0.18, 0.9, 0.22, 1), filter 520ms ease;
-    }
-    .dir-create-composer::before {
-      display: none;
+      transition: opacity 320ms ease, transform 620ms cubic-bezier(0.18, 0.9, 0.22, 1);
     }
     .dir-create-overlay.visible .dir-create-composer {
       opacity: 1;
-      filter: blur(0);
-      transform: translateY(-42px) scale(1);
+      transform: translateY(-20px) scale(1);
     }
     .dir-create-field {
       position: relative;
-      z-index: 1;
       border-radius: 24px;
       min-height: 54px;
-      border: 1px solid var(--line-strong, rgba(255, 255, 255, 0.15));
-      background: rgba(20, 20, 20, 0.72);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-    }
-    html[data-theme="light"] .dir-create-field {
-      background: rgba(240, 240, 240, 0.88);
-      border-color: rgba(0, 0, 0, 0.15);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
     }
     .dir-create-input {
       display: block;
@@ -332,8 +318,8 @@
       color: var(--fg);
       border-radius: 22px;
       min-height: 54px;
-      padding: 12px 54px 12px 14px;
-      font: 700 16px/1.5 "SF Pro Text","Segoe UI",sans-serif;
+      padding: 12px 46px 12px 10px;
+      font: 400 16px/1.5 "SF Pro Text","Segoe UI",sans-serif;
       outline: none;
       box-sizing: border-box;
       -webkit-appearance: none;
@@ -359,16 +345,41 @@
       width: 38px;
       height: 38px;
       border-radius: 8px;
-      border: 1px solid rgba(215, 225, 238, 0.18);
-      background: linear-gradient(180deg, rgba(245, 248, 252, 0.98) 0%, rgba(215, 225, 238, 0.98) 100%);
-      color: #121212;
+      border: none;
+      background: rgba(255, 255, 255, 0.95);
+      color: var(--bg);
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       padding: 0;
+      box-shadow: none;
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(0.4) rotate(-15deg);
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 400ms cubic-bezier(0.175, 0.885, 0.32, 1.275), filter 150ms ease, background 150ms ease, opacity 200ms ease;
     }
-    .dir-create-submit:disabled { color: var(--muted); cursor: default; }
+    .dir-create-submit.visible {
+      opacity: 1;
+      pointer-events: auto;
+      transform: scale(1) rotate(0deg);
+    }
+    .dir-create-submit.visible:active {
+      transform: scale(1.08) rotate(0deg);
+      filter: brightness(1.1);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      transition: transform 120ms ease-out;
+    }
+    .dir-create-submit:disabled {
+      cursor: not-allowed;
+      box-shadow: none;
+      filter: none;
+    }
+    html[data-theme="light"] .dir-create-submit {
+      background: rgba(0, 0, 0, 0.92);
+      color: rgb(255, 255, 255);
+    }
   </style>
 </head>
 <body>
@@ -543,6 +554,7 @@
       function openCreateOverlay() {
         if (_loading || !_currentPath || !dirCreateOverlay || !dirCreateInput) return;
         dirCreateInput.value = "";
+        if (dirCreateSubmit) dirCreateSubmit.classList.remove("visible");
         dirCreateOverlay.hidden = false;
         dirCreateOverlay.classList.add("visible");
         try { dirCreateInput.focus({ preventScroll: true }); } catch (_) { dirCreateInput.focus(); }
@@ -551,6 +563,7 @@
       function closeCreateOverlay() {
         if (!dirCreateOverlay) return;
         dirCreateOverlay.classList.remove("visible");
+        if (dirCreateSubmit) dirCreateSubmit.classList.remove("visible");
         setTimeout(() => {
           if (!dirCreateOverlay.classList.contains("visible")) dirCreateOverlay.hidden = true;
         }, 140);
@@ -726,6 +739,9 @@
         });
       }
       if (dirCreateInput) {
+        dirCreateInput.addEventListener("input", () => {
+          if (dirCreateSubmit) dirCreateSubmit.classList.toggle("visible", dirCreateInput.value.trim().length > 0);
+        });
         dirCreateInput.addEventListener("keydown", (event) => {
           if (event.key !== "Enter") return;
           event.preventDefault();
