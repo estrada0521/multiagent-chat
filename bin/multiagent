@@ -1465,38 +1465,11 @@ print(
 PYEOF
   )"
   tmux select-pane -t "$pane_id" -T "$instance_name"
-  case "$base_name" in
-    codex)
-      python3 - "$WORKSPACE" <<'PYEOF'
-import sys
-from pathlib import Path
-workspace = sys.argv[1]
-config_path = Path.home() / ".codex" / "config.toml"
-content = config_path.read_text(encoding="utf-8") if config_path.exists() else ""
-section = f'[projects."{workspace}"]'
-if section not in content:
-    content = content.rstrip("\n") + f'\n\n{section}\ntrust_level = "trusted"\n'
-    config_path.write_text(content, encoding="utf-8")
-PYEOF
-      ;;
-    cursor)
-      python3 - "$WORKSPACE" <<'PYEOF'
-import sys, json
-from datetime import datetime, timezone
-from pathlib import Path
-workspace = sys.argv[1]
-encoded = workspace.lstrip("/").replace("/", "-")
-project_dir = Path.home() / ".cursor" / "projects" / encoded
-project_dir.mkdir(parents=True, exist_ok=True)
-marker = project_dir / ".workspace-trusted"
-if not marker.exists():
-    marker.write_text(json.dumps({
-        "trustedAt": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-        "workspacePath": workspace,
-    }, indent=2) + "\n", encoding="utf-8")
-PYEOF
-      ;;
-  esac
+  python3 -c "
+import sys; sys.path.insert(0, '$SCRIPT_DIR')
+from multiagent_lib.workspace_trust import trust_workspace
+trust_workspace('$base_name', '$WORKSPACE')
+"
   tmux send-keys -t "$pane_id" "$launch_cmd" Enter
 }
 
