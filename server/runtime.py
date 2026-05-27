@@ -474,7 +474,10 @@ class ChatRuntime:
             if now - targets_cached_at < 2.0:
                 targets = list(cached_targets)
             else:
-                targets = self.active_agents()
+                active = self.active_agents()
+                if not active and self.session_is_active and self.targets:
+                    active = list(self.targets)
+                targets = active
                 self._payload_targets_cache = (now, list(targets))
         payload_doc = build_payload_document(
             meta=meta,
@@ -676,7 +679,7 @@ class ChatRuntime:
         return 200, {
             **payload,
             "selected_agent": delivery_targets[0],
-            "targets": self.active_agents(),
+            "targets": delivery_targets,
         }
 
     def agent_statuses(self) -> dict[str, str]:

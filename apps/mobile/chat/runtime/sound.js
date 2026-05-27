@@ -223,7 +223,12 @@
         picker.dataset.loaded = "1";
         renderAgentStatus(Object.fromEntries(resolvedTargets.map((t) => [t, "idle"])));
       }
-      const nextTargets = sessionCanInteract ? resolvedTargets : [];
+      const rawNextTargets = sessionCanInteract ? resolvedTargets : [];
+      // Don't wipe chips if session is active but server temporarily returns []
+      // (tmux may not be ready yet right after launch)
+      const nextTargets = (!rawNextTargets.length && sessionActive && availableTargets.length)
+        ? availableTargets
+        : rawNextTargets;
       const nextTargetsSig = JSON.stringify(nextTargets);
       if (nextTargetsSig !== JSON.stringify(availableTargets)) {
         availableTargets = nextTargets;

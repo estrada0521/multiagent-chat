@@ -1612,12 +1612,14 @@
         if (!res.ok || !data.ok) {
           throw new Error(data.error || "failed to start session");
         }
-        await refreshSessionState();
+        const launchedTargets = Array.isArray(data.targets) && data.targets.length
+          ? data.targets
+          : [selectedAgent];
+        applySessionState({ active: true, launch_pending: false, targets: launchedTargets });
+        openComposerOverlay({ immediateFocus: canComposeInSession() });
         setStatus(`${selectedAgent} is ready`);
         setTimeout(() => setStatus(""), 1800);
-        if (sessionActive) {
-          openComposerOverlay({ immediateFocus: true });
-        }
+        void refreshSessionState();
       } catch (error) {
         setStatus(error?.message || "failed to start session", true);
       } finally {

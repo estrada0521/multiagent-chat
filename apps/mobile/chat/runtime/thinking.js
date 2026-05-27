@@ -105,10 +105,15 @@
       if (hasOwn("targets")) {
         const resolvedTargets = normalizedSessionTargets(data.targets);
         const nextTargets = canInteractWithSession() ? resolvedTargets : [];
-        const nextTargetsSig = JSON.stringify(nextTargets);
+        // Don't wipe chips if session is active but server temporarily returns []
+        // (tmux may not be ready yet right after launch)
+        const effectiveTargets = (!nextTargets.length && sessionActive && availableTargets.length)
+          ? availableTargets
+          : nextTargets;
+        const nextTargetsSig = JSON.stringify(effectiveTargets);
         const currentTargetsSig = JSON.stringify(availableTargets);
         if (nextTargetsSig !== currentTargetsSig) {
-          availableTargets = nextTargets;
+          availableTargets = effectiveTargets;
           selectedTargets = selectedTargets.filter((target) => availableTargets.includes(target));
           saveTargetSelection(currentSessionName, selectedTargets);
           renderTargetPicker(availableTargets);

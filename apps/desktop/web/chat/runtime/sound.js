@@ -207,6 +207,9 @@
     };
     const updateSessionUI = (data, displayEntries) => {
       currentSessionName = data.session || "";
+      // Detect launch transition before overwriting sessionActive
+      const justActivatedFromLaunch = _sessionLaunching && !sessionActive && !!data.active;
+      if (justActivatedFromLaunch) _sessionLaunching = false;
       sessionActive = !!data.active;
       if (sessionActive) {
         clearDraftLaunchHints();
@@ -222,13 +225,17 @@
         picker.dataset.loaded = "1";
         renderAgentStatus(Object.fromEntries(resolvedTargets.map((t) => [t, "idle"])));
       }
-      const nextTargets = sessionCanInteract ? resolvedTargets : [];
+      const rawNextTargets = sessionCanInteract ? resolvedTargets : [];
+      // Don't wipe chips if session just became active but tmux hasn't started yet
+      const nextTargets = (!rawNextTargets.length && sessionActive && availableTargets.length)
+        ? availableTargets
+        : rawNextTargets;
       const nextTargetsSig = JSON.stringify(nextTargets);
       if (nextTargetsSig !== JSON.stringify(availableTargets)) {
         availableTargets = nextTargets;
         selectedTargets = selectedTargets.filter((target) => availableTargets.includes(target));
         saveTargetSelection(data.session, selectedTargets);
-        renderTargetPicker(availableTargets);
+        if (!justActivatedFromLaunch) renderTargetPicker(availableTargets);
       }
       document.getElementById("message").disabled = !sessionActive;
       setQuickActionsDisabled(!sessionActive);
@@ -239,7 +246,14 @@
       }
       syncPendingLaunchControls();
       void maybeRestoreFileModalSessionState(currentSessionName);
-      maybeAutoOpenComposer();
+      if (justActivatedFromLaunch) {
+        requestAnimationFrame(() => {
+          renderTargetPicker(availableTargets);
+          openComposerOverlay({ immediateFocus: true });
+        });
+      } else {
+        maybeAutoOpenComposer();
+      }
       dpOnSessionSummaryPinReload();
     };
     const scheduleAnimateInCleanup = (row, opts = {}) => {

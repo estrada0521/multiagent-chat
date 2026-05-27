@@ -130,7 +130,10 @@ def build_session_state_payload(
             }
         )
     if "targets" in selected:
-        payload["targets"] = runtime.active_agents()
+        active = runtime.active_agents()
+        if not active and runtime.session_is_active and runtime.targets:
+            active = list(runtime.targets)
+        payload["targets"] = active
     if "statuses" in selected:
         payload["statuses"] = runtime.agent_statuses()
     if "agent_runtime" in selected:
