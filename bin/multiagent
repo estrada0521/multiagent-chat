@@ -1479,6 +1479,23 @@ if section not in content:
     config_path.write_text(content, encoding="utf-8")
 PYEOF
       ;;
+    cursor)
+      python3 - "$WORKSPACE" <<'PYEOF'
+import sys, json
+from datetime import datetime, timezone
+from pathlib import Path
+workspace = sys.argv[1]
+encoded = workspace.lstrip("/").replace("/", "-")
+project_dir = Path.home() / ".cursor" / "projects" / encoded
+project_dir.mkdir(parents=True, exist_ok=True)
+marker = project_dir / ".workspace-trusted"
+if not marker.exists():
+    marker.write_text(json.dumps({
+        "trustedAt": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+        "workspacePath": workspace,
+    }, indent=2) + "\n", encoding="utf-8")
+PYEOF
+      ;;
   esac
   tmux send-keys -t "$pane_id" "$launch_cmd" Enter
 }
