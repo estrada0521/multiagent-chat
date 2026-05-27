@@ -265,7 +265,6 @@
     }
     function activeWarmCandidates(activeSessions) {
       return (activeSessions || [])
-        .filter((session) => String(session?.status || "").toLowerCase() !== "pending")
         .filter((session) => String(session?.name || "").trim());
     }
     function choosePrewarmSession(activeSessions) {

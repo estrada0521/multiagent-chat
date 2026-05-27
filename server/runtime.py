@@ -28,7 +28,6 @@ from message_delivery import (
     send_message as _send_message_impl,
     wait_for_send_slot as _wait_for_send_slot_impl,
 )
-from backend_core.session.launch import launch_session as _launch_session
 from .entry_write import (
     append_system_entry as _append_system_entry_impl,
 )
@@ -334,12 +333,10 @@ class ChatRuntime:
 
     def session_metadata(self) -> dict:
         session_slug = quote(self.session_name, safe="")
-        launch_pending = self.launch_pending()
         return {
             "server_instance": self.server_instance,
             "session": self.session_name,
             "active": self.session_is_active,
-            "launch_pending": launch_pending,
             "source": str(self.index_path),
             "workspace": self.workspace,
             "log_dir": self.log_dir,
@@ -348,27 +345,6 @@ class ChatRuntime:
             "session_path": f"/session/{session_slug}/",
             "follow_path": f"/session/{session_slug}/?follow=1",
         }
-
-    def pending_launch_path(self) -> Path:
-        return self.index_path.parent / ".pending-launch.json"
-
-    def pending_launch_config(self) -> dict:
-        path = self.pending_launch_path()
-        if not path.is_file():
-            return {}
-        try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-        except Exception:
-            return {}
-        if not isinstance(data, dict):
-            return {}
-        pending_session = str(data.get("session") or "").strip()
-        if pending_session and pending_session != self.session_name:
-            return {}
-        return data
-
-    def launch_pending(self) -> bool:
-        return (not self.session_is_active) and bool(self.pending_launch_config())
 
     def notify_session_state_changed(
         self,
@@ -394,12 +370,6 @@ class ChatRuntime:
 
     def mark_session_activated(self) -> None:
         self.session_is_active = True
-        try:
-            pending_path = self.pending_launch_path()
-            if pending_path.exists():
-                pending_path.unlink()
-        except Exception:
-            pass
         self.notify_session_state_changed(["base", "targets", "statuses"], reason="session-activated")
         threading.Thread(
             target=self._post_activation_bind,
@@ -467,18 +437,12 @@ class ChatRuntime:
         meta["total_messages"] = total_count
         if light_mode:
             entries = [self._light_entry(entry) for entry in entries]
-        if self.launch_pending():
-            targets = list(self.targets)
+        targets_cached_at, cached_targets = self._payload_targets_cache
+        if now - targets_cached_at < 2.0:
+            targets = list(cached_targets)
         else:
-            targets_cached_at, cached_targets = self._payload_targets_cache
-            if now - targets_cached_at < 2.0:
-                targets = list(cached_targets)
-            else:
-                active = self.active_agents()
-                if not active and self.session_is_active and self.targets:
-                    active = list(self.targets)
-                targets = active
-                self._payload_targets_cache = (now, list(targets))
+            targets = self.active_agents()
+            self._payload_targets_cache = (now, list(targets))
         payload_doc = build_payload_document(
             meta=meta,
             filter_agent=self.filter_agent,
@@ -650,37 +614,6 @@ class ChatRuntime:
             raw=raw,
             append_entry=append_entry,
         )
-
-    def launch_pending_session(self, requested_targets: list[str] | tuple[str, ...] | str) -> tuple[int, dict]:
-        if not self.launch_pending():
-            return 400, {"ok": False, "error": "session is already active"}
-        if isinstance(requested_targets, str):
-            raw_targets = [item.strip() for item in requested_targets.split(",") if item.strip()]
-        else:
-            raw_targets = [str(item).strip() for item in (requested_targets or []) if str(item).strip()]
-        if not raw_targets:
-            return 400, {"ok": False, "error": "agent required"}
-        delivery_targets: list[str] = []
-        seen_targets: set[str] = set()
-        for raw_target in raw_targets:
-            if raw_target in {"user", "others"}:
-                return 400, {"ok": False, "error": "select an initial agent"}
-            for resolved in self.resolve_target_agents(raw_target):
-                if resolved in {"user", "others"} or resolved in seen_targets:
-                    continue
-                seen_targets.add(resolved)
-                delivery_targets.append(resolved)
-        if len(delivery_targets) != 1:
-            return 400, {"ok": False, "error": "select exactly one initial agent"}
-        activated, payload = _launch_session(self, delivery_targets)
-        if not activated:
-            return 400, payload
-        self._apply_saved_monitor_setting()
-        return 200, {
-            **payload,
-            "selected_agent": delivery_targets[0],
-            "targets": delivery_targets,
-        }
 
     def agent_statuses(self) -> dict[str, str]:
         return self._native_log.agent_statuses(self._agent_running)

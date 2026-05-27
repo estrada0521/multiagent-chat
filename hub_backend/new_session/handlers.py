@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -147,37 +148,49 @@ def post_start_session_draft(handler, _parsed, ctx) -> None:
     else:
         session_name = ctx["session_api"].unique_session_name_for_workspace(resolved_workspace)
     try:
-        session_state = ctx["session_api"].write_pending_session_files(
+        # Write session metadata files (meta + index), but skip .pending-launch.json
+        session_state = ctx["session_api"].write_session_metadata(
             session_name,
             resolved_workspace,
             list(ctx["all_agent_names"]),
         )
-        ok, chat_port, detail = ctx["session_api"].ensure_pending_chat_server(
+        # Start tmux session with user pane only (no agents yet)
+        multiagent_bin = str(ctx["script_path"].parent / "multiagent")
+        launch_env = os.environ.copy()
+        launch_env["MULTIAGENT_SKIP_USER_CHAT"] = "1"
+        subprocess.Popen(
+            [multiagent_bin, "--detach", "--no-agents", "--session", session_name, "--workspace", resolved_workspace],
+            cwd=resolved_workspace,
+            env=launch_env,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        # Start chat server with SESSION_IS_ACTIVE=1 (session is live immediately)
+        ok, chat_port, detail = ctx["session_api"].ensure_active_chat_server(
             session_name,
             resolved_workspace,
-            list(ctx["all_agent_names"]),
         )
         if not ok:
             handler._send_json(500, {"ok": False, "error": detail})
             return
-        record = ctx["session_api"].build_pending_session_record(
+        # Get session record from active sessions query
+        query = ctx["active_session_records_query_fn"]()
+        record = query.records.get(session_name) or ctx["session_api"].build_active_session_record(
             session_name,
             resolved_workspace,
-            list(ctx["all_agent_names"]),
             created_at=session_state.get("created_at", ""),
             updated_at=session_state.get("updated_at", ""),
         )
     except Exception as exc:
         handler._send_json(500, {"ok": False, "error": str(exc)})
         return
-    draft_query = f"follow=1&compose=1&ts={int(time.time() * 1000)}"
-    draft_chat_url = f"/session/{url_quote(session_name, safe='')}/?{draft_query}"
+    chat_url = f"/session/{url_quote(session_name, safe='')}/?follow=1&ts={int(time.time() * 1000)}"
     handler._send_json(
         200,
         {
             "ok": True,
             "session": session_name,
-            "chat_url": draft_chat_url,
+            "chat_url": chat_url,
             "session_record": record,
         },
     )

@@ -209,11 +209,6 @@
       currentSessionName = data.session || "";
       attachedFilesSession = currentSessionName;
       sessionActive = !!data.active;
-      if (sessionActive) {
-        clearDraftLaunchHints();
-      }
-      sessionLaunchPending = !sessionActive && (!!data.launch_pending || sessionLaunchPending || draftLaunchHintActive);
-      const sessionCanInteract = canInteractWithSession();
       const resolvedTargets = normalizedSessionTargets(data.targets);
       const picker = document.getElementById("targetPicker");
       if (!picker.dataset.loaded) {
@@ -223,27 +218,18 @@
         picker.dataset.loaded = "1";
         renderAgentStatus(Object.fromEntries(resolvedTargets.map((t) => [t, "idle"])));
       }
-      const rawNextTargets = sessionCanInteract ? resolvedTargets : [];
-      // Don't wipe chips if session is active but server temporarily returns []
-      // (tmux may not be ready yet right after launch)
-      const nextTargets = (!rawNextTargets.length && sessionActive && availableTargets.length)
-        ? availableTargets
-        : rawNextTargets;
-      const nextTargetsSig = JSON.stringify(nextTargets);
+      const nextTargetsSig = JSON.stringify(resolvedTargets);
       if (nextTargetsSig !== JSON.stringify(availableTargets)) {
-        availableTargets = nextTargets;
+        availableTargets = resolvedTargets;
         selectedTargets = selectedTargets.filter((target) => availableTargets.includes(target));
         saveTargetSelection(data.session, selectedTargets);
         renderTargetPicker(availableTargets);
       }
       document.getElementById("message").disabled = !sessionActive;
       setQuickActionsDisabled(!sessionActive);
-      if (sessionLaunchPending) {
-        setStatus("select one initial agent and start the session");
-      } else if (!sessionActive) {
+      if (!sessionActive) {
         setStatus("archived session is read-only");
       }
-      syncPendingLaunchControls();
       maybeAutoOpenComposer();
       updateAttachedFilesPanel(displayEntries);
     };

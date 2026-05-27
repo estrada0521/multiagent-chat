@@ -745,22 +745,6 @@ class Handler(BaseHTTPRequestHandler):
             archived = []
         else:
             archived = list(archived_session_records(active_map.keys()).values())
-        pending_active = []
-        remaining_archived = []
-        for record in archived:
-            session_name = str(record.get("name") or "").strip()
-            if session_name and _hub_session_api().is_pending_launch_session(session_name):
-                pending_record = dict(record)
-                pending_record["launch_pending"] = True
-                pending_record["status"] = "pending"
-                pending_record["running_agents"] = []
-                pending_record["is_running"] = False
-                pending_active.append(pending_record)
-            else:
-                remaining_archived.append(record)
-        if pending_active:
-            active = pending_active + active
-        archived = remaining_archived
         try:
             hub_settings = load_hub_settings()
         except Exception:

@@ -15,16 +15,13 @@
           node.addEventListener("mousedown", (e) => e.preventDefault());
           node.addEventListener("click", () => {
             const target = node.dataset.target;
-            if (sessionLaunchPending) {
-              selectedTargets = selectedTargets.includes(target) ? [] : [target];
-            } else if (selectedTargets.includes(target)) {
+            if (selectedTargets.includes(target)) {
               selectedTargets = selectedTargets.filter((item) => item !== target);
             } else {
               selectedTargets = [...selectedTargets, target];
             }
             saveTargetSelection(currentSessionName, selectedTargets);
             renderTargetPicker(availableTargets);
-            syncPendingLaunchControls();
           });
         });
       }

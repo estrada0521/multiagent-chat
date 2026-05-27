@@ -247,8 +247,6 @@
           throw new Error(data.error || "shortcut failed");
         }
         if (data.activated) {
-          clearDraftLaunchHints();
-          sessionLaunchPending = false;
           sessionActive = true;
           if (Array.isArray(data.targets) && data.targets.length) {
             availableTargets = normalizedSessionTargets(data.targets);
@@ -260,7 +258,7 @@
         }
         setStatus(data.status_message || "done");
         void refresh({ forceScroll: true });
-        if (data.activated || data.launch_pending) {
+        if (data.activated) {
           void refreshSessionState();
         }
         return true;
@@ -321,8 +319,6 @@
             throw new Error(data.error || "shortcut failed");
           }
           if (data.activated) {
-            clearDraftLaunchHints();
-            sessionLaunchPending = false;
             sessionActive = true;
             if (Array.isArray(data.targets) && data.targets.length) {
               availableTargets = normalizedSessionTargets(data.targets);
@@ -343,7 +339,7 @@
           _stickyToBottom = true;
           setStatus(data.status_message || "done");
           void refresh({ forceScroll: true });
-          if (data.activated || data.launch_pending) {
+          if (data.activated) {
             void refreshSessionState();
           }
           return true;
@@ -384,8 +380,6 @@
           throw new Error(data.error || "send failed");
         }
         if (data.activated) {
-          clearDraftLaunchHints();
-          sessionLaunchPending = false;
           sessionActive = true;
           if (Array.isArray(data.targets) && data.targets.length) {
             availableTargets = normalizedSessionTargets(data.targets);
@@ -408,11 +402,11 @@
           indexOnly
             ? "note saved"
             : (data.queued
-              ? (data.launch_pending ? `launching ${target}...` : `queued for ${target}`)
+              ? `queued for ${target}`
               : `sent to ${target}`)
         );
         void refresh({ forceScroll: true });
-        if (data.activated || data.launch_pending) {
+        if (data.activated) {
           void refreshSessionState();
         }
         return true;
@@ -427,7 +421,7 @@
     document.getElementById("composer").addEventListener("submit", async (event) => {
       event.preventDefault();
       if (!canComposeInSession()) {
-        setStatus(sessionLaunchPending ? "start the session first" : "archived session is read-only", true);
+        setStatus("archived session is read-only", true);
         return;
       }
       const submitter = event.submitter;

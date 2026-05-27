@@ -988,11 +988,10 @@
 
     function renderDeskSessionRow(session, archived) {
       const sessionName = String(session.name || "");
-      const launchPending = !!session.launch_pending;
       const archivedClass = archived ? " archived" : "";
       const selectedClass = _deskSelectedSessionName === sessionName ? " is-selected" : "";
-      const swipeActionLabel = (archived || launchPending) ? "Delete" : "Kill";
-      const swipeActionRoute = (archived || launchPending) ? "delete-archived" : "kill";
+      const swipeActionLabel = archived ? "Delete" : "Kill";
+      const swipeActionRoute = archived ? "delete-archived" : "kill";
       const trashSvg = `<svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"></path><path d="M19 6l-1 14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 6"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
       const runningClass = !archived && resolveDeskSessionRunningState(sessionName, !!session.is_running) ? " is-running" : "";
       const previewText = String(session.latest_message_preview || "").trim();

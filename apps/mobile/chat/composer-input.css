@@ -324,38 +324,6 @@
     .composer textarea::placeholder {
       color: var(--muted);
     }
-    .pending-launch-controls {
-      display: none;
-      flex-direction: column;
-      gap: 10px;
-      padding: 4px 0 2px;
-    }
-    .pending-launch-copy {
-      margin: 0;
-      color: var(--muted);
-      font: 400 13px/1.45 "SF Pro Text", "Segoe UI", sans-serif;
-    }
-    .pending-launch-btn {
-      appearance: none;
-      width: 100%;
-      min-height: 46px;
-      border: 1px solid var(--line-strong);
-      border-radius: 14px;
-      background: rgba(255, 255, 255, 0.08);
-      color: var(--fg);
-      font: 600 14px/1 "SF Pro Text", "Segoe UI", sans-serif;
-      cursor: pointer;
-      box-shadow: 0 3px 14px rgba(0, 0, 0, 0.35);
-      transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
-    }
-    .pending-launch-btn:active {
-      transform: scale(0.98);
-    }
-    .pending-launch-btn:disabled {
-      background: var(--muted);
-      cursor: not-allowed;
-      box-shadow: none;
-    }
 
     .statusline {
       position: absolute;

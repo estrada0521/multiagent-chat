@@ -106,7 +106,6 @@ caffeinate_status = _not_initialized
 caffeinate_toggle = _not_initialized
 auto_mode_status = _not_initialized
 send_message = _not_initialized
-launch_session = _not_initialized
 agent_statuses = _not_initialized
 file_runtime = None
 workspace_sync_api = None
@@ -336,12 +335,6 @@ def _send_or_enqueue_message(
     }
 
 
-def _launch_pending_session_request(targets: list[str] | tuple[str, ...] | str) -> tuple[int, dict]:
-    if runtime is None:
-        return 500, {"ok": False, "error": "runtime unavailable"}
-    return runtime.launch_pending_session(targets)
-
-
 def _clean_env():
     env = os.environ.copy()
     env["MULTIAGENT_AGENT_NAME"] = "user"
@@ -355,7 +348,7 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
     global PUBLIC_HOST, PUBLIC_HUB_PORT, _repo_root, runtime
     global _PWA_STATIC_DIR, server_instance, load_chat_settings, chat_font_settings_inline_style
     global payload, append_system_entry, caffeinate_status, caffeinate_toggle, auto_mode_status
-    global send_message, launch_session, agent_statuses, file_runtime, HTML, asset_runtime
+    global send_message, agent_statuses, file_runtime, HTML, asset_runtime
     global send_queue, send_queue_thread, workspace_sync_api
 
     if _initialized:
@@ -421,7 +414,6 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
         logging.error("Failed to apply chat_auto_mode setting: %s", exc)
     auto_mode_status = runtime.auto_mode_status
     send_message = _send_or_enqueue_message
-    launch_session = _launch_pending_session_request
     agent_statuses = runtime.agent_statuses
     workspace_sync_api = WorkspaceSyncApi(
         workspace=workspace,
@@ -626,7 +618,6 @@ def _route_context() -> dict:
         "caffeinate_toggle_fn": caffeinate_toggle,
         "auto_mode_status_fn": auto_mode_status,
         "send_message_fn": send_message,
-        "launch_session_fn": launch_session,
         "agent_statuses_fn": agent_statuses,
         "file_runtime": file_runtime,
         "workspace_sync_api": workspace_sync_api,

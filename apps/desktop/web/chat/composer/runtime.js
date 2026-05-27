@@ -291,7 +291,7 @@
     }
 
     const updateSendBtnVisibility = () => {
-      if (sessionLaunchPending || !sessionActive) {
+      if (!sessionActive) {
         if (sendBtn) sendBtn.classList.remove("visible");
         if (micBtn) micBtn.classList.remove("hidden");
         return;

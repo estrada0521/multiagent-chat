@@ -155,7 +155,7 @@
           const sendBtnEl = document.querySelector(".send-btn");
           const micBtnEl = document.getElementById("micBtn");
           const hasText = !!(input && input.value.trim().length > 0);
-          if (sessionLaunchPending || !sessionActive) {
+          if (!sessionActive) {
             if (sendBtnEl) sendBtnEl.classList.remove("visible");
             if (micBtnEl) micBtnEl.classList.remove("hidden");
           } else {

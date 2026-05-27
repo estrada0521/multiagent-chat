@@ -85,39 +85,6 @@
       cursor: not-allowed;
       box-shadow: none;
     }
-    .pending-launch-controls {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      padding: 0;
-      max-height: 0;
-      opacity: 0;
-      overflow: hidden;
-      pointer-events: none;
-      transform: translateY(10px);
-      transition: max-height 240ms ease, opacity 180ms ease, transform 240ms ease, padding 240ms ease;
-    }
-    .pending-launch-btn {
-      appearance: none;
-      width: 100%;
-      min-height: 44px;
-      border: 1px solid var(--line-strong);
-      border-radius: 14px;
-      background: rgba(255, 255, 255, 0.08);
-      color: var(--icon-fg);
-      font: 600 14px/1 "SF Pro Text", "Segoe UI", sans-serif;
-      cursor: pointer;
-      box-shadow: 0 3px 14px rgba(0, 0, 0, 0.35);
-      transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
-    }
-    .pending-launch-btn:active {
-      transform: scale(0.98);
-    }
-    .pending-launch-btn:disabled {
-      background: var(--muted);
-      cursor: not-allowed;
-      box-shadow: none;
-    }
     .attach-preview-row {
       display: flex;
       flex-wrap: wrap;

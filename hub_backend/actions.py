@@ -100,21 +100,6 @@ def get_kill_session(handler, parsed, ctx) -> None:
         else:
             handler._send_html(404, ctx["error_page_fn"]("That active session is not available in this repo."))
         return
-    if ctx["session_api"].is_pending_launch_session(session_name):
-        ok, detail = ctx["session_api"].delete_pending_draft_session(session_name)
-        if not ok:
-            if fmt == "json":
-                handler._send_json(500, {"ok": False, "error": detail or f"Failed to delete draft session {session_name}"})
-            else:
-                handler._send_html(500, ctx["error_page_fn"](f"Failed to delete draft session {session_name}: {detail}"))
-            return
-        if fmt == "json":
-            handler._send_json(200, {"ok": True, "session": session_name, "action": "deleted", "pending": True})
-        else:
-            handler.send_response(302)
-            handler.send_header("Location", "/")
-            handler.end_headers()
-        return
     ok, detail = ctx["kill_repo_session_fn"](session_name)
     if not ok:
         if fmt == "json":
@@ -139,21 +124,6 @@ def get_delete_archived_session(handler, parsed, ctx) -> None:
             handler._send_json(404, {"ok": False, "error": "Session not found"})
         else:
             handler._send_html(404, ctx["error_page_fn"]("That archived session is not available in this repo."))
-        return
-    if ctx["session_api"].is_pending_launch_session(session_name):
-        ok, detail = ctx["session_api"].delete_pending_draft_session(session_name)
-        if not ok:
-            if fmt == "json":
-                handler._send_json(500, {"ok": False, "error": detail or f"Failed to delete draft session {session_name}"})
-            else:
-                handler._send_html(500, ctx["error_page_fn"](f"Failed to delete draft session {session_name}: {detail}"))
-            return
-        if fmt == "json":
-            handler._send_json(200, {"ok": True, "session": session_name, "action": "deleted", "pending": True})
-        else:
-            handler.send_response(302)
-            handler.send_header("Location", "/")
-            handler.end_headers()
         return
     ok, detail = ctx["delete_archived_session_fn"](session_name)
     if not ok:

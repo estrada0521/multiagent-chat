@@ -1590,39 +1590,3 @@
     const messageInput = document.getElementById("message");
     const sendBtn = document.querySelector(".send-btn");
     const micBtn = document.getElementById("micBtn");
-    document.getElementById("pendingLaunchBtn")?.addEventListener("click", async () => {
-      if (!sessionLaunchPending || sessionActive) return;
-      const launchTargets = selectedTargets.filter((target) => availableTargets.includes(target));
-      if (launchTargets.length !== 1) {
-        setStatus("select exactly one initial agent", true);
-        syncPendingLaunchControls();
-        return;
-      }
-      const selectedAgent = launchTargets[0];
-      const pendingLaunchBtn = document.getElementById("pendingLaunchBtn");
-      if (pendingLaunchBtn) pendingLaunchBtn.disabled = true;
-      setStatus(`starting ${selectedAgent}...`);
-      try {
-        const res = await fetch("/launch-session", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ agent: selectedAgent }),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok || !data.ok) {
-          throw new Error(data.error || "failed to start session");
-        }
-        const launchedTargets = Array.isArray(data.targets) && data.targets.length
-          ? data.targets
-          : [selectedAgent];
-        applySessionState({ active: true, launch_pending: false, targets: launchedTargets });
-        openComposerOverlay({ immediateFocus: canComposeInSession() });
-        setStatus(`${selectedAgent} is ready`);
-        setTimeout(() => setStatus(""), 1800);
-        void refreshSessionState();
-      } catch (error) {
-        setStatus(error?.message || "failed to start session", true);
-      } finally {
-        syncPendingLaunchControls();
-      }
-    });

@@ -220,30 +220,6 @@
     .target-picker::-webkit-scrollbar {
       display: none;
     }
-    .composer-overlay.pending-launch-mode .composer-plus-menu {
-      opacity: 0;
-      pointer-events: none;
-      transform: translateY(8px);
-    }
-    .composer-overlay.pending-launch-mode .composer-input-anchor {
-      max-height: 0;
-      opacity: 0;
-      overflow: hidden;
-      pointer-events: none;
-      transform: translateY(12px);
-    }
-    .composer-overlay.pending-launch-mode .pending-launch-controls {
-      max-height: 96px;
-      opacity: 1;
-      pointer-events: auto;
-      transform: translateY(0);
-      padding: 4px 0 2px;
-    }
-    .composer-overlay.pending-launch-mode .target-picker {
-      padding-bottom: 8px;
-      mask-image: none;
-      -webkit-mask-image: none;
-    }
     .composer-stack {
       display: contents;
     }

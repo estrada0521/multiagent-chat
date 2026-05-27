@@ -106,51 +106,26 @@
       if (typeof data.session === "string" && data.session) {
         currentSessionName = data.session;
       }
-      let _justActivatedFromLaunch = false;
       if (typeof data.active === "boolean") {
-        if (_sessionLaunching && !sessionActive && data.active) {
-          _justActivatedFromLaunch = true;
-          _sessionLaunching = false;
-        }
         sessionActive = data.active;
-        if (sessionActive) {
-          clearDraftLaunchHints();
-        }
-      }
-      if (typeof data.launch_pending === "boolean") {
-        sessionLaunchPending = !sessionActive && (data.launch_pending || sessionLaunchPending || draftLaunchHintActive);
       }
       if (hasOwn("targets")) {
         const resolvedTargets = normalizedSessionTargets(data.targets);
-        const nextTargets = canInteractWithSession() ? resolvedTargets : [];
-        const nextTargetsSig = JSON.stringify(nextTargets);
-        const currentTargetsSig = JSON.stringify(availableTargets);
-        if (nextTargetsSig !== currentTargetsSig) {
-          availableTargets = nextTargets;
+        const nextTargetsSig = JSON.stringify(resolvedTargets);
+        if (nextTargetsSig !== JSON.stringify(availableTargets)) {
+          availableTargets = resolvedTargets;
           selectedTargets = selectedTargets.filter((target) => availableTargets.includes(target));
           saveTargetSelection(currentSessionName, selectedTargets);
-          if (!_justActivatedFromLaunch) {
-            renderTargetPicker(availableTargets);
-          }
+          renderTargetPicker(availableTargets);
         }
       }
       document.getElementById("message").disabled = !sessionActive;
       setQuickActionsDisabled(!sessionActive);
-      if (sessionLaunchPending) {
-        setStatus("");
-      } else if (!sessionActive) {
+      if (!sessionActive) {
         setStatus("archived session is read-only");
       }
-      syncPendingLaunchControls();
       void maybeRestoreFileModalSessionState(currentSessionName);
-      if (_justActivatedFromLaunch) {
-        requestAnimationFrame(() => {
-          renderTargetPicker(availableTargets);
-          openComposerOverlay({ immediateFocus: true });
-        });
-      } else {
-        maybeAutoOpenComposer();
-      }
+      maybeAutoOpenComposer();
       if (hasOwn("agent_runtime") && data.agent_runtime && typeof data.agent_runtime === "object") {
         currentAgentRuntime = { ...data.agent_runtime };
       } else if (hasOwn("agent_runtime")) {

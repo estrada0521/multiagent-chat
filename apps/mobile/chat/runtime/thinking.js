@@ -95,25 +95,12 @@
       }
       if (typeof data.active === "boolean") {
         sessionActive = data.active;
-        if (sessionActive) {
-          clearDraftLaunchHints();
-        }
-      }
-      if (typeof data.launch_pending === "boolean") {
-        sessionLaunchPending = !sessionActive && (data.launch_pending || sessionLaunchPending || draftLaunchHintActive);
       }
       if (hasOwn("targets")) {
         const resolvedTargets = normalizedSessionTargets(data.targets);
-        const nextTargets = canInteractWithSession() ? resolvedTargets : [];
-        // Don't wipe chips if session is active but server temporarily returns []
-        // (tmux may not be ready yet right after launch)
-        const effectiveTargets = (!nextTargets.length && sessionActive && availableTargets.length)
-          ? availableTargets
-          : nextTargets;
-        const nextTargetsSig = JSON.stringify(effectiveTargets);
-        const currentTargetsSig = JSON.stringify(availableTargets);
-        if (nextTargetsSig !== currentTargetsSig) {
-          availableTargets = effectiveTargets;
+        const nextTargetsSig = JSON.stringify(resolvedTargets);
+        if (nextTargetsSig !== JSON.stringify(availableTargets)) {
+          availableTargets = resolvedTargets;
           selectedTargets = selectedTargets.filter((target) => availableTargets.includes(target));
           saveTargetSelection(currentSessionName, selectedTargets);
           renderTargetPicker(availableTargets);
@@ -124,12 +111,9 @@
       }
       document.getElementById("message").disabled = !sessionActive;
       setQuickActionsDisabled(!sessionActive);
-      if (sessionLaunchPending) {
-        setStatus("select one initial agent and start the session");
-      } else if (!sessionActive) {
+      if (!sessionActive) {
         setStatus("archived session is read-only");
       }
-      syncPendingLaunchControls();
       maybeAutoOpenComposer();
       if (hasOwn("agent_runtime") && data.agent_runtime && typeof data.agent_runtime === "object") {
         currentAgentRuntime = { ...data.agent_runtime };

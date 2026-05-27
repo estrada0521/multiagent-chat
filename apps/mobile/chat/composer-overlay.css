@@ -198,19 +198,6 @@
     .target-picker::-webkit-scrollbar {
       display: none;
     }
-    .composer-overlay.pending-launch-mode .composer-plus-menu,
-    .composer-overlay.pending-launch-mode .composer-field,
-    .composer-overlay.pending-launch-mode .quick-actions {
-      display: none;
-    }
-    .composer-overlay.pending-launch-mode .pending-launch-controls {
-      display: flex;
-    }
-    .composer-overlay.pending-launch-mode .target-picker {
-      padding-bottom: 8px;
-      mask-image: none;
-      -webkit-mask-image: none;
-    }
 
     .composer-stack {
       display: contents;

@@ -207,15 +207,7 @@
     };
     const updateSessionUI = (data, displayEntries) => {
       currentSessionName = data.session || "";
-      // Detect launch transition before overwriting sessionActive
-      const justActivatedFromLaunch = _sessionLaunching && !sessionActive && !!data.active;
-      if (justActivatedFromLaunch) _sessionLaunching = false;
       sessionActive = !!data.active;
-      if (sessionActive) {
-        clearDraftLaunchHints();
-      }
-      sessionLaunchPending = !sessionActive && (!!data.launch_pending || sessionLaunchPending || draftLaunchHintActive);
-      const sessionCanInteract = canInteractWithSession();
       const resolvedTargets = normalizedSessionTargets(data.targets);
       const picker = document.getElementById("targetPicker");
       if (!picker.dataset.loaded) {
@@ -225,35 +217,20 @@
         picker.dataset.loaded = "1";
         renderAgentStatus(Object.fromEntries(resolvedTargets.map((t) => [t, "idle"])));
       }
-      const rawNextTargets = sessionCanInteract ? resolvedTargets : [];
-      // Don't wipe chips if session just became active but tmux hasn't started yet
-      const nextTargets = (!rawNextTargets.length && sessionActive && availableTargets.length)
-        ? availableTargets
-        : rawNextTargets;
-      const nextTargetsSig = JSON.stringify(nextTargets);
+      const nextTargetsSig = JSON.stringify(resolvedTargets);
       if (nextTargetsSig !== JSON.stringify(availableTargets)) {
-        availableTargets = nextTargets;
+        availableTargets = resolvedTargets;
         selectedTargets = selectedTargets.filter((target) => availableTargets.includes(target));
         saveTargetSelection(data.session, selectedTargets);
-        if (!justActivatedFromLaunch) renderTargetPicker(availableTargets);
+        renderTargetPicker(availableTargets);
       }
       document.getElementById("message").disabled = !sessionActive;
       setQuickActionsDisabled(!sessionActive);
-      if (sessionLaunchPending) {
-        setStatus("");
-      } else if (!sessionActive) {
+      if (!sessionActive) {
         setStatus("archived session is read-only");
       }
-      syncPendingLaunchControls();
       void maybeRestoreFileModalSessionState(currentSessionName);
-      if (justActivatedFromLaunch) {
-        requestAnimationFrame(() => {
-          renderTargetPicker(availableTargets);
-          openComposerOverlay({ immediateFocus: true });
-        });
-      } else {
-        maybeAutoOpenComposer();
-      }
+      maybeAutoOpenComposer();
       dpOnSessionSummaryPinReload();
     };
     const scheduleAnimateInCleanup = (row, opts = {}) => {

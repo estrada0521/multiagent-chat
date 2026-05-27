@@ -63,6 +63,7 @@ DETACH=0
 FRESH=0
 AUTO=1
 AGENTS_ARG=""
+NO_AGENTS=0
 INSTALL=0
 USER_PANE="bottom:1"
 USER_PANE_TOP_COUNT=0
@@ -1235,6 +1236,7 @@ while [[ $# -gt 0 ]]; do
     --verbose)   LIST_VERBOSE=1; shift ;;
     --json)      CONTEXT_JSON=1; shift ;;
     --agents|--agent) AGENTS_ARG="$2"; shift 2 ;;
+    --no-agents) NO_AGENTS=1; shift ;;
     --user-pane) USER_PANE="$2"; shift 2 ;;
     --log-dir)   LOG_DIR="$2"; shift 2 ;;
     --install)   INSTALL=1; shift ;;
@@ -1295,7 +1297,10 @@ if [[ "$INSTALL" -eq 1 ]]; then
   exit 0
 fi
 
-if [[ -n "$AGENTS_ARG" ]]; then
+if [[ "$NO_AGENTS" -eq 1 ]]; then
+  SELECTED_AGENTS=()
+  INSTANCE_NAMES=()
+elif [[ -n "$AGENTS_ARG" ]]; then
   IFS=',' read -ra SELECTED_AGENTS <<< "$AGENTS_ARG"
   _normalised=()
   for agent in "${SELECTED_AGENTS[@]}"; do
@@ -1315,43 +1320,12 @@ else
   SELECTED_AGENTS=("${ALL_AGENTS[@]}")
 fi
 
-if [[ ${#SELECTED_AGENTS[@]} -lt 1 ]]; then
+if [[ ${#SELECTED_AGENTS[@]} -lt 1 && "$NO_AGENTS" -eq 0 ]]; then
   echo "At least one agent must be specified." >&2
   exit 1
 fi
 
-_instance_names_str="$(python3 -c "
-import sys
-agents = sys.argv[1:]
-from collections import Counter
-counts = Counter(agents)
-indices = {}
-result = []
-for a in agents:
-    if counts[a] > 1:
-        indices[a] = indices.get(a, 0) + 1
-        result.append(f'{a}-{indices[a]}')
-    else:
-        result.append(a)
-print(','.join(result))
-" "${SELECTED_AGENTS[@]}")"
-IFS=',' read -ra INSTANCE_NAMES <<< "$_instance_names_str"
-
-
-if [[ "${MULTIAGENT_STRICT_AGENT_CLIS:-}" != "1" ]]; then
-  _kept=()
-  for agent in "${SELECTED_AGENTS[@]}"; do
-    if resolve_agent_executable "$agent" >/dev/null; then
-      _kept+=("$agent")
-    else
-      echo "multiagent: 警告: ${agent} の CLI が無いため起動しません（厳格にするには MULTIAGENT_STRICT_AGENT_CLIS=1）" >&2
-    fi
-  done
-  SELECTED_AGENTS=("${_kept[@]}")
-  if [[ ${#SELECTED_AGENTS[@]} -lt 1 ]]; then
-    echo "multiagent: 起動できるエージェントがありません。CLI を入れるか --agents で指定してください。" >&2
-    exit 1
-  fi
+if [[ "$NO_AGENTS" -eq 0 ]]; then
   _instance_names_str="$(python3 -c "
 import sys
 agents = sys.argv[1:]
@@ -1368,25 +1342,59 @@ for a in agents:
 print(','.join(result))
 " "${SELECTED_AGENTS[@]}")"
   IFS=',' read -ra INSTANCE_NAMES <<< "$_instance_names_str"
+
+  if [[ "${MULTIAGENT_STRICT_AGENT_CLIS:-}" != "1" ]]; then
+    _kept=()
+    for agent in "${SELECTED_AGENTS[@]}"; do
+      if resolve_agent_executable "$agent" >/dev/null; then
+        _kept+=("$agent")
+      else
+        echo "multiagent: 警告: ${agent} の CLI が無いため起動しません（厳格にするには MULTIAGENT_STRICT_AGENT_CLIS=1）" >&2
+      fi
+    done
+    SELECTED_AGENTS=("${_kept[@]}")
+    if [[ ${#SELECTED_AGENTS[@]} -lt 1 ]]; then
+      echo "multiagent: 起動できるエージェントがありません。CLI を入れるか --agents で指定してください。" >&2
+      exit 1
+    fi
+    _instance_names_str="$(python3 -c "
+import sys
+agents = sys.argv[1:]
+from collections import Counter
+counts = Counter(agents)
+indices = {}
+result = []
+for a in agents:
+    if counts[a] > 1:
+        indices[a] = indices.get(a, 0) + 1
+        result.append(f'{a}-{indices[a]}')
+    else:
+        result.append(a)
+print(','.join(result))
+" "${SELECTED_AGENTS[@]}")"
+    IFS=',' read -ra INSTANCE_NAMES <<< "$_instance_names_str"
+  fi
 fi
 
 command -v tmux >/dev/null 2>&1 || { echo "tmux is required." >&2; exit 1; }
-_checked_cmds=""
-for agent in "${SELECTED_AGENTS[@]}"; do
-  case ",$_checked_cmds," in
-    *,"$agent",*) ;;
-    *)
-      check_cmd="$(resolve_agent_executable "$agent")" || {
-        check_cmd="$(agent_var AGENT_EXECUTABLE "$agent")"
-        [[ -n "$check_cmd" ]] || check_cmd="$agent"
-        echo "Required command not found: $check_cmd" >&2
-        echo "  （CLI を入れるか、MULTIAGENT_STRICT_AGENT_CLIS を付けない場合は未導入分は起動しません）" >&2
-        exit 1
-      }
-      _checked_cmds="${_checked_cmds:+$_checked_cmds,}$agent"
-      ;;
-  esac
-done
+if [[ "$NO_AGENTS" -eq 0 ]]; then
+  _checked_cmds=""
+  for agent in "${SELECTED_AGENTS[@]}"; do
+    case ",$_checked_cmds," in
+      *,"$agent",*) ;;
+      *)
+        check_cmd="$(resolve_agent_executable "$agent")" || {
+          check_cmd="$(agent_var AGENT_EXECUTABLE "$agent")"
+          [[ -n "$check_cmd" ]] || check_cmd="$agent"
+          echo "Required command not found: $check_cmd" >&2
+          echo "  （CLI を入れるか、MULTIAGENT_STRICT_AGENT_CLIS を付けない場合は未導入分は起動しません）" >&2
+          exit 1
+        }
+        _checked_cmds="${_checked_cmds:+$_checked_cmds,}$agent"
+        ;;
+    esac
+  done
+fi
 
 SAVE_CORE_SH="$REPO_ROOT/bin/lib/save.sh"
 if [[ ! -f "$SAVE_CORE_SH" ]]; then
@@ -1548,7 +1556,11 @@ for (( i=0; i<NUM_AGENTS; i++ )); do
   upper=$(echo "$instance" | tr '[:lower:]-' '[:upper:]_')
   tmux set-environment -t "$SESSION_NAME" "MULTIAGENT_PANE_${upper}" "$pane"
 done
-tmux set-environment -t "$SESSION_NAME" MULTIAGENT_AGENTS "$(IFS=,; echo "${INSTANCE_NAMES[*]}")"
+if [[ "$NO_AGENTS" -eq 1 ]]; then
+  tmux set-environment -t "$SESSION_NAME" MULTIAGENT_AGENTS "-"
+else
+  tmux set-environment -t "$SESSION_NAME" MULTIAGENT_AGENTS "$(IFS=,; echo "${INSTANCE_NAMES[*]}")"
+fi
 
 write_session_state_file "$SESSION_NAME"
 
@@ -1581,7 +1593,7 @@ fi
 
 if [[ -n "$USER_PANE_ID" ]]; then
   tmux select-pane -t "$USER_PANE_ID"
-else
+elif [[ ${#PANES[@]} -gt 0 ]]; then
   tmux select-pane -t "${PANES[0]}"
 fi
 

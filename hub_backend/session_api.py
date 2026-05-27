@@ -12,9 +12,6 @@ from typing import Callable, Sequence
 from backend_core.access.settings import local_runtime_log_dir, port_is_bindable, save_chat_port_override
 
 
-_PENDING_LAUNCH_FILE = ".pending-launch.json"
-
-
 @dataclass(frozen=True)
 class HubSessionApiContext:
     repo_root: Path
@@ -34,50 +31,12 @@ class HubSessionApi:
     def session_logs_dir(self, session_name: str) -> Path:
         return local_runtime_log_dir(self.ctx.repo_root) / str(session_name or "").strip()
 
-    def pending_launch_path(self, session_name: str) -> Path:
-        return self.session_logs_dir(session_name) / _PENDING_LAUNCH_FILE
-
     def read_json_file(self, path: Path) -> dict:
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
         except Exception:
             return {}
         return data if isinstance(data, dict) else {}
-
-    def read_pending_launch(self, session_name: str) -> dict:
-        path = self.pending_launch_path(session_name)
-        if not path.is_file():
-            return {}
-        data = self.read_json_file(path)
-        if not data:
-            return {}
-        pending_session = str(data.get("session") or "").strip()
-        if pending_session and pending_session != session_name:
-            return {}
-        return data
-
-    def is_pending_launch_session(self, session_name: str) -> bool:
-        return bool(self.read_pending_launch(session_name))
-
-    def pending_session_record(self, session_name: str) -> dict | None:
-        pending_cfg = self.read_pending_launch(session_name)
-        if not pending_cfg:
-            return None
-        workspace = str(pending_cfg.get("workspace") or "").strip()
-        if not workspace:
-            return None
-        targets = [
-            str(item).strip()
-            for item in (pending_cfg.get("available_agents") or self.ctx.all_agent_names)
-            if str(item).strip()
-        ]
-        return self.build_pending_session_record(
-            session_name,
-            workspace,
-            targets,
-            created_at=str(pending_cfg.get("created_at") or ""),
-            updated_at=str(pending_cfg.get("updated_at") or ""),
-        )
 
     def resolve_session_chat_target(self, session_name: str) -> dict:
         query = self.ctx.active_session_records_query()
@@ -90,20 +49,6 @@ class HubSessionApi:
                 "chat_port": chat_port,
                 "session_record": query.records.get(session_name, {}),
             }
-
-        pending_record = self.pending_session_record(session_name)
-        if pending_record is not None:
-            workspace = str(pending_record.get("workspace") or "").strip()
-            targets = [str(item).strip() for item in (pending_record.get("agents") or []) if str(item).strip()]
-            ok, chat_port, detail = self.ensure_pending_chat_server(session_name, workspace, targets)
-            if not ok:
-                return {"status": "error", "detail": detail}
-            return {
-                "status": "ok",
-                "chat_port": chat_port,
-                "session_record": pending_record,
-            }
-
         if query.state == "unhealthy":
             return {"status": "unhealthy", "detail": query.detail}
         return {"status": "missing"}
@@ -129,7 +74,8 @@ class HubSessionApi:
             suffix += 1
         return candidate
 
-    def write_pending_session_files(self, session_name: str, workspace: str, agents: list[str]) -> dict:
+    def write_session_metadata(self, session_name: str, workspace: str, agents: list[str]) -> dict:
+        """Write .meta and .agent-index.jsonl (no .pending-launch.json)."""
         session_dir = self.session_logs_dir(session_name)
         session_dir.mkdir(parents=True, exist_ok=True)
         index_path = session_dir / ".agent-index.jsonl"
@@ -146,17 +92,6 @@ class HubSessionApi:
             "updated_at": updated_at,
         }
         meta_path.write_text(json.dumps(meta_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-        pending_payload = {
-            "session": session_name,
-            "workspace": workspace,
-            "available_agents": list(agents or []),
-            "created_at": created_at,
-            "updated_at": updated_at,
-        }
-        self.pending_launch_path(session_name).write_text(
-            json.dumps(pending_payload, ensure_ascii=False, indent=2) + "\n",
-            encoding="utf-8",
-        )
         return {
             "session_dir": session_dir,
             "index_path": index_path,
@@ -164,23 +99,23 @@ class HubSessionApi:
             "updated_at": updated_at,
         }
 
-    def build_pending_session_record(
+    def build_active_session_record(
         self,
         session_name: str,
         workspace: str,
-        agents: list[str],
         *,
         created_at: str = "",
         updated_at: str = "",
     ) -> dict:
+        """Build a minimal session record for a newly-started active session."""
         session_dir = self.session_logs_dir(session_name)
         index_path = session_dir / ".agent-index.jsonl"
         now_epoch = int(time.time())
         record = self.ctx.hub._build_session_record(
             name=session_name,
             workspace=workspace,
-            agents=list(agents or []),
-            status="pending",
+            agents=[],
+            status="idle",
             attached=0,
             dead_panes=0,
             created_epoch=now_epoch,
@@ -189,16 +124,10 @@ class HubSessionApi:
             updated_at=updated_at or self.format_session_timestamp(now_epoch),
             preferred_index_path=index_path,
         )
-        record["launch_pending"] = True
+        record["launch_pending"] = False
         record["running_agents"] = []
-        record["is_running"] = False
+        record["is_running"] = True
         return record
-
-    def pending_chat_server_matches(self, session_name: str, chat_port: int) -> bool:
-        state = self.ctx.hub.chat_server_state(chat_port)
-        if not state:
-            return False
-        return str(state.get("session") or "").strip() == session_name
 
     def running_agents_from_session_state(self, session_state: dict | None) -> list[str]:
         if not isinstance(session_state, dict):
@@ -215,21 +144,25 @@ class HubSessionApi:
                 running.append(agent_name)
         return running
 
-    def ensure_pending_chat_server(self, session_name: str, workspace: str, targets: list[str]) -> tuple[bool, int, str]:
+    def ensure_active_chat_server(self, session_name: str, workspace: str) -> tuple[bool, int, str]:
+        """Start a chat server with SESSION_IS_ACTIVE=1 for a session whose tmux is already running."""
         lock = self.ctx.hub._get_launch_lock(session_name)
         with lock:
             chat_port = self.ctx.hub.chat_port_for_session(session_name)
-            if self.ctx.hub.chat_ready(chat_port) and self.pending_chat_server_matches(session_name, chat_port):
-                return True, chat_port, ""
             if self.ctx.hub.chat_ready(chat_port):
+                state = self.ctx.hub.chat_server_state(chat_port)
+                if state and str(state.get("session") or "").strip() == session_name:
+                    return True, chat_port, ""
                 stop_ok, stop_detail = self.ctx.hub.stop_chat_server(session_name)
                 if not stop_ok:
                     return False, chat_port, stop_detail
             if not port_is_bindable(chat_port):
                 for candidate in range(chat_port, chat_port + 10):
-                    if self.ctx.hub.chat_ready(candidate) and self.pending_chat_server_matches(session_name, candidate):
-                        save_chat_port_override(self.ctx.repo_root, session_name, candidate)
-                        return True, candidate, ""
+                    if self.ctx.hub.chat_ready(candidate):
+                        state = self.ctx.hub.chat_server_state(candidate)
+                        if state and str(state.get("session") or "").strip() == session_name:
+                            save_chat_port_override(self.ctx.repo_root, session_name, candidate)
+                            return True, candidate, ""
                     if port_is_bindable(candidate):
                         save_chat_port_override(self.ctx.repo_root, session_name, candidate)
                         chat_port = candidate
@@ -239,7 +172,7 @@ class HubSessionApi:
             index_path.touch(exist_ok=True)
             env = self.ctx.hub._chat_launch_env()
             env["MULTIAGENT_INDEX_PATH"] = str(index_path)
-            env["SESSION_IS_ACTIVE"] = "0"
+            env["SESSION_IS_ACTIVE"] = "1"
             try:
                 subprocess.Popen(
                     [
@@ -255,7 +188,7 @@ class HubSessionApi:
                         str(self.ctx.hub.agent_send_path),
                         workspace,
                         str(session_dir.parent),
-                        ",".join(targets or []),
+                        "",
                         self.ctx.hub.tmux_socket,
                         str(self.ctx.hub_port),
                     ],
@@ -268,21 +201,9 @@ class HubSessionApi:
             except Exception as exc:
                 return False, chat_port, str(exc)
             for _ in range(80):
-                if self.ctx.hub.chat_ready(chat_port) and self.pending_chat_server_matches(session_name, chat_port):
-                    return True, chat_port, ""
+                if self.ctx.hub.chat_ready(chat_port):
+                    state = self.ctx.hub.chat_server_state(chat_port)
+                    if state and str(state.get("session") or "").strip() == session_name:
+                        return True, chat_port, ""
                 time.sleep(0.05)
-            return False, chat_port, "pending chat server did not become ready"
-
-    def delete_pending_draft_session(self, session_name: str) -> tuple[bool, str]:
-        try:
-            stop_ok, stop_detail = self.ctx.hub.stop_chat_server(session_name)
-        except Exception as exc:
-            stop_ok, stop_detail = False, str(exc)
-        if not stop_ok:
-            chat_port = self.ctx.hub.chat_port_for_session(session_name)
-            if self.ctx.hub.chat_ready(chat_port):
-                return False, stop_detail or "pending chat server cleanup failed"
-        ok, detail = self.ctx.delete_archived_session(session_name)
-        if not ok:
-            return False, detail
-        return True, ""
+            return False, chat_port, "active chat server did not become ready"

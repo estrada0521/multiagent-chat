@@ -58,14 +58,6 @@ __CHAT_INCLUDE:../../../shared/chat/base.js__
     const followMode = _pageParams.get("follow") === "1";
     const launchShellMode = _pageParams.get("launch_shell") === "1";
     const composerAutoOpenRequested = _pageParams.get("compose") === "1";
-    let draftLaunchHintActive = _pageParams.get("draft") === "1";
-    let draftTargetHints = (_pageParams.get("draft_targets") || "")
-      .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean);
-    if (!draftTargetHints.length) {
-      draftLaunchHintActive = false;
-    }
     const DESKTOP_FILE_PANE_MIN_VIEWPORT_PX = 961;
     const syncMainAfterHeight = () => {
       const mainEl = document.querySelector("main");
@@ -311,11 +303,8 @@ __CHAT_INCLUDE:transcript/rich-rendering.js__
     let sendLocked = false;
     let lastSubmitAt = 0;
     let sessionActive = true;
-    let sessionLaunchPending = draftLaunchHintActive;
     let composerAutoOpenConsumed = false;
-    let _sessionLaunching = false;
     const canComposeInSession = () => !!sessionActive;
-    const canInteractWithSession = () => !!(sessionActive || sessionLaunchPending);
     let pendingAttachments = [];
     let availableTargets = [];
     let currentSessionName = "";
@@ -335,76 +324,10 @@ __CHAT_INCLUDE:transcript/rich-rendering.js__
       return `<div class="conversation-empty" aria-hidden="true"></div>`;
     };
     const stripSenderPrefix = (value) => value.replace(/^\[From:\s*[^\]]+\]\s*/i, "");
-    const rememberDraftTargetHints = (targets = []) => {
-      if (!Array.isArray(targets) || !targets.length) return;
-      const next = [...new Set(
-        targets
-          .filter((item) => typeof item === "string" && item.trim())
-          .map((item) => item.trim())
-      )];
-      if (next.length) {
-        draftTargetHints = next;
-      }
-    };
-    const effectiveDraftTargets = () => draftLaunchHintActive ? [...draftTargetHints] : [];
     const normalizedSessionTargets = (rawTargets) => {
-      const next = Array.isArray(rawTargets)
+      return Array.isArray(rawTargets)
         ? rawTargets.filter((item) => typeof item === "string" && item.trim()).map((item) => item.trim())
         : [];
-      if (next.length) {
-        rememberDraftTargetHints(next);
-        return next;
-      }
-      if (sessionLaunchPending || draftLaunchHintActive) {
-        return effectiveDraftTargets();
-      }
-      return [];
-    };
-    const syncPendingLaunchControls = () => {
-      const pendingLaunchControls = document.getElementById("pendingLaunchControls");
-      const pendingLaunchBtn = document.getElementById("pendingLaunchBtn");
-      const input = document.getElementById("message");
-      const sendBtnEl = document.querySelector(".send-btn");
-      const launchMode = !!(sessionLaunchPending && !sessionActive);
-      composerOverlay?.classList.toggle("pending-launch-mode", launchMode);
-      composerForm?.classList.toggle("pending-launch-mode", launchMode);
-      if (input) {
-        input.disabled = !sessionActive;
-        input.placeholder = launchMode ? "Start the session to send a message" : "Write a message";
-      }
-      const selectedLaunchAgent = selectedTargets.filter((target) => availableTargets.includes(target))[0] || "";
-      if (pendingLaunchBtn) {
-        if (_sessionLaunching) {
-          pendingLaunchBtn.disabled = true;
-          pendingLaunchBtn.textContent = "Starting…";
-        } else {
-          pendingLaunchBtn.disabled = !selectedLaunchAgent;
-          pendingLaunchBtn.textContent = "Start Session";
-        }
-      }
-      if (sessionLaunchPending || !sessionActive) {
-        if (sendBtnEl) sendBtnEl.classList.remove("visible");
-        return;
-      }
-      const hasText = !!(input && input.value.trim().length > 0);
-      if (sendBtnEl) sendBtnEl.classList.toggle("visible", hasText);
-    };
-    const clearDraftLaunchHints = () => {
-      draftLaunchHintActive = false;
-      draftTargetHints = [];
-      try {
-        const params = new URLSearchParams(window.location.search);
-        let changed = false;
-        ["draft", "draft_targets"].forEach((key) => {
-          if (params.has(key)) {
-            params.delete(key);
-            changed = true;
-          }
-        });
-        if (!changed) return;
-        const nextQuery = params.toString();
-        window.history.replaceState(window.history.state, "", `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}`);
-      } catch (_) {}
     };
 __CHAT_INCLUDE:target-picker.js__
       } catch (_) {}

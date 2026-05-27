@@ -80,8 +80,7 @@
     };
     const maybeAutoOpenComposer = () => {
       if (!composerAutoOpenRequested || composerAutoOpenConsumed) return;
-      if (!sessionLaunchPending && !draftLaunchHintActive) return;
-      if (!canInteractWithSession()) return;
+      if (!sessionActive) return;
       composerAutoOpenConsumed = true;
       try {
         const params = new URLSearchParams(window.location.search);
