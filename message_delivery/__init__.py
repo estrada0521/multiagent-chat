@@ -77,8 +77,6 @@ def send_message(
     reply_to = (reply_to or "").strip()
     if not message:
         return 400, {"ok": False, "error": "message is required"}
-    if self.launch_pending():
-        return 400, {"ok": False, "error": "Start the session first by selecting an initial agent."}
     if target:
         target = ",".join(self.resolve_target_agents(target))
     if not target:
