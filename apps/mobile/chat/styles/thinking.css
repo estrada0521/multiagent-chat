@@ -446,6 +446,7 @@
       justify-content: center;
       backdrop-filter: none;
       -webkit-backdrop-filter: none;
+      -webkit-tap-highlight-color: transparent;
       transition: background 0.15s, color 0.15s;
     }
 
