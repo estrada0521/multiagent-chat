@@ -87,8 +87,9 @@
           ctx.drawImage(img, PAD, PAD, SIZE - PAD * 2, SIZE - PAD * 2);
           const imgData = ctx.getImageData(0, 0, SIZE, SIZE);
           const px = imgData.data;
+          const iconVal = window.matchMedia("(prefers-color-scheme: dark)").matches ? 255 : 0;
           for (let i = 0; i < px.length; i += 4) {
-            px[i] = 255; px[i + 1] = 255; px[i + 2] = 255;
+            px[i] = iconVal; px[i + 1] = iconVal; px[i + 2] = iconVal;
           }
           resolve(Array.from(px));
         } catch (e) { resolve(null); }
