@@ -160,7 +160,7 @@
     const syncFileModalShellTheme = () => {
       if (!fileModal) return;
       const isMd = fileModalCurrentExt === "md";
-      fileModal.classList.toggle("theme-light", isMd && fileModalBaseTheme === "dark" && fileModalPreviewTheme === "light");
+      fileModal.classList.toggle("theme-light", isMd && fileModalPreviewTheme === "light");
       fileModal.classList.toggle("theme-dark", isMd && fileModalBaseTheme === "light" && fileModalPreviewTheme === "dark");
     };
     const updateFileModalViewportMetrics = () => {

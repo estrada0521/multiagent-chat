@@ -960,13 +960,6 @@
       );
     }
 
-    html.attached-files-sheet-active .shell::before,
-    html.git-branch-sheet-active .shell::before,
-    html.pane-trace-sheet-active .shell::before,
-    body.file-modal-open .shell::before {
-      content: none;
-    }
-
     .agent-icon {
       width: 14px;
       height: 14px;
