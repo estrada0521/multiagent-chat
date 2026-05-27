@@ -108,7 +108,6 @@
       grid-template-columns: 1fr;
       gap: 2px;
       align-content: start;
-      will-change: transform, opacity;
     }
     .dir-list.slide-out-forward {
       opacity: 0;
@@ -275,7 +274,7 @@
     .dir-create-overlay {
       position: fixed; inset: 0; z-index: 50;
       display: flex; align-items: center; justify-content: center;
-      padding: 24px 12px;
+      padding: 24px calc(12px + env(safe-area-inset-right, 0px)) 24px calc(12px + env(safe-area-inset-left, 0px));
       background: rgba(var(--bg-rgb), 0.10);
       backdrop-filter: blur(0px);
       -webkit-backdrop-filter: blur(0px);
@@ -290,20 +289,39 @@
       -webkit-backdrop-filter: blur(8px);
     }
     .dir-create-composer {
-      width: 100%;
+      width: min(900px, calc(100vw - 24px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
       max-width: 900px;
       padding: 8px 7px 10px 7px;
       margin: 0 auto;
       border: none;
       background: transparent;
       position: relative;
+      isolation: isolate;
       opacity: 0;
+      filter: blur(18px);
       transform: translateY(42px) scale(0.952);
-      transition: opacity 320ms ease, transform 620ms cubic-bezier(0.18, 0.9, 0.22, 1);
+      transition: opacity 320ms ease, transform 620ms cubic-bezier(0.18, 0.9, 0.22, 1), filter 520ms ease;
+      will-change: transform, opacity, filter;
+    }
+    .dir-create-composer::before {
+      content: "";
+      position: absolute;
+      inset: 6px 8px 8px;
+      border-radius: 30px;
+      background: radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.11) 0%, rgba(255, 255, 255, 0.045) 34%, rgba(255, 255, 255, 0.012) 58%, rgba(255, 255, 255, 0) 76%);
+      filter: blur(18px);
+      opacity: 0.82;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .dir-create-composer > * {
+      position: relative;
+      z-index: 1;
     }
     .dir-create-overlay.visible .dir-create-composer {
       opacity: 1;
-      transform: translateY(-20px) scale(1);
+      filter: blur(0);
+      transform: translateY(0) scale(1);
     }
     .dir-create-field {
       position: relative;
@@ -325,6 +343,9 @@
       -webkit-appearance: none;
       appearance: none;
     }
+    html[data-bold-mode="1"] .dir-create-input {
+      font-weight: 700;
+    }
     .dir-create-input::placeholder { color: var(--muted); }
     .dir-create-input:focus,
     .dir-create-input:active {
@@ -340,7 +361,7 @@
     }
     .dir-create-submit {
       position: absolute;
-      right: 9px;
+      right: 5px;
       bottom: 9px;
       width: 38px;
       height: 38px;
