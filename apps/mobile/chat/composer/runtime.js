@@ -351,140 +351,9 @@
     const attachPreviewRow = document.getElementById("attachPreviewRow");
     const composerShellEl = document.querySelector(".composer-shell");
     if (cameraBtn && cameraInput && attachPreviewRow) {
-      const attachmentBaseName = (value) => {
-        const parts = String(value || "").split(/[\\/]/);
-        return parts[parts.length - 1] || String(value || "");
-      };
-      const attachmentExt = (value) => {
-        const base = attachmentBaseName(value);
-        const dot = base.lastIndexOf(".");
-        return dot > 0 ? base.slice(dot) : "";
-      };
-      const attachmentStem = (value) => {
-        const base = attachmentBaseName(value);
-        const dot = base.lastIndexOf(".");
-        return dot > 0 ? base.slice(0, dot) : base;
-      };
-      const attachmentDisplayNameFromPath = (path, fallback = "") => {
-        const base = attachmentBaseName(path);
-        const ext = attachmentExt(base);
-        const stem = ext ? base.slice(0, -ext.length) : base;
-        const parts = stem.split("_");
-        if (parts.length >= 3) {
-          const label = parts.slice(2).join("_");
-          if (label) return `${label}${ext}`;
-        }
-        return fallback || base;
-      };
-      const syncAttachmentCard = (card, attachment) => {
-        if (!card || !attachment) return;
-        card.dataset.path = attachment.path || "";
-        card.setAttribute("aria-label", attachment.name ? `Rename attachment ${attachment.name}` : "Rename attachment");
-        card.title = attachment.name ? `Rename ${attachment.name}` : "Rename attachment";
-        const nameEl = card.querySelector(".attach-card-name");
-        if (nameEl) {
-          nameEl.textContent = attachment.name || attachmentDisplayNameFromPath(attachment.path, "Attachment");
-        }
-        const img = card.querySelector(".attach-card-thumb");
-        if (img && attachment.name) img.alt = attachment.name;
-      };
-      const openAttachmentRenameModal = (attachment, card) => {
-        if (!attachment || !pendingAttachments.includes(attachment)) return;
-        let overlay = document.getElementById("attachRenameOverlay");
-        if (overlay) overlay.remove();
-        overlay = document.createElement("div");
-        overlay.id = "attachRenameOverlay";
-        overlay.className = "add-agent-overlay attach-rename-overlay";
-        const currentName = attachment.name || attachmentDisplayNameFromPath(attachment.path, "attachment");
-        const ext = attachmentExt(currentName) || attachmentExt(attachment.path);
-        const initialLabel = (attachment.label || attachmentStem(currentName)).trim();
-        const hint = ext ? `The ${escapeHtml(ext)} extension stays unchanged.` : "The file extension stays unchanged.";
-        overlay.innerHTML = `<div class="add-agent-panel attach-rename-panel"><h3>Rename Attachment</h3><p class="attach-rename-copy">${escapeHtml(currentName)}</p><label class="attach-rename-label" for="attachRenameInput">Name</label><input id="attachRenameInput" class="attach-rename-input" type="text" placeholder="attachment name" maxlength="80" autocapitalize="off" autocorrect="off" spellcheck="false"><p class="attach-rename-hint">${hint}</p><div class="attach-rename-error" aria-live="polite"></div><div class="add-agent-actions"><button type="button" class="add-agent-cancel">Cancel</button><button type="button" class="add-agent-confirm">Rename</button></div></div>`;
-        document.body.appendChild(overlay);
-        requestAnimationFrame(() => overlay.classList.add("visible"));
-        const input = overlay.querySelector("#attachRenameInput");
-        input.value = initialLabel;
-        const errorEl = overlay.querySelector(".attach-rename-error");
-        const cancelBtn = overlay.querySelector(".add-agent-cancel");
-        const confirmBtn = overlay.querySelector(".add-agent-confirm");
-        const closeModal = ({ restoreFocus = true } = {}) => {
-          overlay.classList.remove("visible");
-          setTimeout(() => overlay.remove(), 420);
-          if (restoreFocus) {
-            try { card?.focus?.(); } catch (_) { }
-          }
-        };
-        const syncConfirmState = () => {
-          confirmBtn.disabled = !input.value.trim();
-        };
-        overlay.addEventListener("click", (e) => {
-          if (e.target === overlay) closeModal();
-        });
-        cancelBtn.addEventListener("click", () => closeModal());
-        input.addEventListener("input", () => {
-          errorEl.textContent = "";
-          syncConfirmState();
-        });
-        input.addEventListener("keydown", async (e) => {
-          if (e.key === "Escape") {
-            e.preventDefault();
-            closeModal();
-            return;
-          }
-          if (e.key === "Enter" && !confirmBtn.disabled) {
-            e.preventDefault();
-            confirmBtn.click();
-          }
-        });
-        confirmBtn.addEventListener("click", async () => {
-          const label = input.value.trim();
-          if (!label) {
-            syncConfirmState();
-            return;
-          }
-          if (!pendingAttachments.includes(attachment)) {
-            closeModal({ restoreFocus: false });
-            return;
-          }
-          confirmBtn.disabled = true;
-          cancelBtn.disabled = true;
-          errorEl.textContent = "";
-          try {
-            const res = await fetch("/rename-upload", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ path: attachment.path, label }),
-            });
-            const data = await res.json();
-            if (!res.ok || !data.ok || !data.path) {
-              throw new Error(data.error || "rename failed");
-            }
-            const nextName = attachmentDisplayNameFromPath(data.path, `${label}${ext}`);
-            attachment.path = data.path;
-            attachment.name = nextName;
-            attachment.label = attachmentStem(nextName);
-            syncAttachmentCard(card, attachment);
-            setStatus("");
-            closeModal();
-          } catch (err) {
-            errorEl.textContent = err?.message || "rename failed";
-            confirmBtn.disabled = false;
-            cancelBtn.disabled = false;
-          }
-        });
-        syncConfirmState();
-        setTimeout(() => {
-          try {
-            input.focus();
-            input.select();
-          } catch (_) { }
-        }, 40);
-      };
       const addCard = (file, attachment) => {
         const card = document.createElement("div");
         card.className = "attach-card";
-        card.tabIndex = 0;
-        card.setAttribute("role", "button");
         if (file.type.startsWith("image/")) {
           const img = document.createElement("img");
           img.className = "attach-card-thumb";
@@ -521,13 +390,6 @@
           }
         });
         card.appendChild(rmBtn);
-        card.addEventListener("click", () => openAttachmentRenameModal(attachment, card));
-        card.addEventListener("keydown", (e) => {
-          if (e.key !== "Enter" && e.key !== " ") return;
-          e.preventDefault();
-          openAttachmentRenameModal(attachment, card);
-        });
-        syncAttachmentCard(card, attachment);
         attachPreviewRow.appendChild(card);
         attachPreviewRow.style.display = "flex";
       };
@@ -550,7 +412,7 @@
             });
             const data = await res.json();
             if (!res.ok || !data.ok) throw new Error(data.error || "upload failed");
-            const attachment = { path: data.path, name: file.name, label: "" };
+            const attachment = { path: data.path, name: file.name };
             pendingAttachments.push(attachment);
             addCard(file, attachment);
           }));

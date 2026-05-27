@@ -6,7 +6,6 @@ import os
 import re
 import shlex
 import subprocess
-import uuid
 from pathlib import Path
 from urllib.parse import unquote as url_unquote
 
@@ -222,47 +221,6 @@ def _post_upload(handler, _parsed, ctx) -> None:
     except ValueError:
         rel_path = str(save_path)
     handler._send_json(200, {"ok": True, "path": rel_path})
-
-
-def _post_rename_upload(handler, _parsed, ctx) -> None:
-    data, err = _read_json_body(handler)
-    if err:
-        handler._send_json(400, {"ok": False, "error": err})
-        return
-    old_rel = data.get("path", "")
-    label = data.get("label", "").strip()
-    if not old_rel or not label:
-        handler._send_json(400, {"ok": False, "error": "path and label required"})
-        return
-    upload_dir = Path(ctx["workspace"]) / "logs" / ctx["session_name"] / "uploads"
-    try:
-        old_path = _resolve_within_root(old_rel, workspace_root=ctx["workspace"], allowed_root=upload_dir)
-    except ValueError as exc:
-        handler._send_json(400, {"ok": False, "error": str(exc)})
-        return
-    except Exception:
-        handler._send_json(403, {"ok": False, "error": "forbidden"})
-        return
-    if not old_path.is_file():
-        handler._send_json(404, {"ok": False, "error": "file not found"})
-        return
-    label = re.sub(r"[\x00-\x1f\x7f\u200b-\u200f\u2028\u2029/\\]", "", label)
-    label = re.sub(r"[^\w\-. ]", "_", label).strip()[:80]
-    if not label:
-        handler._send_json(400, {"ok": False, "error": "invalid label"})
-        return
-    ext = old_path.suffix
-    new_name = f"{label}{ext}"
-    new_path = old_path.parent / new_name
-    if new_path.exists() and new_path != old_path:
-        new_name = f"{label}_{uuid.uuid4().hex[:4]}{ext}"
-        new_path = old_path.parent / new_name
-    old_path.rename(new_path)
-    try:
-        new_rel = str(new_path.relative_to(Path(ctx["workspace"])))
-    except ValueError:
-        new_rel = str(new_path)
-    handler._send_json(200, {"ok": True, "path": new_rel})
 
 
 def _post_delete_upload(handler, _parsed, ctx) -> None:
@@ -578,7 +536,6 @@ _POST_ROUTES = {
     "/remove-agent": _post_remove_agent,
     "/log-system": _post_log_system,
     "/upload": _post_upload,
-    "/rename-upload": _post_rename_upload,
     "/delete-upload": _post_delete_upload,
     "/open-terminal": _post_open_terminal,
     "/open-terminal-pane": _post_open_terminal_pane,
