@@ -126,7 +126,6 @@ def build_session_state_payload(
                 "server_instance": server_instance,
                 "session": session_name,
                 "active": bool(runtime.session_is_active),
-                "launch_pending": bool(runtime.launch_pending()),
             }
         )
     if "targets" in selected:

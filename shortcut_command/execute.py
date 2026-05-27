@@ -17,10 +17,6 @@ def run_shortcut_command(
     if spec is None:
         msg = "unknown shortcut command"
         return 400, {"ok": False, "error": msg, "status_message": msg}
-    if rt.launch_pending():
-        msg = "Start the session first by selecting an initial agent."
-        return 400, {"ok": False, "error": msg, "status_message": msg}
-
     resolved = (target or "").strip()
     if resolved:
         resolved = ",".join(rt.resolve_target_agents(resolved))

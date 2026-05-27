@@ -1465,6 +1465,21 @@ print(
 PYEOF
   )"
   tmux select-pane -t "$pane_id" -T "$instance_name"
+  case "$base_name" in
+    codex)
+      python3 - "$WORKSPACE" <<'PYEOF'
+import sys
+from pathlib import Path
+workspace = sys.argv[1]
+config_path = Path.home() / ".codex" / "config.toml"
+content = config_path.read_text(encoding="utf-8") if config_path.exists() else ""
+section = f'[projects."{workspace}"]'
+if section not in content:
+    content = content.rstrip("\n") + f'\n\n{section}\ntrust_level = "trusted"\n'
+    config_path.write_text(content, encoding="utf-8")
+PYEOF
+      ;;
+  esac
   tmux send-keys -t "$pane_id" "$launch_cmd" Enter
 }
 

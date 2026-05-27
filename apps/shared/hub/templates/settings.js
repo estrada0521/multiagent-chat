@@ -146,14 +146,30 @@
         btn.classList.add("restarting");
         btn.disabled = true;
         btn.textContent = "Restarting…";
-        try { await fetch("/restart-hub", { method: "POST" }); } catch (_) {}
+        const resetBtn = (errMsg) => {
+          btn.classList.remove("restarting");
+          btn.disabled = false;
+          btn.textContent = "Restart Hub";
+          if (errMsg) window.alert(errMsg);
+        };
+        let restartRes;
+        try { restartRes = await fetch("/restart-hub", { method: "POST" }); } catch (err) {
+          resetBtn(err?.message || "restart failed");
+          return;
+        }
+        if (!restartRes.ok) {
+          let errMsg = "restart failed";
+          try { const d = await restartRes.json(); errMsg = d?.error || errMsg; } catch (_) {}
+          resetBtn(errMsg);
+          return;
+        }
         const started = Date.now();
         const poll = async () => {
           try {
             const res = await fetch(`/sessions?ts=${Date.now()}`, { cache: "no-store" });
             if (res.ok) { window.location.replace(window.location.pathname); return; }
           } catch (_) {}
-          if (Date.now() - started < 20000) { setTimeout(poll, 500); } else { window.location.reload(); }
+          if (Date.now() - started < 20000) { setTimeout(poll, 500); } else { resetBtn("hub did not restart in time"); }
         };
         setTimeout(poll, 700);
       });

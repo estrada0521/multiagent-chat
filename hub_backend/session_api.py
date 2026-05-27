@@ -124,7 +124,6 @@ class HubSessionApi:
             updated_at=updated_at or self.format_session_timestamp(now_epoch),
             preferred_index_path=index_path,
         )
-        record["launch_pending"] = False
         record["running_agents"] = []
         record["is_running"] = True
         return record

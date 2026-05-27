@@ -272,16 +272,37 @@
           btn.textContent = "Restarting…";
         }
         const previousInstance = currentServerInstance;
-        let edgeReady = false;
+        const resetReloadState = (errMsg) => {
+          reloadInFlight = false;
+          releaseLaunchShellGate();
+          if (btn) {
+            btn.disabled = false;
+            btn.classList.remove("restarting");
+            btn.textContent = "Reload";
+          }
+          if (errMsg) {
+            setStatus(errMsg, true);
+            setTimeout(() => setStatus(""), 3000);
+          }
+        };
         await Promise.allSettled([purgeChatAssetCaches(), refreshChatServiceWorkers()]);
+        let res;
         try {
-          const res = await fetch("/new-chat", { method: "POST", cache: "no-store" });
-          edgeReady = res.ok && res.headers.get("X-Multiagent-Chat-Ready") === "1";
-        } catch (_) {}
-        const ready = edgeReady || await waitForChatReady(12000, previousInstance);
+          res = await fetch("/new-chat", { method: "POST", cache: "no-store" });
+        } catch (err) {
+          resetReloadState(err?.message || "reload failed");
+          return;
+        }
+        if (!res.ok) {
+          let errMsg = "reload failed";
+          try { const d = await res.json(); errMsg = d?.error || errMsg; } catch (_) {}
+          resetReloadState(errMsg);
+          return;
+        }
+        const ready = await waitForChatReady(12000, previousInstance);
         await Promise.allSettled([purgeChatAssetCaches(), refreshChatServiceWorkers()]);
         if (!ready) {
-          navigateToFreshChat();
+          resetReloadState("reload timed out");
           return;
         }
         navigateToFreshChat();
