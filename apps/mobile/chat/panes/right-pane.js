@@ -949,7 +949,7 @@
         const mountInMobileSheet = (contentEl) => {
           const { sheet, sheetNav, contentEl: sheetContentEl } = buildMobileBottomSheet({
             kind: "attached-files",
-            title: path ? `Repository / ${path}` : "Repository",
+            title: path ? (path.split("/").filter(Boolean).pop() || "Repository") : "Repository",
             closeLabel: "Close attached files",
             onClose: () => closeAttachedFilesSheet(),
             leadingButtonHtml: `<button type="button" class="attached-files-sheet-back mobile-bottom-sheet-button mobile-floating-sheet-button" aria-label="Go to parent directory">${backIcon}</button>`,

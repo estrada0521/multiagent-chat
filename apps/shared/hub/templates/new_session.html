@@ -94,58 +94,16 @@
     html[data-view-variant="mobile"] #pickerPanel { display: none; }
     html[data-hub-embed="1"] #dirBrowser,
     html[data-view-variant="mobile"] #dirBrowser { display: flex; }
-    html[data-hub-embed="1"] #dirBrowser {
-      padding-top: var(--hub-embed-sheet-offset);
-    }
 
     #dirBrowser {
       display: none;
-      flex-direction: column;
       position: absolute; inset: 0;
       overflow: hidden;
     }
-    .dir-header {
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      min-height: 44px;
-      padding: 6px 14px;
-      position: relative;
-    }
-    .dir-back-btn {
-      appearance: none; -webkit-appearance: none;
-      width: 36px; height: 36px;
-      border: none; border-radius: 8px;
-      padding: 0; background: transparent;
-      color: var(--icon-muted);
-      display: inline-flex; align-items: center; justify-content: center;
-      cursor: pointer; -webkit-tap-highlight-color: transparent;
-      flex: 0 0 auto;
-      margin: 0;
-      transition: color 120ms ease;
-    }
-    .dir-back-btn:active {
-      color: var(--icon-hover);
-    }
-    .dir-back-btn[hidden] { display: none; }
-    .dir-back-btn svg {
-      width: 18px; height: 18px;
-      display: block; stroke-width: 1.8;
-    }
-    .dir-path-text {
-      position: absolute;
-      left: 50%; top: 50%;
-      transform: translate(-50%, -50%);
-      max-width: calc(100% - 80px);
-      font-size: 15px; font-weight: 600;
-      color: var(--fg);
-      text-align: center;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      pointer-events: none;
-    }
     .dir-list {
-      flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
-      padding: 4px 0 calc(20px + env(safe-area-inset-bottom, 0px));
+      position: absolute; inset: 0;
+      overflow-y: auto; -webkit-overflow-scrolling: touch;
+      padding: var(--hub-embed-sheet-offset) 0 calc(44px + max(20px, env(safe-area-inset-bottom, 0px)) + 8px);
       display: grid;
       grid-template-columns: 1fr;
       gap: 2px;
@@ -248,12 +206,72 @@
       flex: 0 0 auto;
     }
     .dir-status {
-      padding: 0 12px; font-size: 13px;
-      color: var(--muted); flex-shrink: 0;
-      min-height: 0;
+      position: absolute;
+      bottom: calc(44px + max(20px, env(safe-area-inset-bottom, 0px)) + 12px);
+      left: 14px; right: 14px;
+      font-size: 13px;
+      color: var(--muted);
+      text-align: center;
+      z-index: 10;
+      pointer-events: none;
     }
-    .dir-status:not(:empty) { padding: 4px 14px; min-height: 1.6em; }
-    .dir-status.error { color: rgb(232, 146, 146); }
+    .dir-status.error { color: rgb(232, 146, 146); pointer-events: auto; }
+    .dir-start-btn {
+      position: absolute;
+      bottom: max(20px, env(safe-area-inset-bottom, 0px));
+      left: 50%;
+      transform: translateX(-50%);
+      height: 44px;
+      padding: 0 18px;
+      z-index: 10;
+      appearance: none; -webkit-appearance: none;
+      border: 0.5px solid rgba(255, 255, 255, 0.14);
+      border-radius: 999px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.018) 48%, rgba(255, 255, 255, 0.045)),
+        rgba(var(--bg-rgb), 0.52);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.20),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.055),
+        inset 0 0 18px rgba(255, 255, 255, 0.024),
+        0 4px 14px rgba(0, 0, 0, 0.25);
+      backdrop-filter: blur(28px) saturate(220%) contrast(114%);
+      -webkit-backdrop-filter: blur(28px) saturate(220%) contrast(114%);
+      color: var(--fg);
+      font: inherit; font-size: 15px; font-weight: 600;
+      white-space: nowrap;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition:
+        background 160ms ease,
+        border-color 160ms ease,
+        box-shadow 160ms ease,
+        transform 160ms ease;
+    }
+    .dir-start-btn:active {
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.095), rgba(255, 255, 255, 0.024) 48%, rgba(255, 255, 255, 0.055)),
+        rgba(var(--bg-rgb), 0.60);
+      border-color: rgba(255, 255, 255, 0.18);
+      transform: translateX(-50%) scale(0.94);
+    }
+    .dir-start-btn[disabled] { opacity: 0.4; cursor: default; }
+    html[data-bold-mode="1"] .dir-start-btn { font-weight: 700; }
+    html[data-theme="light"] .dir-start-btn {
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.28) 44%, rgba(255, 255, 255, 0.48)),
+        rgba(var(--bg-rgb), 0.25);
+      border-color: rgba(0, 0, 0, 0.10);
+      box-shadow:
+        inset 0 1px 1px rgba(255, 255, 255, 0.92),
+        0 4px 14px rgba(0, 0, 0, 0.10),
+        0 1px 0 rgba(255, 255, 255, 0.56);
+    }
+    html[data-theme="light"] .dir-start-btn:active {
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.80), rgba(255, 255, 255, 0.36) 44%, rgba(255, 255, 255, 0.56)),
+        rgba(var(--bg-rgb), 0.35);
+    }
     .dir-create-overlay {
       position: fixed; inset: 0; z-index: 50;
       display: flex; align-items: center; justify-content: center;
@@ -368,12 +386,6 @@
       <div class="status" id="statusText"></div>
     </section>
     <div id="dirBrowser">
-      <div class="dir-header">
-        <button type="button" class="dir-back-btn" id="dirBackBtn" hidden>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg>
-        </button>
-        <span class="dir-path-text" id="dirPathText"></span>
-      </div>
       <div class="dir-list" id="dirList">
         <div class="dir-loading">
           <span class="inline-loading">
@@ -382,6 +394,7 @@
         </div>
       </div>
       <div class="dir-status" id="dirStatus"></div>
+      <button type="button" id="dirStartBtn" class="dir-start-btn" disabled>Start New Session</button>
     </div>
     <div class="dir-create-overlay" id="dirCreateOverlay" hidden>
       <form class="dir-create-composer" id="dirCreateForm">
@@ -498,8 +511,7 @@
     }
 
     if (USE_DIR_BROWSER) {
-      const dirBackBtn = document.getElementById("dirBackBtn");
-      const dirPathText = document.getElementById("dirPathText");
+      const dirStartBtn = document.getElementById("dirStartBtn");
       const dirCreateOverlay = document.getElementById("dirCreateOverlay");
       const dirCreateForm = document.getElementById("dirCreateForm");
       const dirCreateInput = document.getElementById("dirCreateInput");
@@ -518,8 +530,7 @@
       function shortPath(p) {
         const parts = (p || "").replace(/\/$/, "").split("/").filter(Boolean);
         if (!parts.length) return "/";
-        if (parts.length <= 2) return "/" + parts.join("/");
-        return "…/" + parts.slice(-2).join("/");
+        return parts[parts.length - 1];
       }
 
       function esc(s) { return String(s || "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
@@ -651,7 +662,12 @@
 
       function notifyDirState() {
         if (HUB_EMBED && window.self !== window.top) {
-          window.parent.postMessage({ type: "multiagent-hub-sheet-dir-state", path: _currentPath || "" }, "*");
+          window.parent.postMessage({
+            type: "multiagent-hub-sheet-dir-state",
+            path: _currentPath || "",
+            displayPath: _currentPath ? shortPath(_currentPath) : "",
+            canGoBack: !!_parentPath,
+          }, "*");
         }
       }
 
@@ -670,8 +686,7 @@
           _currentPath = data.path || path || "";
           _parentPath = data.parent || null;
 
-          dirPathText.textContent = shortPath(_currentPath);
-          dirBackBtn.hidden = !_parentPath;
+          if (dirStartBtn) dirStartBtn.disabled = !_currentPath;
           notifyDirState();
 
           const entries = data.entries || [];
@@ -687,7 +702,12 @@
         }
       }
 
-      dirBackBtn.addEventListener("click", () => { if (_parentPath) loadDir(_parentPath, "back"); });
+      if (dirStartBtn) {
+        dirStartBtn.addEventListener("click", () => {
+          if (!_currentPath || startInFlight) return;
+          startSession(_currentPath);
+        });
+      }
       if (dirCreateOverlay) {
         dirCreateOverlay.addEventListener("click", (event) => {
           if (event.target === dirCreateOverlay) closeCreateOverlay();
@@ -716,10 +736,10 @@
         if (event.key === "Escape" && dirCreateOverlay && !dirCreateOverlay.hidden) closeCreateOverlay();
       });
 
-      // Listen for "Start New Session" triggered from the parent sheet nav bar
+      // Listen for "Go Back" triggered from the parent sheet nav bar back button
       window.addEventListener("message", (e) => {
-        if (e.data && e.data.type === "multiagent-hub-sheet-start-session") {
-          if (_currentPath && !startInFlight) startSession(_currentPath);
+        if (e.data && e.data.type === "multiagent-hub-sheet-go-back") {
+          if (_parentPath) loadDir(_parentPath, "back");
         }
       });
 

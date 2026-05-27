@@ -417,6 +417,12 @@
         0 10px 28px rgba(0, 0, 0, 0.30);
       backdrop-filter: blur(28px) saturate(220%) contrast(114%);
       -webkit-backdrop-filter: blur(28px) saturate(220%) contrast(114%);
+      -webkit-tap-highlight-color: transparent;
+      transition:
+        background 160ms ease,
+        border-color 160ms ease,
+        box-shadow 160ms ease,
+        transform 160ms ease;
       color: var(--icon-fg);
       z-index: 160;
     }
@@ -424,6 +430,10 @@
     .hub-page-header .hub-page-title:hover {
       opacity: 1;
       transform: none;
+    }
+
+    .hub-page-header .hub-page-title:active {
+      transform: scale(0.94);
     }
 
     .hub-page-header .hub-page-title .hub-page-logo {
@@ -504,7 +514,7 @@
         inset 0 1px 0 rgba(255, 255, 255, 0.24),
         inset 0 0 18px rgba(255, 255, 255, 0.035),
         0 7px 22px rgba(0, 0, 0, 0.34);
-      transform: scale(0.985);
+      transform: scale(0.94);
     }
 
     html[data-theme="light"] .hub-page-header .hub-page-title,
@@ -1123,27 +1133,23 @@
       display: block;
     }
 
-    /* Start New Session: absolutely centered like .mob-sheet-nav-title */
-    .mob-sheet-start-btn {
+    /* Back button: absolutely positioned on the left side of the nav bar */
+    .mob-sheet-back-btn {
       position: absolute;
-      left: 50%;
+      left: calc(14px + env(safe-area-inset-left, 0px));
       top: 50%;
-      transform: translate(-50%, -50%);
+      transform: translateY(-50%);
+      width: var(--mob-sheet-floating-height);
       height: var(--mob-sheet-floating-height);
-      padding: 0 14px;
-      font: inherit;
-      font-size: 15px;
-      font-weight: 600;
-      white-space: nowrap;
     }
 
-    .mob-sheet-start-btn[disabled] {
-      opacity: 0.4;
-      cursor: default;
+    .mob-sheet-back-btn svg {
+      display: block;
     }
 
-    html[data-bold-mode="1"] .mob-sheet-start-btn {
-      font-weight: 700;
+    /* :active must preserve the translateY(-50%) centering */
+    .mob-sheet-back-btn:active {
+      transform: translateY(-50%) scale(0.94);
     }
 
     #mobSheetFrame {

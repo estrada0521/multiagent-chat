@@ -136,7 +136,7 @@
       border-radius: 10px;
       justify-content: center;
       position: absolute;
-      top: 60px;
+      top: calc(var(--mobile-sheet-content-offset, 72px) + 8px);
       left: 50%;
       z-index: 6;
       max-width: calc(100% - 16px);
