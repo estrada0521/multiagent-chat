@@ -150,16 +150,6 @@
       border-color: rgba(255,255,255,0.2);
       filter: brightness(1.06);
     }
-    .attach-card-name {
-      font-size: 10px;
-      color: var(--muted);
-      text-align: center;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      margin-top: 3px;
-      max-width: 80px;
-    }
     .attach-card-remove {
       position: absolute;
       top: -5px;

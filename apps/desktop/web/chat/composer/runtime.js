@@ -21,10 +21,7 @@
           ext.textContent = file.name.split(".").pop().slice(0, 5) || "FILE";
           card.appendChild(ext);
         }
-        const nameEl = document.createElement("div");
-        nameEl.className = "attach-card-name";
-        nameEl.textContent = attachment.name || file.name;
-        card.appendChild(nameEl);
+
         const rmBtn = document.createElement("button");
         rmBtn.type = "button";
         rmBtn.className = "attach-card-remove";
