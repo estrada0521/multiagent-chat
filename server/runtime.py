@@ -467,12 +467,15 @@ class ChatRuntime:
         meta["total_messages"] = total_count
         if light_mode:
             entries = [self._light_entry(entry) for entry in entries]
-        targets_cached_at, cached_targets = self._payload_targets_cache
-        if now - targets_cached_at < 2.0:
-            targets = list(cached_targets)
+        if self.launch_pending():
+            targets = list(self.targets)
         else:
-            targets = self.active_agents()
-            self._payload_targets_cache = (now, list(targets))
+            targets_cached_at, cached_targets = self._payload_targets_cache
+            if now - targets_cached_at < 2.0:
+                targets = list(cached_targets)
+            else:
+                targets = self.active_agents()
+                self._payload_targets_cache = (now, list(targets))
         payload_doc = build_payload_document(
             meta=meta,
             filter_agent=self.filter_agent,
