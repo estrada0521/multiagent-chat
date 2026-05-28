@@ -68,8 +68,7 @@ __CHAT_INCLUDE:camera-mode.css__
       color: var(--surface);
     }
 
-    .has-hover .quick-action:hover:not(:disabled),
-    .attach-card-remove {
+    .has-hover .quick-action:hover:not(:disabled) {
       background: rgb(40, 40, 40);
     }
 

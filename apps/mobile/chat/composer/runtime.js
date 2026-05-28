@@ -1,11 +1,7 @@
-    let _fileImportInProgress = false;
-    let _fileImportClearTimer = null;
     const scheduleComposerCloseFromKeyboardDismiss = () => {
-      if (_fileImportInProgress) return;
       clearComposerBlurCloseTimer();
       composerBlurCloseTimer = setTimeout(() => {
         if (!isComposerOverlayOpen()) return;
-        if (_fileImportInProgress) return;
         const active = document.activeElement;
         if (active === messageInput) return;
         if (composerForm && active && composerForm.contains(active)) return;
@@ -393,9 +389,6 @@
       const uploadAttachedFiles = async (fileList) => {
         const files = Array.from(fileList || []).filter((f) => f && typeof f.name === "string");
         if (!files.length) return false;
-        if (messageInput && isComposerOverlayOpen()) {
-          focusComposerTextarea({ sync: true });
-        }
         setStatus(files.length > 1 ? `uploading ${files.length} files...` : `uploading ${files[0].name}...`);
         try {
           await Promise.all(files.map(async (file) => {
@@ -428,20 +421,10 @@
       };
       cameraBtn.addEventListener("click", () => {
         closePlusMenu();
-        _fileImportInProgress = true;
-        if (_fileImportClearTimer) clearTimeout(_fileImportClearTimer);
-        _fileImportClearTimer = setTimeout(() => {
-          _fileImportInProgress = false;
-          _fileImportClearTimer = null;
-        }, 20000);
+        closeComposerOverlay();
         cameraInput.click();
       });
       cameraInput.addEventListener("change", async () => {
-        _fileImportInProgress = false;
-        if (_fileImportClearTimer) {
-          clearTimeout(_fileImportClearTimer);
-          _fileImportClearTimer = null;
-        }
         const files = Array.from(cameraInput.files);
         cameraInput.value = "";
         await uploadAttachedFiles(files);

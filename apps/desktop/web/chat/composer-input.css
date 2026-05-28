@@ -89,7 +89,7 @@
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
-      padding: 0 4px;
+      padding: 10px 6px 0 10px;
       max-height: min(38vh, 260px);
       overflow-y: auto;
       overflow-x: hidden;
@@ -125,7 +125,7 @@
     .attach-card-thumb {
       width: 80px;
       height: 80px;
-      border-radius: 8px;
+      border-radius: 20px;
       border: 1px solid rgba(255,255,255,0.1);
       object-fit: cover;
       display: block;
@@ -133,7 +133,7 @@
     .attach-card-ext {
       width: 80px;
       height: 80px;
-      border-radius: 8px;
+      border-radius: 20px;
       border: 1px solid rgba(255,255,255,0.1);
       background: transparent;
       display: flex;
@@ -147,28 +147,28 @@
     }
     .has-hover .attach-card:hover .attach-card-thumb,
     .has-hover .attach-card:hover .attach-card-ext {
-      border-color: rgba(255,255,255,0.2);
       filter: brightness(1.06);
     }
     .attach-card-remove {
       position: absolute;
-      top: -5px;
-      left: -5px;
+      top: -8px;
+      left: -8px;
       background: var(--surface);
-      border: none;
+      border: 1px solid var(--line-strong);
       color: var(--fg);
-      width: 20px;
-      height: 20px;
+      width: 26px;
+      height: 26px;
       border-radius: 50%;
       cursor: pointer;
-      font-size: 11px;
+      font-size: 13px;
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 0;
       line-height: 1;
+      transition: background 120ms ease;
     }
-    .has-hover .attach-card-remove:hover { color: var(--icon-hover); }
+    .has-hover .attach-card-remove:hover { background: var(--bg-hover); }
     .attach-rename-overlay {
       background: rgba(0, 0, 0, 0.48);
     }

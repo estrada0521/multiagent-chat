@@ -55,8 +55,7 @@ __CHAT_INCLUDE:file-modal.css__
       color: var(--surface);
     }
     .has-hover .quick-action:hover:not(:disabled),
-    #composerFabBtn:active,
-    .attach-card-remove {
+    #composerFabBtn:active {
       background: var(--surface-alt);
     }
     #fileDropdown {
