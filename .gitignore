@@ -1,6 +1,6 @@
 logs/
 logs-dev/
-.DS_Store
+**/.DS_Store
 certs/
 __pycache__/
 .claude/settings.local.json
