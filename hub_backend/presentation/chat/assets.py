@@ -197,12 +197,6 @@ CHAT_MOBILE_MAIN_STYLE_ASSET = _CHAT_VARIANTS["mobile"].main_style_asset
 CHAT_MOBILE_MAIN_STYLE_VERSION = _CHAT_VARIANTS["mobile"].main_style_version
 
 
-def _strip_desktop_only_camera_mode(html: str) -> str:
-    return "\n".join(
-        line for line in html.splitlines()
-        if "openCameraMode" not in line
-    )
-
 
 def chat_app_script_asset(variant: str = "desktop") -> str:
     return _chat_variant(variant).app_script_asset
@@ -232,9 +226,6 @@ def render_chat_html(*, icon_data_uris, server_instance, hub_port, chat_settings
     base_path = chat_base_path.rstrip("/")
     actions_html = CHAT_HEADER_ACTIONS_HTML
     panels_html = CHAT_HEADER_PANELS_HTML
-    if normalized_variant == "desktop":
-        actions_html = _strip_desktop_only_camera_mode(actions_html)
-        panels_html = _strip_desktop_only_camera_mode(panels_html)
     chat_header_html = render_hub_page_header(
         title_href="/",
         title_id="hubPageTitleLink",
