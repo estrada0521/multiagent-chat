@@ -438,27 +438,28 @@
       border: none;
       border-radius: 4px;
       background: transparent;
-      color: var(--muted);
+      font-size: 14px;
+      line-height: 1;
       cursor: pointer;
-      transition: background 120ms ease, color 120ms ease;
+      transition: background 120ms ease, opacity 120ms ease;
+    }
+    .git-branch-summary-wrap .git-branch-summary-pin:not(.is-pinned) {
+      opacity: 0.4;
+      filter: grayscale(1);
     }
     .git-branch-summary-wrap .git-branch-summary-pin:hover:not(.is-pinned) {
       background: var(--panel-row-hover-bg);
-      color: var(--icon-fg);
+      opacity: 0.8;
+      filter: grayscale(0.5);
     }
     .git-branch-summary-wrap .git-branch-summary-pin.is-pinned {
       background: transparent;
       box-shadow: none;
-      color: var(--fg);
+      opacity: 1;
     }
     .git-branch-summary-wrap .git-branch-summary-pin.is-pinned:hover {
       background: transparent;
-      color: var(--fg);
-    }
-    .git-branch-summary-wrap .git-branch-summary-pin svg {
-      width: 18px;
-      height: 18px;
-      display: block;
+      opacity: 0.8;
     }
     html[data-tauri-app="1"][data-hub-iframe-chat="1"] .git-pinned-summary-aside {
       position: fixed;
@@ -627,16 +628,16 @@
       border: none;
       border-radius: 4px;
       background: transparent;
-      color: var(--muted);
+      font-size: 14px;
+      line-height: 1;
       cursor: default;
     }
-    .git-commit-detail-head .git-branch-summary-pin.is-pinned {
-      color: var(--icon-fg);
+    .git-commit-detail-head .git-branch-summary-pin:not(.is-pinned) {
+      opacity: 0.4;
+      filter: grayscale(1);
     }
-    .git-commit-detail-head .git-branch-summary-pin svg {
-      width: 18px;
-      height: 18px;
-      display: block;
+    .git-commit-detail-head .git-branch-summary-pin.is-pinned {
+      opacity: 1;
     }
     .git-commit-detail-head .git-branch-summary-row {
       background: var(--panel-row-bg);

@@ -9,7 +9,7 @@
       return `${safeCount} ${safeCount === 1 ? "path" : "paths"}`;
     };
     const dpLoadingHtml = () => '<span class="inline-loading"><span class="inline-loading-spinner" aria-hidden="true"></span></span>';
-    const DP_GIT_SUMMARY_PIN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6-4.35-6-10a6 6 0 1 1 12 0c0 5.65-6 10-6 10Z"/><circle cx="12" cy="11" r="2.25"/></svg>';
+    const DP_GIT_SUMMARY_PIN_SVG = '📌';
     const dpBuildSummaryHtml = (data) => {
       const changedPaths = Math.max(0, parseInt(data?.worktree_changed_paths) || 0);
       const worktreeAdded = Math.max(0, parseInt(data?.worktree_added) || 0);
