@@ -40,65 +40,6 @@ __CHAT_MAIN_STYLE_BLOCK____CHAT_SHELL_STYLE_BLOCK__  <style id="chatFontSettings
 <body>
   <div id="fileDropdown"></div>
   <div id="cmdDropdown"></div>
-  <div id="fileModal" class="file-modal mobile-bottom-sheet-backdrop" hidden>
-    <div class="file-modal-backdrop" data-close-file-modal></div>
-    <div class="file-modal-dialog mobile-bottom-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="fileModalTitle">
-      <div class="file-modal-header mobile-bottom-sheet-nav">
-        <div class="file-modal-sheet-pill mobile-bottom-sheet-pill"></div>
-        <div class="file-modal-sheet-nav-bar mobile-bottom-sheet-nav-bar">
-          <div class="file-modal-meta">
-            <button type="button" id="fileModalBackBtn" class="file-modal-close file-modal-back mobile-bottom-sheet-button" hidden aria-label="Back to repository">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M15 19l-7-7 7-7"></path>
-              </svg>
-            </button>
-          </div>
-          <div class="file-modal-text mobile-bottom-sheet-title">
-            <div id="fileModalTitle" class="file-modal-title">Preview</div>
-          </div>
-          <div class="file-modal-actions">
-            <button type="button" id="fileModalThemeToggleBtn" class="file-modal-open-editor file-modal-theme-toggle mobile-bottom-sheet-button"
-              hidden aria-label="Switch markdown preview theme" title="Switch markdown preview theme">
-              <svg id="fileModalThemeToggleIcon" width="15" height="15" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="4"></circle>
-                <path d="M12 2v2"></path>
-                <path d="M12 20v2"></path>
-                <path d="m4.93 4.93 1.41 1.41"></path>
-                <path d="m17.66 17.66 1.41 1.41"></path>
-                <path d="M2 12h2"></path>
-                <path d="M20 12h2"></path>
-                <path d="m6.34 17.66-1.41 1.41"></path>
-                <path d="m19.07 4.93-1.41 1.41"></path>
-              </svg>
-            </button>
-            <button type="button" id="fileModalHtmlModeBtn" class="file-modal-open-editor file-modal-icon-btn mobile-bottom-sheet-button" hidden
-              aria-label="Switch HTML preview to web" title="Switch HTML preview to web">
-              <svg id="fileModalHtmlModeIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3.5" y="4.5" width="17" height="15" rx="2.5"></rect>
-                <path d="M3.5 9.5h17"></path>
-                <circle cx="7.5" cy="7" r="0.8" fill="currentColor" stroke="none"></circle>
-                <circle cx="10.5" cy="7" r="0.8" fill="currentColor" stroke="none"></circle>
-                <path d="M9.5 13.5h6"></path>
-                <path d="M9.5 16.5h4"></path>
-              </svg>
-            </button>
-            <button type="button" id="fileModalCloseBtn" class="file-modal-close mobile-bottom-sheet-button" aria-label="Close file preview">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
-      <div class="file-modal-body">
-        <iframe id="fileModalFrame" class="file-modal-frame" title="File preview"></iframe>
-      </div>
-    </div>
-  </div>
   <div id="cameraMode" class="camera-mode" hidden>
     <div id="cameraModeShell" class="camera-mode-shell" role="dialog" aria-modal="true" aria-label="Camera">
       <video id="cameraModeVideo" class="camera-mode-video" playsinline autoplay muted></video>

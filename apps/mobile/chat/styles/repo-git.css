@@ -21,6 +21,153 @@
       z-index: 1;
     }
 
+    #attachedFilesPanel.attached-files-mode-preview .attached-files-sheet-content {
+      overflow: hidden;
+    }
+
+    .attached-files-stack {
+      position: relative;
+      flex: 1 1 auto;
+      min-height: 0;
+      height: 100%;
+    }
+
+    .attached-files-browser-view,
+    .attached-files-preview-view {
+      position: absolute;
+      inset: 0;
+      min-height: 0;
+    }
+
+    .attached-files-browser-view {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .attached-files-browser-mount {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .attached-files-preview-view {
+      display: none;
+    }
+
+    #attachedFilesPanel.attached-files-mode-preview .attached-files-browser-view {
+      display: none;
+    }
+
+    #attachedFilesPanel.attached-files-mode-preview .attached-files-preview-view {
+      display: block;
+    }
+
+    html[data-theme="light"] #attachedFilesPanel .attached-files-preview-view {
+      background: rgb(255, 255, 255);
+    }
+
+    html[data-theme="dark"] #attachedFilesPanel .attached-files-preview-view {
+      background: rgb(0, 0, 0);
+    }
+
+    .attached-files-preview-frame {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+      background: transparent;
+    }
+
+    .attached-files-preview-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      flex: 0 0 auto;
+      margin-left: auto;
+    }
+
+    .attached-files-preview-actions .attached-files-preview-theme-toggle[hidden],
+    .attached-files-preview-actions .attached-files-preview-html-mode[hidden] {
+      display: none;
+    }
+
+    .attached-files-preview-actions .attached-files-preview-theme-toggle svg,
+    .attached-files-preview-actions .attached-files-preview-html-mode svg {
+      width: 18px;
+      height: 18px;
+      stroke-width: 1.5;
+    }
+
+    #attachedFilesPanel.attached-files-mode-preview .attached-files-sheet-title {
+      max-width: calc(100% - 196px);
+    }
+
+    #attachedFilesPanel.attached-files-preview-shell-light .attached-files-preview-view {
+      background: rgb(255, 255, 255);
+    }
+
+    #attachedFilesPanel.attached-files-preview-shell-dark .attached-files-preview-view {
+      background: rgb(0, 0, 0);
+    }
+
+    #attachedFilesPanel.attached-files-preview-shell-light {
+      --bottom-sheet-top-gradient-rgb: 255, 255, 255;
+      --mobile-sheet-pill-bg: rgba(20, 20, 19, 0.24);
+      --fg: rgb(0, 0, 0);
+      --muted: rgb(120, 120, 120);
+      --icon-fg: rgb(0, 0, 0);
+      --icon-muted: rgb(120, 120, 120);
+      --icon-hover: rgb(35, 35, 35);
+    }
+
+    #attachedFilesPanel.attached-files-preview-shell-dark {
+      --bottom-sheet-top-gradient-rgb: 0, 0, 0;
+      --mobile-sheet-pill-bg: rgba(255, 255, 255, 0.22);
+      --bg-rgb: 0, 0, 0;
+      --fg: rgb(255, 255, 255);
+      --muted: rgb(158, 158, 158);
+      --icon-fg: rgb(255, 255, 255);
+      --icon-muted: rgb(158, 158, 158);
+      --icon-hover: rgb(220, 220, 220);
+    }
+
+    #attachedFilesPanel.attached-files-preview-shell-light .mobile-floating-sheet-button {
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.28) 44%, rgba(255, 255, 255, 0.48)),
+        rgba(var(--bg-rgb), 0.25);
+      border-color: rgba(0, 0, 0, 0.10);
+      box-shadow:
+        inset 0 1px 1px rgba(255, 255, 255, 0.92),
+        0 4px 14px rgba(0, 0, 0, 0.10),
+        0 1px 0 rgba(255, 255, 255, 0.56);
+    }
+
+    #attachedFilesPanel.attached-files-preview-shell-light .mobile-floating-sheet-button:active {
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.80), rgba(255, 255, 255, 0.36) 44%, rgba(255, 255, 255, 0.56)),
+        rgba(var(--bg-rgb), 0.35);
+    }
+
+    #attachedFilesPanel.attached-files-preview-shell-dark .mobile-floating-sheet-button {
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.018) 48%, rgba(255, 255, 255, 0.045)),
+        rgba(var(--bg-rgb), 0.52);
+      border-color: rgba(255, 255, 255, 0.14);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.20),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.055),
+        inset 0 0 18px rgba(255, 255, 255, 0.024),
+        0 4px 14px rgba(0, 0, 0, 0.25);
+    }
+
+    #attachedFilesPanel.attached-files-preview-shell-dark .mobile-floating-sheet-button:active {
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.095), rgba(255, 255, 255, 0.024) 48%, rgba(255, 255, 255, 0.055)),
+        rgba(var(--bg-rgb), 0.60);
+      border-color: rgba(255, 255, 255, 0.18);
+    }
+
     #attachedFilesPanel .attached-files-sheet-panel .repo-browser {
       flex: 1 1 auto;
       min-height: 0;

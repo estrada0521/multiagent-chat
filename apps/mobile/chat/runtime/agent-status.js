@@ -100,7 +100,7 @@
       ".target-chip",
       ".copy-btn",
       ".file-card",
-      ".file-modal-close",
+      ".attached-files-sheet-close",
       ".send-btn",
       "#scrollToBottomBtn"
     ].join(", ");
@@ -145,7 +145,7 @@
           const styleNode = document.getElementById("chatFontSettingsStyle");
           if (styleNode && styleNode.textContent !== data.chat_font_settings_css) {
             styleNode.textContent = data.chat_font_settings_css;
-            const fileFrame = document.getElementById("fileModalFrame");
+            const fileFrame = document.querySelector("#attachedFilesPanel .attached-files-preview-frame");
             if (fileFrame?.contentWindow) {
               const sz = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--message-text-size")) || 0;
               if (sz >= 8) {
