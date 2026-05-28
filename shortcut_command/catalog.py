@@ -14,12 +14,6 @@ class ShortcutCommandSpec:
 def all_commands() -> tuple[ShortcutCommandSpec, ...]:
     return (
         ShortcutCommandSpec(
-            id="model",
-            slash="/model",
-            desc="選択中 pane に /model を送信",
-            has_arg=False,
-        ),
-        ShortcutCommandSpec(
             id="up",
             slash="/up",
             desc="選択中 pane に上移動を送信",

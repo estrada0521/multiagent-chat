@@ -5,8 +5,6 @@ import re
 
 def parse_pane_direct_command(message: str) -> dict | None:
     normalized = (message or "").strip().lower()
-    if normalized == "model":
-        return {"name": "model", "repeat": 1}
     match = re.fullmatch(r"(up|down)(?:\s+(\d+))?", normalized)
     if not match:
         return None

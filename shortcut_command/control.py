@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import subprocess
-import time
 from typing import Any, Protocol
 
 from native_log_sync.agents._shared.path_state import _agent_base_name
@@ -51,26 +50,13 @@ def try_deliver_shortcut_control(
             if not pane_id:
                 return 400, {"ok": False, "error": f"pane not found for {agent}"}
             if pane_direct:
-                if pane_direct["name"] == "model":
+                tmux_key = {"up": "Up", "down": "Down"}[pane_direct["name"]]
+                for _ in range(pane_direct["repeat"]):
                     subprocess.run(
-                        [*rt.tmux_prefix, "send-keys", "-t", pane_id, "/", "m", "o", "d", "e", "l"],
+                        [*rt.tmux_prefix, "send-keys", "-t", pane_id, tmux_key],
                         capture_output=True,
                         check=False,
                     )
-                    time.sleep(0.08)
-                    subprocess.run(
-                        [*rt.tmux_prefix, "send-keys", "-t", pane_id, "Enter"],
-                        capture_output=True,
-                        check=False,
-                    )
-                else:
-                    tmux_key = {"up": "Up", "down": "Down"}[pane_direct["name"]]
-                    for _ in range(pane_direct["repeat"]):
-                        subprocess.run(
-                            [*rt.tmux_prefix, "send-keys", "-t", pane_id, tmux_key],
-                            capture_output=True,
-                            check=False,
-                        )
                 continue
             tmux_key = {"interrupt": "Escape", "ctrlc": "C-c", "enter": "Enter"}[message]
             subprocess.run(

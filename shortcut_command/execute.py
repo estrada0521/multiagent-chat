@@ -34,8 +34,6 @@ def run_shortcut_command(
 
 
 def _wire_payload(command_id: str, arg: str) -> str:
-    if command_id == "model":
-        return "model"
     if command_id == "up":
         n = _parse_repeat(arg, default=1)
         return f"up {n}"
