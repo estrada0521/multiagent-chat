@@ -46,15 +46,8 @@ ollama*.log
 tauri_app/src-tauri/target/
 tauri_app/src-tauri/gen/
 
-# Notification sounds - add your own local sound files (not tracked)
-assets/sounds/*
-
 # Local-only external access helpers (git-managed separately, do not publish)
 local/external-access/
-
-# Local external helper implementation files (kept for runtime, but not tracked here)
-ops/external-access/
-assets/logos/external-access.svg
 
 # Local-only external entrypoints (not published)
 bin/multiagent-cloudflare
@@ -63,6 +56,5 @@ bin/multiagent-public-edge
 bin/multiagent-public-edge-supervisor
 classes_multiagent.svg
 packages_multiagent.svg
-docs/when_native_log_is_created.md
 tests/
 AGENTS.md
