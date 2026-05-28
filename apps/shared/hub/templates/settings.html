@@ -55,13 +55,21 @@ __HUB_INCLUDE:settings.css__
       <div class="field" style="border:none; padding:0;">
         <div class="chat-toggles">
           <div class="toggle-section-label">Appearance</div>
-          <input type="hidden" name="theme_mobile" value="__THEME_MOBILE_HIDDEN__">
-          <label class="toggle-row">
+          <div class="toggle-row theme-switcher-row">
             <span class="toggle-row-copy">
-              <div class="set-desk-bullet"><i></i></div><span>Light Mode</span>
+              <div class="set-desk-bullet"><i></i></div><span>Theme</span>
             </span>
-            <input type="checkbox" name="theme_desktop" value="light"__LIGHT_MODE_DESKTOP_CHECKED__ switch>
-          </label>
+            <div class="theme-switcher" data-theme-value="__THEME_DESKTOP_HIDDEN__">
+              <button type="button" class="theme-btn light" data-theme="light" title="Light Theme">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+              </button>
+              <button type="button" class="theme-btn dark" data-theme="dark" title="Dark Theme">
+                <svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+              </button>
+              <input type="hidden" name="theme_desktop" value="__THEME_DESKTOP_HIDDEN__">
+            </div>
+          </div>
+          <input type="hidden" name="theme_mobile" value="__THEME_MOBILE_HIDDEN__">
           <input type="hidden" name="message_text_size_mobile" value="__MESSAGE_TEXT_SIZE_MOBILE__">
           <input type="hidden" name="bold_mode_mobile" value="__BOLD_MODE_MOBILE_HIDDEN__">
           <label class="toggle-row">
@@ -114,13 +122,13 @@ __HUB_INCLUDE:settings.css__
           </div>
           <label class="toggle-row">
             <span class="toggle-row-copy">
-              <div class="set-desk-bullet"><i></i></div><span>Auto mode</span>
+              <div class="set-desk-bullet"><i></i></div><span>Auto Approval</span>
             </span>
             <input type="checkbox" name="chat_auto_mode" value="on"__CHAT_AUTO_CHECKED__ switch>
           </label>
           <label class="toggle-row">
             <span class="toggle-row-copy">
-              <div class="set-desk-bullet"><i></i></div><span>Caffeinate -s</span>
+              <div class="set-desk-bullet"><i></i></div><span>Caffeinate -i</span>
             </span>
             <input type="checkbox" name="chat_awake" value="on"__CHAT_AWAKE_CHECKED__ switch>
           </label>
@@ -137,15 +145,23 @@ __HUB_INCLUDE:settings.css__
       <div class="set-section">
         <div class="set-section-header">Appearance</div>
         <div class="set-section-body">
-          <label class="set-row" for="mob_light_mode">
+          <div class="set-row theme-switcher-row">
             <div class="set-row-left">
               <span class="set-row-icon">
-                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 3a9 9 0 0 0 0 18V3z" fill="currentColor"></path></svg>
               </span>
-              <span class="set-row-name">Light Mode</span>
+              <span class="set-row-name">Theme</span>
             </div>
-            <input id="mob_light_mode" type="checkbox" name="theme_mobile" value="light" class="set-toggle"__LIGHT_MODE_MOBILE_CHECKED__ switch>
-          </label>
+            <div class="theme-switcher" data-theme-value="__THEME_MOBILE_HIDDEN__">
+              <button type="button" class="theme-btn light" data-theme="light" title="Light Theme">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+              </button>
+              <button type="button" class="theme-btn dark" data-theme="dark" title="Dark Theme">
+                <svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+              </button>
+              <input type="hidden" name="theme_mobile" value="__THEME_MOBILE_HIDDEN__">
+            </div>
+          </div>
           <input type="hidden" name="theme_desktop" value="__THEME_DESKTOP_HIDDEN__">
 
           <input type="hidden" name="message_text_size_desktop" value="__MESSAGE_TEXT_SIZE_DESKTOP__">
@@ -217,7 +233,7 @@ __HUB_INCLUDE:settings.css__
               <span class="set-row-icon">
                 <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
               </span>
-              <span class="set-row-name">Auto mode</span>
+              <span class="set-row-name">Auto Approval</span>
             </div>
             <input id="mob_auto_mode" type="checkbox" name="chat_auto_mode" value="on" class="set-toggle"__CHAT_AUTO_CHECKED__ switch>
           </label>
@@ -225,9 +241,9 @@ __HUB_INCLUDE:settings.css__
           <label class="set-row" for="mob_awake">
             <div class="set-row-left">
               <span class="set-row-icon">
-                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8h1a4 4 0 1 1 0 8h-1"></path><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"></path><line x1="6" y1="2" x2="6" y2="4"></line><line x1="10" y1="2" x2="10" y2="4"></line><line x1="14" y1="2" x2="14" y2="4"></line></svg>
               </span>
-              <span class="set-row-name">Caffeinate -s</span>
+              <span class="set-row-name">Caffeinate -i</span>
             </div>
             <input id="mob_awake" type="checkbox" name="chat_awake" value="on" class="set-toggle"__CHAT_AWAKE_CHECKED__ switch>
           </label>

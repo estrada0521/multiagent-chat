@@ -8,21 +8,34 @@
     const boldDesktopToggle = isMobileView
       ? document.querySelector('#settingsFormMobile input[name="bold_mode_desktop"]')
       : document.querySelector('#settingsFormDesktop input[name="bold_mode_desktop"]');
-    const themeToggle = isMobileView
-      ? document.querySelector('#settingsFormMobile input[name="theme_mobile"]')
-      : document.querySelector('#settingsFormDesktop input[name="theme_desktop"]');
     const initialThemeValue = document.documentElement.dataset.theme || "dark";
     let _themeReloadPending = false;
-    themeToggle?.addEventListener("change", () => {
-      const nextTheme = themeToggle.checked ? "light" : "dark";
-      document.documentElement.dataset.theme = nextTheme;
-      _themeReloadPending = nextTheme !== initialThemeValue;
-      try {
-        if (window.self !== window.top) {
-          window.top.postMessage({ type: "multiagent-hub-theme-changed", theme: nextTheme }, "*");
-        }
-      } catch (_) {}
+
+    document.querySelectorAll(".theme-switcher").forEach((switcher) => {
+      const input = switcher.querySelector('input[type="hidden"]');
+      switcher.querySelectorAll(".theme-btn").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          e.preventDefault();
+          const nextTheme = btn.dataset.theme;
+          if (input.value === nextTheme) return;
+          input.value = nextTheme;
+          switcher.dataset.themeValue = nextTheme;
+          document.documentElement.dataset.theme = nextTheme;
+          _themeReloadPending = nextTheme !== initialThemeValue;
+          try {
+            if (window.self !== window.top) {
+              window.top.postMessage({ type: "multiagent-hub-theme-changed", theme: nextTheme }, "*");
+            }
+          } catch (_) {}
+          // Trigger autosave
+          if (typeof _doAutoSave === "function") {
+            clearTimeout(_autoSaveTimer);
+            _autoSaveTimer = setTimeout(_doAutoSave, 150);
+          }
+        });
+      });
     });
+
     const applyBoldMode = () => {
       const html = document.documentElement;
       const mobileBold = boldMobileToggle?.checked;
