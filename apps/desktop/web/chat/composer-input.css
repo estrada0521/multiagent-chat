@@ -250,16 +250,20 @@
     }
     .statusline {
       position: absolute;
-      left: 50%;
+      left: 0;
+      right: 0;
       bottom: 2px;
-      width: min(var(--composer-overlay-max-width), calc(100vw - 16px));
+      width: auto;
+      max-width: 100%;
       padding: 0 10px 2px;
       min-height: 1.3em;
       color: var(--muted);
       font-size: 11px;
       text-align: right;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
       pointer-events: none;
-      transform: translateX(-50%);
       z-index: 2;
       background: transparent;
       box-sizing: border-box;

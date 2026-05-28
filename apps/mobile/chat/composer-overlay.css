@@ -81,8 +81,8 @@
       grid-template-columns: minmax(0, 1fr);
       justify-items: center;
       gap: 10px;
-      width: min(900px, calc(100vw - 24px));
-      max-width: 900px;
+      width: min(900px, 100%);
+      max-width: 100%;
       padding: 0;
       margin: 0;
       border-top: none;
@@ -146,7 +146,7 @@
       row-gap: 0;
       column-gap: 4px;
       width: 100%;
-      max-width: 900px;
+      max-width: 100%;
       margin: 0 auto;
       padding: 8px 7px 10px 7px;
       border: none;
