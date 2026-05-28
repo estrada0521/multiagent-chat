@@ -1397,7 +1397,7 @@
       width: var(--desk-sidebar-width);
       transform: none;
     }
-    html[data-tauri-app="1"] .desk-sidebar-resizer {
+    html[data-tauri-app="1"] .desk-sidebar-resizer:not([hidden]) {
       display: block;
     }
     html[data-tauri-app="1"] .desk-session-row {
