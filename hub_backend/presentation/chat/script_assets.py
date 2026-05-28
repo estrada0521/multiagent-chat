@@ -107,11 +107,6 @@ def build_chat_app_script_assets(chat_html: str) -> ChatAppScriptAssets:
             '      const hubUrl = `${window.location.protocol}//${hubHost}:${Number(CHAT_BOOTSTRAP.hubPort) || 0}${normalizedPath}`;\n',
             1,
         )
-        .replace(
-            '    const SHOW_NATIVE_LOG_PATH = __SHOW_NATIVE_LOG_PATH__;\n',
-            '    const SHOW_NATIVE_LOG_PATH = !!(CHAT_BOOTSTRAP.showNativeLogPath);\n',
-            1,
-        )
     )
     version = hashlib.sha256(asset.encode("utf-8")).hexdigest()[:12]
     return ChatAppScriptAssets(block=block, template=template, asset=asset, version=version)

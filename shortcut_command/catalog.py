@@ -61,6 +61,12 @@ def all_commands() -> tuple[ShortcutCommandSpec, ...]:
             desc="エージェントに Enter 送信",
             has_arg=False,
         ),
+        ShortcutCommandSpec(
+            id="nativelog",
+            slash="/nativelog",
+            desc="選択中エージェントのネイティブログを外部エディタで開く",
+            has_arg=False,
+        ),
     )
 
 

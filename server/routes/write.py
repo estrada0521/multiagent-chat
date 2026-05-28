@@ -499,14 +499,47 @@ def _post_git_ignore_file(handler, _parsed, ctx) -> None:
 
 
 
+def _run_nativelog_command(ctx, *, target: str) -> tuple[int, dict]:
+    rt = ctx["runtime"]
+    workspace_sync_api = ctx["workspace_sync_api"]
+    raw_targets = [t.strip() for t in target.split(",") if t.strip()] if target.strip() else []
+    resolved = [t for t in rt.resolve_target_agents(raw_targets[0]) if t] if raw_targets else []
+    if not resolved:
+        msg = "target is required"
+        return 400, {"ok": False, "error": msg, "status_message": msg}
+    agent = resolved[0]
+    watched = rt.native_log_watched_paths()
+    path = (watched.get(agent) or "").strip()
+    if not path:
+        msg = f"native log path not found for {agent}"
+        return 404, {"ok": False, "error": msg, "status_message": msg}
+    try:
+        workspace_sync_api.open_in_editor(path, allow_native_log_home=True)
+    except FileNotFoundError:
+        msg = f"native log file not found: {path}"
+        return 404, {"ok": False, "error": msg, "status_message": msg}
+    except Exception as exc:
+        msg = str(exc)
+        return 500, {"ok": False, "error": msg, "status_message": msg}
+    return 200, {"ok": True, "status_message": f"opened native log for {agent}"}
+
+
 def _post_shortcut_command(handler, _parsed, ctx) -> None:
     data, err = _read_json_body(handler)
     if err:
         handler._send_json(400, {"ok": False, "error": err})
         return
+    command_id = str(data.get("command_id") or "")
+    if command_id == "nativelog":
+        status, body = _run_nativelog_command(
+            ctx,
+            target=str(data.get("target") or ""),
+        )
+        handler._send_json(status, body)
+        return
     status, body = run_shortcut_command(
         ctx["runtime"],
-        command_id=str(data.get("command_id") or ""),
+        command_id=command_id,
         arg=str(data.get("arg") or ""),
         target=str(data.get("target") or ""),
     )
