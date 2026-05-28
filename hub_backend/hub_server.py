@@ -478,15 +478,8 @@ def available_external_editor_choices():
             return
         choices.append((value, label))
 
-    if shutil.which("code") or _macos_app_exists("Visual Studio Code"):
-        _append("vscode", "VS Code")
-    else:
-        _append("vscode", "VS Code")
-
-    if _macos_app_exists("CotEditor"):
-        _append("coteditor", "CotEditor")
-    else:
-        _append("coteditor", "CotEditor")
+    _append("vscode", "VS Code")
+    _append("coteditor", "CotEditor")
 
     if sys.platform == "darwin":
         app_candidates = (
@@ -882,7 +875,7 @@ class Handler(BaseHTTPRequestHandler):
                 length = 0
             body = self.rfile.read(length)
         query = f"?{parsed.query}" if parsed.query else ""
-        chat_scheme = _scheme or "http"
+        chat_scheme = _scheme
         upstream = f"{chat_scheme}://127.0.0.1:{chat_port}{suffix}{query}"
         headers = {}
         for key, value in self.headers.items():

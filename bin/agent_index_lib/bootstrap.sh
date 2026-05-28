@@ -43,7 +43,7 @@ tmux() {
 
 usage() {
   cat <<'EOF'
-Usage: agent-index [--session NAME] [--limit N] [--agent NAME] [--follow] [--json] [--chat] [--hub] [--hub-port N]
+Usage: agent-index [--session NAME] [--limit N] [--follow] [--json] [--chat] [--hub] [--hub-port N]
 
 Shows indexed chat/event messages for the current or archived session.
 EOF

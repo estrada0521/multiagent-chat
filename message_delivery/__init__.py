@@ -54,15 +54,6 @@ def _session_attached_count(runtime, *, subprocess_module=subprocess) -> int | N
         return None
 
 
-def wait_for_send_slot(self, agent_name: str, *, claude_send_cooldown_seconds: float) -> None:
-    if _agent_base_name(agent_name) != "claude":
-        return
-    last = float(self._agent_last_send_ts.get(agent_name) or 0.0)
-    wait = float(claude_send_cooldown_seconds) - (time.time() - last)
-    if wait > 0:
-        time.sleep(wait)
-
-
 def send_message(
     self,
     target: str,
@@ -124,7 +115,6 @@ def send_message(
                 pane_id = self.pane_id_for_agent(agent)
                 if not pane_id:
                     return 400, {"ok": False, "error": f"pane not found for {agent}"}
-                self._wait_for_send_slot(agent)
                 if not _send_keys_literal(self, pane_id, message, subprocess_module=subprocess):
                     return 400, {"ok": False, "error": f"Failed to deliver to: {agent}"}
                 time.sleep(
@@ -150,7 +140,6 @@ def send_message(
             if not pane_id:
                 failed_targets.append(agent)
                 continue
-            self._wait_for_send_slot(agent)
             agent_payload = pane_delivery_payload(agent, payload)
             if not _send_keys_literal(self, pane_id, agent_payload, subprocess_module=subprocess):
                 failed_targets.append(agent)
@@ -215,5 +204,4 @@ def _update_running_env(runtime, agent: str, running: bool) -> None:
 def mark_agent_sent(self, agent_name: str) -> None:
     base = _agent_base_name(agent_name)
     if base in {"claude", "cursor", "codex", "copilot", "gemini"}:
-        self._agent_last_send_ts[agent_name] = time.time()
         self._mark_running(agent_name)

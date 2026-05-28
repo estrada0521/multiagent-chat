@@ -26,7 +26,6 @@ from message_delivery import (
     _update_running_env as _update_running_env_impl,
     mark_agent_sent as _mark_agent_sent_impl,
     send_message as _send_message_impl,
-    wait_for_send_slot as _wait_for_send_slot_impl,
 )
 from .entry_write import (
     append_system_entry as _append_system_entry_impl,
@@ -71,9 +70,6 @@ from backend_core.tmux.instances import resolve_target_agents as resolve_target_
 from backend_core.access.files import append_jsonl_entry
 from backend_core.access.settings import load_hub_settings as load_shared_hub_settings
 
-_CLAUDE_SEND_COOLDOWN_SECONDS = 8.0
-
-
 def _chat_bold_mode_rules_block(html_scope: str = "") -> str:
     return _chat_bold_mode_rules_block_impl(html_scope)
 
@@ -92,7 +88,6 @@ class ChatRuntime:
         *,
         index_path: Path | str,
         limit: int,
-        filter_agent: str,
         session_name: str,
         follow_mode: bool,
         port: int,
@@ -107,7 +102,6 @@ class ChatRuntime:
     ):
         self.index_path = Path(index_path)
         self.limit = int(limit) if int(limit) > 0 else 50
-        self.filter_agent = (filter_agent or "").strip().lower()
         self.session_name = session_name
         self.follow_mode = bool(follow_mode)
         self.port = int(port)
@@ -126,8 +120,6 @@ class ChatRuntime:
                 self.tmux_prefix.extend(["-S", self.tmux_socket])
             else:
                 self.tmux_prefix.extend(["-L", self.tmux_socket])
-        self._caffeinate_proc = None
-        self._agent_last_send_ts: dict[str, float] = {}
         self._agent_running: set[str] = set()
         _initialize_session_state_bus_impl(self)
         self._native_log = NativeLogSyncer(
@@ -214,13 +206,6 @@ class ChatRuntime:
 
     def ensure_commit_announcements(self) -> None:
         _ensure_commit_announcements_impl(self)
-
-    def matches(self, entry: dict) -> bool:
-        if not self.filter_agent:
-            return True
-        if entry.get("sender", "").lower() == self.filter_agent:
-            return True
-        return any(t.lower() == self.filter_agent for t in entry.get("targets", []))
 
     @staticmethod
     def attachment_paths(message: str) -> list[str]:
@@ -422,7 +407,6 @@ class ChatRuntime:
             bool(light_mode),
             bool(self.session_is_active),
             bool(self.follow_mode),
-            self.filter_agent,
         )
         with self._payload_cache_lock:
             cached = self._payload_cache.get(cache_key)
@@ -445,7 +429,6 @@ class ChatRuntime:
             self._payload_targets_cache = (now, list(targets))
         payload_doc = build_payload_document(
             meta=meta,
-            filter_agent=self.filter_agent,
             follow_mode=self.follow_mode,
             targets=targets,
             has_older=has_older,
@@ -517,13 +500,6 @@ class ChatRuntime:
 
     def pane_field(self, pane_id: str, field: str) -> str:
         return _pane_field_impl(self, pane_id, field, subprocess_module=subprocess)
-
-    def _wait_for_send_slot(self, agent_name: str) -> None:
-        _wait_for_send_slot_impl(
-            self,
-            agent_name,
-            claude_send_cooldown_seconds=_CLAUDE_SEND_COOLDOWN_SECONDS,
-        )
 
     def _mark_agent_sent(self, agent_name: str) -> None:
         _mark_agent_sent_impl(self, agent_name)

@@ -54,9 +54,6 @@ def matched_entries(runtime) -> list[dict]:
             if should_omit_entry_from_chat(entry):
                 processed_size += len(raw_segment)
                 continue
-            if not runtime.matches(entry):
-                processed_size += len(raw_segment)
-                continue
             if agent_index_entry_omit_for_redacted(str(entry.get("message") or "")):
                 processed_size += len(raw_segment)
                 continue

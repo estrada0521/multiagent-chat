@@ -82,7 +82,6 @@ def _not_initialized(*_args, **_kwargs):
 _initialized = False
 index_path = Path()
 limit = 0
-filter_agent = ""
 session_name = ""
 follow_mode = False
 port = 0
@@ -343,7 +342,7 @@ def _clean_env():
 
 def initialize_from_argv(argv: list[str] | None = None) -> None:
     global _initialized
-    global index_path, limit, filter_agent, session_name, follow_mode
+    global index_path, limit, session_name, follow_mode
     global port, agent_send_path, workspace, log_dir, targets, tmux_socket, hub_port
     global PUBLIC_HOST, PUBLIC_HUB_PORT, _repo_root, runtime
     global _PWA_STATIC_DIR, server_instance, load_chat_settings, chat_font_settings_inline_style
@@ -355,25 +354,24 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
         return
 
     argv = list(sys.argv[1:] if argv is None else argv)
-    if len(argv) != 12:
+    if len(argv) != 11:
         raise SystemExit(
             "usage: python -m server.server "
-            "<index_path> <limit> <filter_agent> <session_name> <follow_mode> "
+            "<index_path> <limit> <session_name> <follow_mode> "
             "<port> <agent_send_path> <workspace> <log_dir> <targets_csv> <tmux_socket> <hub_port>"
         )
 
     index_path = Path(argv[0])
     limit = int(argv[1])
-    filter_agent = argv[2].strip().lower()
-    session_name = argv[3]
-    follow_mode = argv[4] == "1"
-    port = int(argv[5])
-    agent_send_path = argv[6]
-    workspace = argv[7]
-    log_dir = argv[8]
-    targets = [item for item in argv[9].split(",") if item]
-    tmux_socket = argv[10]
-    hub_port = int(argv[11])
+    session_name = argv[2]
+    follow_mode = argv[3] == "1"
+    port = int(argv[4])
+    agent_send_path = argv[5]
+    workspace = argv[6]
+    log_dir = argv[7]
+    targets = [item for item in argv[8].split(",") if item]
+    tmux_socket = argv[9]
+    hub_port = int(argv[10])
     PUBLIC_HOST = (os.environ.get("MULTIAGENT_PUBLIC_HOST", "") or "").strip().rstrip(".").lower()
     PUBLIC_HUB_PORT = int(os.environ.get("MULTIAGENT_PUBLIC_HUB_PORT", "443") or "443")
 
@@ -381,7 +379,6 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
     runtime = ChatRuntime(
         index_path=index_path,
         limit=limit,
-        filter_agent=filter_agent,
         session_name=session_name,
         follow_mode=follow_mode,
         port=port,

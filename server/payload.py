@@ -48,7 +48,6 @@ def summarize_light_entry(
 def build_payload_document(
     *,
     meta: dict,
-    filter_agent: str | None,
     follow_mode: bool,
     targets: list[str],
     has_older: bool,
@@ -57,7 +56,6 @@ def build_payload_document(
 ) -> dict:
     return {
         **meta,
-        "filter": (filter_agent or "all"),
         "follow": bool(follow_mode),
         "targets": list(targets or []),
         "has_older": bool(has_older),
