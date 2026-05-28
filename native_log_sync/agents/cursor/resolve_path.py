@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import re
 import subprocess
-from pathlib import Path
 
 from native_log_sync.agents._shared.workspace_paths import cursor_transcript_roots
 

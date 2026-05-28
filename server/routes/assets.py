@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from urllib.parse import parse_qs
 
 from hub_backend.color_constants import apply_color_tokens, resolve_theme_palette
