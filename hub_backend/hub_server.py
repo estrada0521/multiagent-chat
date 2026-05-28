@@ -574,7 +574,9 @@ def hub_new_session_html(variant="desktop"):
         .replace("__MESSAGE_TEXT_SIZE__", str(message_text_size))
         .replace("__BOLD_MODE_MOBILE__", "1" if bold_mode_mobile else "")
     )
-    return apply_color_tokens(page, settings=current_settings)
+    theme_key = "theme_mobile" if is_mobile else "theme_desktop"
+    render_settings = dict(current_settings, theme=current_settings.get(theme_key, current_settings.get("theme", "dark")))
+    return apply_color_tokens(page, settings=render_settings)
 
 def _hub_session_api() -> HubSessionApi:
     return HubSessionApi(
@@ -770,7 +772,9 @@ class Handler(BaseHTTPRequestHandler):
         except Exception:
             settings = {}
         page = HUB_HOME_MOBILE_HTML if variant == "mobile" else HUB_HOME_DESKTOP_HTML
-        self._send_html(200, apply_color_tokens(page, settings=settings))
+        theme_key = "theme_mobile" if variant == "mobile" else "theme_desktop"
+        render_settings = dict(settings, theme=settings.get(theme_key, settings.get("theme", "dark")))
+        self._send_html(200, apply_color_tokens(page, settings=render_settings))
 
     def _get_settings(self, parsed):
         variant = request_view_variant(headers=self.headers, query_string=parsed.query)

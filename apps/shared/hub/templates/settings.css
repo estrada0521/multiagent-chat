@@ -150,9 +150,9 @@
       border-color: rgba(255, 255, 255, 0.2);
     }
     .chat-toggles { display: flex; flex-direction: column; gap: 0; }
-    .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 7px; padding: 6px 0; min-height: 40px; font-size: 12px; line-height: 1.18; font-weight: 500; cursor: pointer; }
-    .toggle-section-label { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding: 14px 0 4px; font-weight: 500; pointer-events: none; }
-    .toggle-section-label:first-child { padding-top: 4px; }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 7px; padding: 3px 0; min-height: 30px; font-size: 12px; line-height: 1.18; font-weight: 500; cursor: pointer; }
+    .toggle-section-label { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding: 10px 0 5px; min-height: 30px; box-sizing: border-box; font-weight: 500; pointer-events: none; display: flex; align-items: flex-end; }
+    .toggle-section-label:first-child { padding-top: 2px; }
     .toggle-row-copy { display: inline-flex; align-items: center; gap: 7px; min-width: 0; }
     .toggle-row input[type="checkbox"] { width: 30px; height: 16px; -webkit-appearance: none; appearance: none; background: var(--line-strong); border-radius: 999px; cursor: pointer; transition: background 200ms; position: relative; flex-shrink: 0; }
     .toggle-row input[type="checkbox"]:checked { background: var(--accent, rgb(44,132,219)); }
