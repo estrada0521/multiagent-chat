@@ -241,7 +241,8 @@
     }
     .composer-plus-menu {
       position: relative;
-      display: block;
+      display: flex;
+      align-items: center;
       grid-area: plus;
       justify-self: start;
       align-self: center;
@@ -256,10 +257,10 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 42px;
-      height: 42px;
+      width: 34px;
+      height: 34px;
       padding: 0;
-      border-radius: 10px;
+      border-radius: 8px;
       border: none;
       background: transparent;
       color: var(--icon-fg);
@@ -272,9 +273,13 @@
     }
     .has-hover .composer-plus-toggle:hover {
       color: var(--icon-hover);
+      background: var(--panel-row-hover-bg);
     }
-    .composer-plus-toggle:active {
+    .composer-plus-toggle:active,
+    .composer-plus-toggle.pressing {
       transform: scale(0.92);
+      background: var(--panel-row-active-bg);
+      transition: transform 80ms ease, background 0ms;
     }
     .composer-plus-toggle::-webkit-details-marker {
       display: none;

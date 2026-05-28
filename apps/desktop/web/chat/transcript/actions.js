@@ -520,7 +520,16 @@
         }, 160);
       }
     };
-    composerPlusMenu?.querySelector(".composer-plus-toggle")?.addEventListener("mousedown", (e) => e.preventDefault());
+    const plusToggle = composerPlusMenu?.querySelector(".composer-plus-toggle");
+    plusToggle?.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      plusToggle.classList.add("pressing");
+    });
+    const _clearPressing = () => plusToggle?.classList.remove("pressing");
+    plusToggle?.addEventListener("mouseup", _clearPressing);
+    plusToggle?.addEventListener("mouseleave", _clearPressing);
+    plusToggle?.addEventListener("touchend", _clearPressing, { passive: true });
+    plusToggle?.addEventListener("touchcancel", _clearPressing, { passive: true });
     composerPlusMenu?.addEventListener("toggle", () => {
       if (composerPlusMenu.open) closeDrop();
     });
