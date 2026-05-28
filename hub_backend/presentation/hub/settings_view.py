@@ -4,7 +4,9 @@ import html
 import re
 from pathlib import Path
 
+from hub_backend.branding import APP_DISPLAY_NAME
 from hub_backend.color_constants import apply_color_tokens
+from hub_backend.server_helpers import apply_hub_page_branding
 from backend_core.access.settings import sanitize_hub_external_editor_choice
 
 
@@ -220,5 +222,6 @@ def hub_settings_html(
         .replace("__HUB_HEADER_HTML__", hub_header_html)
         .replace("__HUB_HEADER_JS__", hub_header_js)
     )
+    page = apply_hub_page_branding(page, page_title=f"Settings · {APP_DISPLAY_NAME}")
     render_settings = dict(settings, theme=render_theme)
     return apply_color_tokens(page, settings=render_settings)

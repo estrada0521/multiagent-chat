@@ -20,6 +20,7 @@ from .script_assets import (
 )
 from .render import apply_chat_template_replacements, build_chat_template_replacements
 from .template_loader import load_chat_template
+from hub_backend.branding import APP_DISPLAY_NAME
 from hub_backend.color_constants import apply_color_tokens
 from ..hub.header_assets import HUB_PAGE_HEADER_CSS, render_hub_page_header
 
@@ -220,17 +221,17 @@ def chat_app_asset_url(chat_base_path: str = "", *, variant: str = "desktop") ->
     return f"{asset_path}?v={_chat_variant(normalized_variant).app_script_version}&view={normalized_variant}"
 
 
-def render_chat_html(*, icon_data_uris, server_instance, hub_port, chat_settings, agent_font_mode_inline_style, follow, chat_base_path="", externalize_app_script=False, externalize_main_style=False, eager_optional_vendors=True, variant="desktop"):
+def render_chat_html(*, icon_data_uris, server_instance, hub_port, chat_settings, agent_font_mode_inline_style, follow, chat_base_path="", externalize_app_script=False, externalize_main_style=False, eager_optional_vendors=True, variant="desktop", session_name=""):
     normalized_variant = _normalized_chat_variant(variant)
     asset_variant = _chat_variant(normalized_variant)
     base_path = chat_base_path.rstrip("/")
+    normalized_session_name = str(session_name or "").strip()
+    chat_document_title = f"{normalized_session_name} · {APP_DISPLAY_NAME}" if normalized_session_name else APP_DISPLAY_NAME
     actions_html = CHAT_HEADER_ACTIONS_HTML
     panels_html = CHAT_HEADER_PANELS_HTML
     chat_header_html = render_hub_page_header(
         title_href="/",
         title_id="hubPageTitleLink",
-        title_aria_label="Hub",
-        title_alt="Hub",
         actions_html=actions_html,
         panels_html=panels_html,
     )
@@ -280,6 +281,7 @@ def render_chat_html(*, icon_data_uris, server_instance, hub_port, chat_settings
         chat_settings=chat_settings,
         agent_font_mode_inline_style=agent_font_mode_inline_style(chat_settings),
         hub_header_css=HUB_PAGE_HEADER_CSS,
+        chat_document_title=chat_document_title,
     )
     html = apply_chat_template_replacements(html, replacements)
     html = apply_color_tokens(html, settings=chat_settings)

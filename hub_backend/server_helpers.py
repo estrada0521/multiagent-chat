@@ -4,6 +4,7 @@ import json
 import re
 from pathlib import Path
 
+from hub_backend.branding import APP_DISPLAY_NAME
 from hub_backend.color_constants import DARK_BG
 
 _HUB_INCLUDE_RE = re.compile(r"__HUB_INCLUDE:([A-Za-z0-9_./-]+)__")
@@ -22,6 +23,14 @@ def _expand_hub_template_includes(text: str, template_dir: Path) -> str:
         return path.read_text()
 
     return _HUB_INCLUDE_RE.sub(_replace, text)
+
+
+def apply_hub_page_branding(html: str, *, page_title: str) -> str:
+    return (
+        html
+        .replace("__APP_DISPLAY_NAME__", APP_DISPLAY_NAME)
+        .replace("__PAGE_TITLE__", page_title)
+    )
 
 
 def resolve_external_origin(
@@ -291,6 +300,7 @@ def build_hub_html_pages(
             .replace("__HUB_HEADER_HTML__", hub_header_html)
             .replace("__HUB_HEADER_JS__", hub_header_js)
         )
+        html = apply_hub_page_branding(html, page_title=APP_DISPLAY_NAME)
         return _replace_agent_icon_tokens(html)
 
     hub_home_desktop_html = _render_hub_home_html("home_desktop.html")
@@ -304,6 +314,10 @@ def build_hub_html_pages(
         .replace("__HUB_HEADER_CSS__", hub_header_css)
         .replace("__HUB_HEADER_HTML__", hub_header_html)
         .replace("__HUB_HEADER_JS__", hub_header_js)
+    )
+    hub_new_session_html = apply_hub_page_branding(
+        hub_new_session_html,
+        page_title=f"New Session · {APP_DISPLAY_NAME}",
     )
     hub_new_session_html = _replace_agent_icon_tokens(hub_new_session_html)
     return {

@@ -431,6 +431,7 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
         agent_font_mode_inline_style=chat_font_settings_inline_style,
         follow="0",
         chat_base_path="",
+        session_name=session_name,
     )
     runtime.start_native_log_sync()
     threading.Thread(

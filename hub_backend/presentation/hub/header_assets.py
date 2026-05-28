@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from hub_backend.branding import APP_DISPLAY_NAME
+
 
 HUB_PAGE_HEADER_CSS = """
     :root {
@@ -108,8 +110,8 @@ def render_hub_page_header(
     *,
     title_href: str = "/",
     title_id: str = "hubPageTitleLink",
-    title_aria_label: str = "Multiagent Session Hub",
-    title_alt: str = "Multiagent Session Hub",
+    title_aria_label: str = APP_DISPLAY_NAME,
+    title_alt: str = APP_DISPLAY_NAME,
     actions_html: str = DEFAULT_HUB_HEADER_ACTIONS,
     panels_html: str = DEFAULT_HUB_HEADER_PANELS,
 ) -> str:
@@ -126,7 +128,7 @@ def render_hub_page_header(
 HUB_PAGE_HEADER_HTML_TEMPLATE = """
   <div class="hub-page-header">
     <div class="hub-page-header-top">
-      <a href="/" class="hub-page-title hub-logo-anchor" id="hubPageTitleLink" aria-label="Hub" title="Hub">
+      <a href="__TITLE_HREF__" class="hub-page-title hub-logo-anchor" id="__TITLE_ID__" aria-label="__TITLE_ARIA_LABEL__" title="__TITLE_ALT__">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="hub-page-logo" aria-hidden="true"><rect x="3.5" y="6.5" width="17" height="11" rx="2.2"/><path class="hub-logo-line" d="M9.5 6.5v11"/></svg>
       </a>
       <div class="hub-page-header-actions">

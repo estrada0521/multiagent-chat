@@ -7,11 +7,11 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Session Hub">
+  <meta name="apple-mobile-web-app-title" content="__APP_DISPLAY_NAME__">
   <link rel="manifest" href="__HUB_MANIFEST_URL__">
   <link rel="icon" type="image/png" sizes="192x192" href="__PWA_ICON_192_URL__">
   <link rel="apple-touch-icon" href="__APPLE_TOUCH_ICON_URL__">
-  <title>Hub Settings</title>
+  <title>__PAGE_TITLE__</title>
   <script>
     (() => {
       const params = new URLSearchParams(window.location.search || "");
@@ -38,7 +38,7 @@ __HUB_INCLUDE:settings.css__
   <div class="shell">
     __HUB_HEADER_HTML__
     <section class="hero">
-      <div class="eyebrow">multiagent</div>
+      <div class="eyebrow">__APP_DISPLAY_NAME__</div>
       <h1>Settings</h1>
       <div class="hub-nav">
         <a href="/">Hub</a>

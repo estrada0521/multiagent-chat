@@ -2,7 +2,7 @@
 name = "multiagent-chat"
 version = "1.0.9"
 edition = "2021"
-description = "Multiagent Chat desktop app"
+description = "Agent Window desktop app"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

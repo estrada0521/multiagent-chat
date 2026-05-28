@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from urllib.parse import parse_qs
 
+from hub_backend.branding import APP_DISPLAY_NAME
 from hub_backend.color_constants import apply_color_tokens, resolve_theme_palette
 from hub_backend.transport.request_base_path import request_base_path
 from hub_backend.transport.request_view import request_view_variant
@@ -16,7 +17,7 @@ def _get_app_manifest(handler, _parsed, ctx) -> None:
     bg = str(palette["dark_bg"])
     body = json.dumps(
         {
-            "name": f"{ctx['session_name']} chat",
+            "name": f"{ctx['session_name']} · {APP_DISPLAY_NAME}" if ctx.get("session_name") else APP_DISPLAY_NAME,
             "short_name": ctx["session_name"],
             "display": "standalone",
             "background_color": bg,
@@ -121,6 +122,7 @@ def _get_chat_index(handler, parsed, ctx) -> None:
         externalize_main_style=True,
         eager_optional_vendors=False,
         variant=variant,
+        session_name=ctx["session_name"],
     ).encode("utf-8")
     _send_bytes(handler, 200, body, content_type="text/html; charset=utf-8")
 

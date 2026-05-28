@@ -1,6 +1,6 @@
 {
   "identifier": "default",
-  "description": "Default capabilities for Multiagent Chat",
+  "description": "Default capabilities for Agent Window",
   "remote": {
     "urls": [
       "http://127.0.0.1:*",

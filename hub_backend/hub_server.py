@@ -41,6 +41,7 @@ from hub_backend.presentation.hub.settings_view import (
     hub_settings_html as _hub_settings_html_impl,
     normalized_font_label as _normalized_font_label_impl,
 )
+from hub_backend.branding import APP_DISPLAY_NAME
 from hub_backend.color_constants import apply_color_tokens, resolve_theme_palette
 from hub_backend.new_session.launch import (
     post_start_session as _post_start_session_impl,
@@ -313,7 +314,7 @@ HUB_LAUNCH_SHELL_HTML = f"""<!doctype html>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="__DARK_BG__">
-  <title>Session Hub</title>
+  <title>{APP_DISPLAY_NAME}</title>
   <style>
     :root {{ color-scheme: __COLOR_SCHEME__; --fg: __LIGHT_FG__; --icon-fg: __ICON_FG__; --icon-muted: __ICON_MUTED__; --icon-hover: __ICON_HOVER__; }}
     html, body {{
@@ -518,8 +519,6 @@ def hub_settings_html(saved=False, variant="desktop"):
     header_html = render_hub_page_header(
         title_href="/",
         title_id="hubPageTitleLink",
-        title_aria_label="Hub",
-        title_alt="Hub",
         actions_html=DEFAULT_HUB_HEADER_ACTIONS,
         panels_html=DEFAULT_HUB_HEADER_PANELS,
     )
@@ -553,8 +552,6 @@ def hub_new_session_html(variant="desktop"):
     header_html = render_hub_page_header(
         title_href="/",
         title_id="hubPageTitleLink",
-        title_aria_label="Hub",
-        title_alt="Hub",
         actions_html=DEFAULT_HUB_HEADER_ACTIONS,
         panels_html=DEFAULT_HUB_HEADER_PANELS,
     )
@@ -696,8 +693,8 @@ class Handler(BaseHTTPRequestHandler):
         palette = resolve_theme_palette(settings)
         bg = str(palette["dark_bg"])
         body = json.dumps({
-            "name": "Session Hub",
-            "short_name": "Hub",
+            "name": APP_DISPLAY_NAME,
+            "short_name": APP_DISPLAY_NAME,
             "display": "standalone",
             "background_color": bg,
             "theme_color": bg,

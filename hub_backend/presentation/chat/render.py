@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 
+from hub_backend.branding import APP_DISPLAY_NAME
+
 
 def _js_bool(value: object) -> str:
     return "true" if bool(value) else "false"
@@ -22,6 +24,7 @@ def build_chat_template_replacements(
     chat_settings: dict,
     agent_font_mode_inline_style: str,
     hub_header_css: str,
+    chat_document_title: str = APP_DISPLAY_NAME,
 ) -> dict[str, str]:
     return {
         "__ICON_DATA_URIS__": json.dumps(icon_data_uris, ensure_ascii=True),
@@ -36,6 +39,8 @@ def build_chat_template_replacements(
         "__HUB_PORT__": str(hub_port),
         "__AGENT_FONT_MODE_INLINE_STYLE__": agent_font_mode_inline_style,
         "__HUB_HEADER_CSS__": hub_header_css,
+        "__APP_DISPLAY_NAME__": APP_DISPLAY_NAME,
+        "__CHAT_DOCUMENT_TITLE__": chat_document_title,
     }
 
 
