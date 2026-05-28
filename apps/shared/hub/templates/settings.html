@@ -124,6 +124,12 @@ __HUB_INCLUDE:settings.css__
             </span>
             <input type="checkbox" name="chat_awake" value="on"__CHAT_AWAKE_CHECKED__ switch>
           </label>
+          <label class="toggle-row">
+            <span class="toggle-row-copy">
+              <div class="set-desk-bullet"><i></i></div><span>Native Log Path (Debug)</span>
+            </span>
+            <input type="checkbox" name="show_native_log_path" value="on"__SHOW_NATIVE_LOG_PATH_CHECKED__ switch>
+          </label>
         </div>
       </div>
     </form>
@@ -133,6 +139,7 @@ __HUB_INCLUDE:settings.css__
       <input type="hidden" name="agent_font_mode" value="__FONT_MODE__">
       <input type="hidden" name="open_files_direct_external_editor" value="__OPEN_FILES_DIRECT_EXTERNAL_EDITOR_HIDDEN__">
       <input type="hidden" name="external_editor_markdown" value="__EXTERNAL_EDITOR_MARKDOWN_HIDDEN__">
+      <input type="hidden" name="show_native_log_path" value="__SHOW_NATIVE_LOG_PATH_HIDDEN__">
 
       <div class="set-section">
         <div class="set-section-header">Appearance</div>
@@ -230,6 +237,16 @@ __HUB_INCLUDE:settings.css__
               <span class="set-row-name">Caffeinate -s</span>
             </div>
             <input id="mob_awake" type="checkbox" name="chat_awake" value="on" class="set-toggle"__CHAT_AWAKE_CHECKED__ switch>
+          </label>
+
+          <label class="set-row" for="mob_show_native_log_path">
+            <div class="set-row-left">
+              <span class="set-row-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              </span>
+              <span class="set-row-name">Native Log Path (Debug)</span>
+            </div>
+            <input id="mob_show_native_log_path" type="checkbox" name="show_native_log_path" value="on" class="set-toggle"__SHOW_NATIVE_LOG_PATH_CHECKED__ switch>
           </label>
 
         </div>

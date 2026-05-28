@@ -1,6 +1,7 @@
 (() => {
   try {
     if (typeof isPublicChatView !== "undefined" && isPublicChatView) return;
+    if (typeof SHOW_NATIVE_LOG_PATH === "undefined" || !SHOW_NATIVE_LOG_PATH) return;
   } catch (_) {
     /* keep if parent script context changes */
   }

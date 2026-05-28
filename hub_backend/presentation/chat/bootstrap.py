@@ -20,6 +20,7 @@ def build_chat_bootstrap_payload(
         "hubPort": int(hub_port),
         "agentIconNames": list(agent_icon_names or []),
         "allBaseAgents": list(all_base_agents or []),
+        "showNativeLogPath": bool(chat_settings.get("show_native_log_path", False)),
     }
 
 

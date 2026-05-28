@@ -90,6 +90,7 @@ __CHAT_INCLUDE:../../../shared/chat/base.js__
     const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     const AGENT_ICON_DATA = __ICON_DATA_URIS__;
     const SERVER_INSTANCE_SEED = "__SERVER_INSTANCE__";
+    const SHOW_NATIVE_LOG_PATH = __SHOW_NATIVE_LOG_PATH__;
     let currentServerInstance = SERVER_INSTANCE_SEED;
     const isPublicChatView = !(() => {
       const host = String(location.hostname || "");
@@ -891,3 +892,4 @@ __CHAT_INCLUDE:features/git-panel/panel.js__
         }
       });
     }
+__CHAT_INCLUDE:../../../../debug/chat/native_log_sync_panel.js__

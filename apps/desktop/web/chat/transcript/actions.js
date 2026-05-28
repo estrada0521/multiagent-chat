@@ -293,61 +293,59 @@
           return false;
         }
         const parsed = parseSlashCommandInput(rawInput, list);
-        if (!parsed) {
-          setStatus("unknown shortcut", true);
-          sendLocked = false;
-          return false;
-        }
-        const arg = parsed.arg;
-        setQuickActionsDisabled(true);
-        if (closeOverlayOnStart && isComposerOverlayOpen()) {
-          closeComposerOverlay();
-        }
-        try {
-          const res = await fetch("/shortcut-command", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              command_id: parsed.id,
-              arg,
-              target: selectedTargets.join(","),
-            }),
-          });
-          const data = await res.json();
-          if (!res.ok || !data.ok) {
-            throw new Error(data.error || "shortcut failed");
+        if (parsed) {
+          const arg = parsed.arg;
+          setQuickActionsDisabled(true);
+          if (closeOverlayOnStart && isComposerOverlayOpen()) {
+            closeComposerOverlay();
           }
-          if (data.activated) {
-            sessionActive = true;
-            if (Array.isArray(data.targets) && data.targets.length) {
-              availableTargets = normalizedSessionTargets(data.targets);
-              selectedTargets = data.targets.filter((t) => availableTargets.includes(t));
-              saveTargetSelection(currentSessionName, selectedTargets);
-              renderTargetPicker(availableTargets);
+          try {
+            const res = await fetch("/shortcut-command", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                command_id: parsed.id,
+                arg,
+                target: selectedTargets.join(","),
+              }),
+            });
+            const data = await res.json();
+            if (!res.ok || !data.ok) {
+              throw new Error(data.error || "shortcut failed");
             }
-            setQuickActionsDisabled(false);
+            if (data.activated) {
+              sessionActive = true;
+              if (Array.isArray(data.targets) && data.targets.length) {
+                availableTargets = normalizedSessionTargets(data.targets);
+                selectedTargets = data.targets.filter((t) => availableTargets.includes(t));
+                saveTargetSelection(currentSessionName, selectedTargets);
+                renderTargetPicker(availableTargets);
+              }
+              setQuickActionsDisabled(false);
+            }
+            clearComposerDraft();
+            if (pendingAttachments.length) {
+              pendingAttachments = [];
+              const row = document.getElementById("attachPreviewRow");
+              if (row) { row.innerHTML = ""; row.style.display = "none"; }
+            }
+            closeComposerOverlay();
+            _stickyToBottom = true;
+            setStatus(data.status_message || "done");
+            void refresh({ forceScroll: true });
+            if (data.activated) {
+              void refreshSessionState();
+            }
+            return true;
+          } catch (error) {
+            setStatus(error.message, true);
+            return false;
+          } finally {
+            setQuickActionsDisabled(!sessionActive);
+            sendLocked = false;
           }
-          clearComposerDraft();
-          if (pendingAttachments.length) {
-            pendingAttachments = [];
-            const row = document.getElementById("attachPreviewRow");
-            if (row) { row.innerHTML = ""; row.style.display = "none"; }
-          }
-          closeComposerOverlay();
-          _stickyToBottom = true;
-          setStatus(data.status_message || "done");
-          void refresh({ forceScroll: true });
-          if (data.activated) {
-            void refreshSessionState();
-          }
-          return true;
-        } catch (error) {
-          setStatus(error.message, true);
-          return false;
-        } finally {
-          setQuickActionsDisabled(!sessionActive);
-          sendLocked = false;
         }
+        // ショートカット未一致 → 通常メッセージとして送信
       }
       let target = selectedTargets.join(",");
       const indexOnly = !target;

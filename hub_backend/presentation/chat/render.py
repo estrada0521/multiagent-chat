@@ -36,6 +36,7 @@ def build_chat_template_replacements(
         "__HUB_PORT__": str(hub_port),
         "__AGENT_FONT_MODE_INLINE_STYLE__": agent_font_mode_inline_style,
         "__HUB_HEADER_CSS__": hub_header_css,
+        "__SHOW_NATIVE_LOG_PATH__": _js_bool(chat_settings.get("show_native_log_path", False)),
     }
 
 

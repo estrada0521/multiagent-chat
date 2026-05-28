@@ -129,6 +129,7 @@ def hub_settings_html(
     bold_mode_mobile = settings.get("bold_mode_mobile", False)
     bold_mode_desktop = settings.get("bold_mode_desktop", False)
     open_files_direct_external_editor = settings.get("open_files_direct_external_editor", False)
+    show_native_log_path = settings.get("show_native_log_path", False)
     external_editor = sanitize_hub_external_editor_choice(
         str(settings.get("external_editor", "vscode") or "vscode").strip(),
         allow_markedit=False,
@@ -209,6 +210,8 @@ def hub_settings_html(
             "__OPEN_FILES_DIRECT_EXTERNAL_EDITOR_HIDDEN__",
             html.escape("on" if open_files_direct_external_editor else ""),
         )
+        .replace("__SHOW_NATIVE_LOG_PATH_CHECKED__", " checked" if show_native_log_path else "")
+        .replace("__SHOW_NATIVE_LOG_PATH_HIDDEN__", html.escape("on" if show_native_log_path else ""))
         .replace("__EXTERNAL_EDITOR_MARKDOWN_HIDDEN__", html.escape(external_editor_markdown))
         .replace("__BOLD_MODE_MOBILE_HIDDEN__", html.escape("on" if bold_mode_mobile else ""))
         .replace("__BOLD_MODE_DESKTOP_HIDDEN__", html.escape("on" if bold_mode_desktop else ""))
