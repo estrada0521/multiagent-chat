@@ -104,9 +104,7 @@
           selectedTargets = selectedTargets.filter((target) => availableTargets.includes(target));
           saveTargetSelection(currentSessionName, selectedTargets);
           renderTargetPicker(availableTargets);
-          if (cameraMode && !cameraMode.hidden) {
-            renderCameraModeTargets();
-          }
+
         }
       }
       document.getElementById("message").disabled = !sessionActive;
@@ -331,12 +329,6 @@
         refreshThinkingRuntimeAges();
       }, THINKING_RUNTIME_AGE_TICK_MS);
     }
-    const renderCameraModeThinking = () => {
-      if (!cameraModeThinking) return;
-      cameraModeThinking.hidden = true;
-      cameraModeThinking.innerHTML = "";
-      cameraModeThinking.dataset.sig = "";
-    };
     let thinkingFloatingIconFrame = 0;
     const animateScrollButtonContentSwap = (button, apply) => {
       if (!button || typeof apply !== "function") return;
@@ -463,8 +455,7 @@
         if (existingContainer) existingContainer.remove();
         resetThinkingProviderRuntimeMeta();
         root.dataset.thinkingSig = "";
-        renderCameraModeThinking();
-        removeThinkingFloatingIcons();
+          removeThinkingFloatingIcons();
         maybeRestorePollScrollLock();
         return;
       }
@@ -615,7 +606,6 @@
       }
       root.dataset.thinkingSig = nextThinkingSig;
       refreshThinkingRuntimeAges(container);
-      renderCameraModeThinking();
       scheduleThinkingFloatingIcons();
       maybeRestorePollScrollLock();
     };

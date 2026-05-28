@@ -2,7 +2,6 @@
     const composerOverlay = document.getElementById("composerOverlay");
     const composerForm = document.getElementById("composer");
     const isComposerOverlayOpen = () => !!composerOverlay && !composerOverlay.hidden && composerOverlay.classList.contains("visible");
-    const isCameraModeOpen = () => !!cameraMode && !cameraMode.hidden && cameraMode.classList.contains("visible");
     let composerBlurCloseTimer = null;
     const clearComposerBlurCloseTimer = () => {
       if (composerBlurCloseTimer) {
@@ -55,7 +54,7 @@
       });
     };
     const openComposerOverlay = ({ immediateFocus = false } = {}) => {
-      if (!composerOverlay || isCameraModeOpen()) return;
+      if (!composerOverlay) return;
       const canFocus = canComposeInSession();
       if (isComposerOverlayOpen()) {
         if (canFocus) focusComposerTextarea({ sync: immediateFocus });

@@ -1,19 +1,3 @@
-    const cameraMode = document.getElementById("cameraMode");
-    const cameraModeShell = document.getElementById("cameraModeShell");
-    const cameraModeVideo = document.getElementById("cameraModeVideo");
-    const cameraModeCloseBtn = document.getElementById("cameraModeCloseBtn");
-    const cameraModeTargetRail = document.getElementById("cameraModeTargetRail");
-    const cameraModeTargetToggleBtn = document.getElementById("cameraModeTargetToggleBtn");
-    const cameraModeTargets = document.getElementById("cameraModeTargets");
-    const cameraModeReplies = document.getElementById("cameraModeReplies");
-    const cameraModeRepliesInner = document.getElementById("cameraModeRepliesInner");
-    const cameraModeThinking = document.getElementById("cameraModeThinking");
-    const cameraModeHint = document.getElementById("cameraModeHint");
-    const cameraModeEmpty = document.getElementById("cameraModeEmpty");
-    const cameraModeEmptyCopy = document.getElementById("cameraModeEmptyCopy");
-    const cameraModeMicBtn = document.getElementById("cameraModeMicBtn");
-    const cameraModeShutterBtn = document.getElementById("cameraModeShutterBtn");
-    const cameraModeBackdropBtn = document.getElementById("cameraModeBackdropBtn");
     const _fileExistenceCache = new Map();
     const FILE_PREVIEW_THEME_ICONS = {
       dark: '<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path>',
