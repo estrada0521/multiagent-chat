@@ -27,6 +27,23 @@ def available_chat_font_choices(*, path_class=Path, normalized_font_label_fn=nor
         ("preset-mincho", "Default Mincho"),
     ]
     curated_families = [
+        # English — Serif
+        ("system:Georgia", "Georgia"),
+        ("system:Baskerville", "Baskerville"),
+        ("system:Palatino", "Palatino"),
+        ("system:Didot", "Didot"),
+        ("system:Big Caslon", "Big Caslon"),
+        ("system:American Typewriter", "American Typewriter"),
+        ("system:Times New Roman", "Times New Roman"),
+        # English — Sans-serif
+        ("system:Helvetica Neue", "Helvetica Neue"),
+        ("system:Gill Sans", "Gill Sans"),
+        ("system:Futura", "Futura"),
+        ("system:Optima", "Optima"),
+        ("system:Avenir", "Avenir"),
+        ("system:Avenir Next", "Avenir Next"),
+        ("system:Arial", "Arial"),
+        # Japanese
         ("system:Hiragino Sans", "Hiragino Sans"),
         ("system:Hiragino Kaku Gothic ProN", "Hiragino Kaku Gothic ProN"),
         ("system:Hiragino Maru Gothic ProN", "Hiragino Maru Gothic ProN"),
@@ -71,9 +88,9 @@ def available_chat_font_choices(*, path_class=Path, normalized_font_label_fn=nor
                 continue
             seen.add(key)
             choices.append((f"system:{label}", label))
-            if len(choices) >= 96:
+            if len(choices) >= 300:
                 break
-        if len(choices) >= 96:
+        if len(choices) >= 300:
             break
     return choices
 
@@ -106,6 +123,9 @@ def hub_settings_html(
     chat_awake = settings.get("chat_awake", False)
     theme = str(settings.get("theme", "dark") or "dark").strip().lower()
     light_mode = theme == "light"
+    light_mode_desktop = str(settings.get("theme_desktop", theme) or theme).strip().lower() == "light"
+    light_mode_mobile = str(settings.get("theme_mobile", theme) or theme).strip().lower() == "light"
+    render_theme = "light" if (light_mode_desktop if resolved_view_variant == "desktop" else light_mode_mobile) else "dark"
     bold_mode_mobile = settings.get("bold_mode_mobile", False)
     bold_mode_desktop = settings.get("bold_mode_desktop", False)
     open_files_direct_external_editor = settings.get("open_files_direct_external_editor", False)
@@ -178,6 +198,10 @@ def hub_settings_html(
         .replace("__CHAT_AUTO_CHECKED__", " checked" if chat_auto else "")
         .replace("__CHAT_AWAKE_CHECKED__", " checked" if chat_awake else "")
         .replace("__LIGHT_MODE_CHECKED__", " checked" if light_mode else "")
+        .replace("__LIGHT_MODE_DESKTOP_CHECKED__", " checked" if light_mode_desktop else "")
+        .replace("__LIGHT_MODE_MOBILE_CHECKED__", " checked" if light_mode_mobile else "")
+        .replace("__THEME_MOBILE_HIDDEN__", html.escape("light" if light_mode_mobile else "dark"))
+        .replace("__THEME_DESKTOP_HIDDEN__", html.escape("light" if light_mode_desktop else "dark"))
         .replace("__BOLD_MODE_MOBILE_CHECKED__", " checked" if bold_mode_mobile else "")
         .replace("__BOLD_MODE_DESKTOP_CHECKED__", " checked" if bold_mode_desktop else "")
         .replace("__OPEN_FILES_DIRECT_EXTERNAL_EDITOR_CHECKED__", " checked" if open_files_direct_external_editor else "")
@@ -186,6 +210,8 @@ def hub_settings_html(
             html.escape("on" if open_files_direct_external_editor else ""),
         )
         .replace("__EXTERNAL_EDITOR_MARKDOWN_HIDDEN__", html.escape(external_editor_markdown))
+        .replace("__BOLD_MODE_MOBILE_HIDDEN__", html.escape("on" if bold_mode_mobile else ""))
+        .replace("__BOLD_MODE_DESKTOP_HIDDEN__", html.escape("on" if bold_mode_desktop else ""))
         .replace("__VIEW_VARIANT__", resolved_view_variant)
     )
     page = (
@@ -194,4 +220,5 @@ def hub_settings_html(
         .replace("__HUB_HEADER_HTML__", hub_header_html)
         .replace("__HUB_HEADER_JS__", hub_header_js)
     )
-    return apply_color_tokens(page, settings=settings)
+    render_settings = dict(settings, theme=render_theme)
+    return apply_color_tokens(page, settings=render_settings)

@@ -137,8 +137,9 @@
         currentBoldModeMobile = !!data?.bold_mode_mobile;
         currentBoldModeDesktop = !!data?.bold_mode_desktop;
         openFilesDirectInExternalEditor = !!data?.open_files_direct_external_editor;
-        if (data?.theme === "light" || data?.theme === "dark") {
-          document.documentElement.dataset.theme = data.theme;
+        const _theme = data?.theme_desktop ?? data?.theme;
+        if (_theme === "light" || _theme === "dark") {
+          document.documentElement.dataset.theme = _theme;
         }
         if (typeof data?.agent_font_mode === "string" && data.agent_font_mode) {
           document.documentElement.dataset.agentFontMode = data.agent_font_mode;

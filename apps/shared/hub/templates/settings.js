@@ -9,8 +9,8 @@
       ? document.querySelector('#settingsFormMobile input[name="bold_mode_desktop"]')
       : document.querySelector('#settingsFormDesktop input[name="bold_mode_desktop"]');
     const themeToggle = isMobileView
-      ? document.querySelector('#settingsFormMobile input[name="theme"]')
-      : document.querySelector('#settingsFormDesktop input[name="theme"]');
+      ? document.querySelector('#settingsFormMobile input[name="theme_mobile"]')
+      : document.querySelector('#settingsFormDesktop input[name="theme_desktop"]');
     const initialThemeValue = document.documentElement.dataset.theme || "dark";
     let _themeReloadPending = false;
     themeToggle?.addEventListener("change", () => {

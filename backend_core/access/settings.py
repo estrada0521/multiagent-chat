@@ -29,6 +29,19 @@ def _apply_hub_settings(raw: dict, settings: dict, *, missing_flags_false: bool 
     theme = str(theme_raw or settings.get("theme") or "dark").strip().lower()
     settings["theme"] = "light" if theme == "light" else "dark"
 
+    for _tk in ("theme_mobile", "theme_desktop"):
+        if missing_flags_false and _tk not in raw:
+            # unchecked checkbox → dark
+            settings[_tk] = "dark"
+        elif raw.get(_tk) is not None:
+            settings[_tk] = "light" if str(raw.get(_tk)).strip().lower() == "light" else "dark"
+        else:
+            # loading from file without this key → inherit global theme
+            settings[_tk] = settings["theme"]
+
+    # keep global theme in sync with desktop so hub renders correctly
+    settings["theme"] = settings["theme_desktop"]
+
     agent_font_mode = str(raw.get("agent_font_mode") or settings["agent_font_mode"]).strip().lower()
     if agent_font_mode in {"serif", "gothic"}:
         settings["agent_font_mode"] = agent_font_mode
@@ -93,6 +106,8 @@ def _apply_hub_settings(raw: dict, settings: dict, *, missing_flags_false: bool 
 
 HUB_SETTINGS_DEFAULTS = {
     "theme": "dark",
+    "theme_mobile": "dark",
+    "theme_desktop": "dark",
     "agent_font_mode": "serif",
     "user_message_font": "preset-gothic",
     "agent_message_font": "preset-mincho",
