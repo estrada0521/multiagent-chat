@@ -40,66 +40,7 @@ __CHAT_MAIN_STYLE_BLOCK____CHAT_SHELL_STYLE_BLOCK__  <style id="chatFontSettings
 <body>
   <div id="fileDropdown"></div>
   <div id="cmdDropdown"></div>
-  <div id="cameraMode" class="camera-mode" hidden>
-    <div id="cameraModeShell" class="camera-mode-shell" role="dialog" aria-modal="true" aria-label="Camera">
-      <video id="cameraModeVideo" class="camera-mode-video" playsinline autoplay muted></video>
-      <div class="camera-mode-shade" aria-hidden="true"></div>
-      <div id="cameraModeEmpty" class="camera-mode-empty" hidden>
-        <div class="camera-mode-empty-title">Camera unavailable</div>
-        <div id="cameraModeEmptyCopy" class="camera-mode-empty-copy">Returned to chat.</div>
-      </div>
-      <div class="camera-mode-header">
-        <button type="button" id="cameraModeCloseBtn" class="camera-mode-close" aria-label="Close camera">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
-            stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </div>
-      <div id="cameraModeTargetRail" class="camera-mode-target-rail">
-        <button type="button" id="cameraModeTargetToggleBtn" class="camera-mode-target-toggle"
-          aria-label="Choose camera target" aria-expanded="false"></button>
-        <div id="cameraModeTargets" class="camera-mode-targets"></div>
-      </div>
-      <div class="camera-mode-bottom">
-        <div id="cameraModeReplies" class="camera-mode-replies" hidden>
-          <div id="cameraModeRepliesInner" class="camera-mode-replies-inner"></div>
-        </div>
-        <div id="cameraModeThinking" class="camera-mode-thinking" hidden></div>
-        <div id="cameraModeHint" class="camera-mode-hint" hidden>
-          <div class="camera-waveform">
-            <div class="camera-waveform-bar"></div>
-            <div class="camera-waveform-bar"></div>
-            <div class="camera-waveform-bar"></div>
-            <div class="camera-waveform-bar"></div>
-            <div class="camera-waveform-bar"></div>
-          </div>
-          <span id="cameraModeHintText"></span>
-        </div>
-        <div class="camera-mode-footer">
-          <button type="button" id="cameraModeMicBtn" class="camera-mode-mic" aria-label="Voice input">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-              <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-              <line x1="12" y1="19" x2="12" y2="23"></line>
-              <line x1="8" y1="23" x2="16" y2="23"></line>
-            </svg>
-          </button>
-          <button type="button" id="cameraModeShutterBtn" class="camera-mode-shutter"
-            aria-label="Capture and send"></button>
-          <button type="button" id="cameraModeBackdropBtn" class="camera-mode-backdrop-toggle"
-            aria-label="Toggle frosted background" aria-pressed="false" title="Enable frosted background">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="4" y="4" width="16" height="16" rx="3"></rect>
-              <path d="M4 12h16"></path>
-            </svg>
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
+
   <section class="shell">
     __CHAT_HEADER_HTML__
     <select id="hubPageNativeMenuSelect" class="hub-native-menu-select" aria-label="Menu">
@@ -107,7 +48,6 @@ __CHAT_MAIN_STYLE_BLOCK____CHAT_SHELL_STYLE_BLOCK__  <style id="chatFontSettings
       <option value="openGitBranchMenu" data-menu-icon="branches">Git Branches</option>
       <option value="openAttachedFilesMenu" data-menu-icon="files">Repository</option>
       <option value="reloadChat" data-menu-icon="reload">Reload</option>
-      <option value="openCameraMode" data-menu-icon="camera">Camera</option>
       <option value="openPaneTraceWindow" data-menu-icon="pane">Pane Trace</option>
       <option value="addAgent" data-menu-icon="add">Add Agent</option>
       <option value="removeAgent" data-menu-icon="remove">Remove Agent</option>
