@@ -18,7 +18,7 @@ def _send_keys_literal(runtime, pane_id: str, text: str, *, subprocess_module=su
     if not pane:
         return False
     result = subprocess_module.run(
-        [*runtime.tmux_prefix, "send-keys", "-t", pane, "-l", str(text)],
+        [*runtime.tmux_prefix, "send-keys", "-t", pane, "-l", "--", str(text)],
         capture_output=True, text=True, check=False,
     )
     return result.returncode == 0

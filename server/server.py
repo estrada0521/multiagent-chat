@@ -23,7 +23,7 @@ from hub_backend.presentation.chat.assets import (
     chat_main_style_asset,
     render_chat_html,
 )
-_caffeinate_args = ["caffeinate", "-s"]
+_caffeinate_args = ["caffeinate", "-i"]
 _caffeinate_proc: "subprocess.Popen | None" = None
 
 

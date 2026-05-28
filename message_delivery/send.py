@@ -408,7 +408,7 @@ class AgentSendRuntime:
     ) -> bool:
         if not pane_id:
             return False
-        if self.tmux.run(["send-keys", "-t", pane_id, "-l", payload]).returncode != 0:
+        if self.tmux.run(["send-keys", "-t", pane_id, "-l", "--", payload]).returncode != 0:
             return False
         attached_count = session_attached_count
         if attached_count is None:
