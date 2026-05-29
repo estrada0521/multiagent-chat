@@ -248,7 +248,7 @@ def _post_delete_upload(handler, _parsed, ctx) -> None:
 def _post_open_terminal(handler, _parsed, ctx) -> None:
     try:
         socket_flag = "-S" if "/" in ctx["tmux_socket"] else "-L"
-        cols, rows = 200, 60
+        cols, rows = 200, 40
         try:
             size_result = subprocess.run(
                 [

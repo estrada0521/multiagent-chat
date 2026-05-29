@@ -244,7 +244,6 @@ def ensure_chat_server(
                     "server.server",
                     str(index_path),
                     "2000",
-                    "",
                     session_name,
                     "1",
                     str(chat_port),

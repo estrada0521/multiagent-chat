@@ -15,7 +15,10 @@ def active_agents(runtime, *, subprocess_module=subprocess, logging_module=loggi
         )
         line = r.stdout.strip()
         if r.returncode == 0 and "=" in line:
-            return [a for a in line.split("=", 1)[1].split(",") if a]
+            raw = line.split("=", 1)[1].strip()
+            if not raw or raw == "-":
+                return []
+            return [a for a in raw.split(",") if a and a != "-"]
     except Exception as exc:
         logging_module.error(f"Unexpected error: {exc}", exc_info=True)
     return []

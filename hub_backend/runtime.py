@@ -134,10 +134,10 @@ class HubRuntime:
         agents_str, timed_out = self.tmux_env_query(session_name, "MULTIAGENT_AGENTS")
         if timed_out:
             return [], True
-        if agents_str:
-            return [a.strip() for a in agents_str.split(",") if a.strip()], False
-
-        return [], False
+        cleaned = str(agents_str or "").strip()
+        if not cleaned or cleaned == "-":
+            return [], False
+        return [a.strip() for a in cleaned.split(",") if a.strip() and a.strip() != "-"], False
 
     def chat_port_for_session(self, session_name: str) -> int:
         return resolve_chat_port(self.repo_root, session_name)
