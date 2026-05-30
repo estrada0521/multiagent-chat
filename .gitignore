@@ -5,6 +5,7 @@ certs/
 __pycache__/
 .claude/settings.local.json
 .gemini/settings.json
+.gemini/policies/allow_shell.toml
 .qwen/settings.json
 .qwen/settings.json.orig
 .github/copilot-instructions.md
