@@ -611,8 +611,10 @@
       font-weight: 600;
       letter-spacing: -0.02em;
       min-width: 0;
-      word-break: break-word;
       flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .mob-row-leading-icon {
