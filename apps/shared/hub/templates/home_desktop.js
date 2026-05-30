@@ -1316,6 +1316,8 @@
         document.documentElement.dataset.theme = theme;
         try { _deskChatFrame.contentDocument.documentElement.dataset.theme = theme; } catch (_) {}
         try { _deskChatFrame?.contentWindow?.postMessage({ type: "multiagent-hub-theme-changed", theme }, "*"); } catch (_) {}
+        try { _deskSidebarFrame.contentDocument.documentElement.dataset.theme = theme; } catch (_) {}
+        try { _deskSidebarFrame?.contentWindow?.postMessage({ type: "multiagent-hub-theme-changed", theme }, "*"); } catch (_) {}
         return;
       }
       if (event.data && event.data.type === "multiagent-open-hub-path") {

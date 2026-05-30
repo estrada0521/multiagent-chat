@@ -32,9 +32,9 @@
       color-scheme: dark;
       --bg-rgb: 0, 0, 0;
       --bg: rgb(0, 0, 0);
-      --fg: rgb(255, 255, 255);
+      --fg: rgb(210, 210, 210);
       --muted: rgb(158, 158, 158);
-      --icon-fg: rgb(255, 255, 255);
+      --icon-fg: rgb(210, 210, 210);
       --icon-muted: rgb(158, 158, 158);
       --icon-hover: rgb(220, 220, 220);
       --panel: rgb(10, 10, 10);
@@ -150,10 +150,11 @@
       border-color: rgba(255, 255, 255, 0.2);
     }
     .chat-toggles { display: flex; flex-direction: column; gap: 0; }
-    .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 7px; padding: 3px 0; min-height: 30px; font-size: 12px; line-height: 1.18; font-weight: 500; cursor: pointer; }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 7px; padding: 3px 0; min-height: 30px; font-size: 12px; line-height: 1.18; font-weight: 500; cursor: pointer; color: var(--fg); }
     .toggle-section-label { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding: 10px 0 9px; min-height: 30px; box-sizing: border-box; font-weight: 500; pointer-events: none; display: flex; align-items: flex-end; }
     .toggle-section-label:first-child { padding-top: 2px; }
-    .toggle-row-copy { display: inline-flex; align-items: center; gap: 7px; min-width: 0; }
+    .toggle-row-copy { display: inline-flex; align-items: center; gap: 7px; min-width: 0; color: var(--fg); }
+    .toggle-row label { color: var(--fg); }
     .toggle-row input[type="checkbox"] { width: 30px; height: 16px; -webkit-appearance: none; appearance: none; background: var(--line-strong); border-radius: 999px; cursor: pointer; transition: background 200ms; position: relative; flex-shrink: 0; }
     .toggle-row input[type="checkbox"]:checked { background: var(--accent, rgb(44,132,219)); }
     .toggle-row input[type="checkbox"]::before { content: ""; position: absolute; width: 12px; height: 12px; background: #fff; border-radius: 50%; top: 2px; left: 2px; transition: transform 200ms; }
@@ -447,6 +448,7 @@
       font-size: var(--settings-text-size, 15px);
       font-weight: 400;
       letter-spacing: -0.01em;
+      color: var(--fg);
       min-width: 0;
       display: flex;
       align-items: center;
