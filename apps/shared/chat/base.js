@@ -82,9 +82,6 @@
             return `\x00CODE:${id}\x00`;
           });
 
-          processedText = processedText.replace(/(?<!\$)\$([A-Z_][A-Z0-9_]+)/g, '<span class="no-math">&#36;$1</span>');
-          processedText = processedText.replace(/\$([{(][^})\n]*[})])/g, '<span class="no-math">&#36;$1</span>');
-
           processedText = processedText.replace(/(\\\[[\s\S]+?\\\]|\\\([\s\S]+?\\\)|\$\$[\s\S]+?\$\$|\$[\s\S]+?\$)/g, (match) => {
             const id = `math-placeholder-${placeholderCount++}`;
             mathBlocks.push({ id, content: match });
@@ -103,7 +100,7 @@
           tempDiv.querySelectorAll(".MATH_SAFE_BLOCK").forEach(span => {
             const block = mathBlocks.find(b => b.id === span.dataset.id);
             if (block) {
-              span.outerHTML = block.content;
+              span.replaceWith(document.createTextNode(block.content));
             }
           });
           if (mathBlocks.length) {

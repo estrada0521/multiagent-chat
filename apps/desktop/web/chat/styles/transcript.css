@@ -1434,6 +1434,12 @@
       font-style: italic;
     }
 
+    .md-body img {
+      display: block;
+      max-width: 100%;
+      height: auto;
+    }
+
     .message-deferred-actions {
       display: flex;
       justify-content: center;

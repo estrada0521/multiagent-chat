@@ -675,8 +675,6 @@ let processedText = String(text || "").replace(/(```[\\s\\S]*?```|`[^`\\n]+`)/g,
   codeBlocks.push({{ id, content: match }});
   return `\\x00CODE:${{id}}\\x00`;
 }});
-processedText = processedText.replace(/(?<!\\$)\\$([A-Z_][A-Z0-9_]+)/g, '<span class="no-math">&#36;$1</span>');
-processedText = processedText.replace(/\\$([{{(]][^}})\\n]*[}})])/g, '<span class="no-math">&#36;$1</span>');
 processedText = processedText.replace(/(\\\\\\[[\\s\\S]+?\\\\\\]|\\\\\\([\\s\\S]+?\\\\\\)|\\$\\$[\\s\\S]+?\\$\\$|\\$[\\s\\S]+?\\$)/g, (match) => {{
   const id = `math-placeholder-${{placeholderCount++}}`;
   mathBlocks.push({{ id, content: match }});
@@ -690,7 +688,7 @@ const tempDiv = document.createElement("div");
 tempDiv.innerHTML = marked.parse(processedText, {{ breaks: true, gfm: true }});
 tempDiv.querySelectorAll(".MATH_SAFE_BLOCK").forEach((span) => {{
   const block = mathBlocks.find((entry) => entry.id === span.dataset.id);
-  if (block) span.outerHTML = block.content;
+  if (block) span.replaceWith(document.createTextNode(block.content));
 }});
 if (mathBlocks.length) {{
   const marker = document.createElement("span");
