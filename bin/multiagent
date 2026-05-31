@@ -58,7 +58,6 @@ FRESH=0
 AUTO=1
 AGENTS_ARG=""
 NO_AGENTS=0
-INSTALL=0
 USER_PANE="bottom:1"
 USER_PANE_TOP_COUNT=0
 USER_PANE_BOTTOM_COUNT=0
@@ -956,7 +955,7 @@ Usage:
   multiagent resume [--session NAME | --latest] [--detach]
   multiagent kill [--session NAME | --all]
   multiagent rename --session NAME --to NEW_NAME
-  multiagent [--session NAME] [--workspace PATH] [--detach] [--fresh] [--no-auto] [--agents AGENT_LIST] [--log-dir PATH] [--install]
+  multiagent [--session NAME] [--workspace PATH] [--detach] [--fresh] [--no-auto] [--agents AGENT_LIST] [--log-dir PATH]
 
 Creates a tmux session where window 0 is reserved for the human terminal,
 and each agent gets its own tmux window.
@@ -984,8 +983,6 @@ Options:
   --latest             Target the most recently created session for this multiagent install
   --to NEW_NAME        New session name for rename
   --verbose            Show extra details in list output
-  --install            Create symlinks in ~/.local/bin for multiagent,
-                       agent-index, and agent-send so they can be run from anywhere
   list                 List active sessions for this multiagent install
   context              Print session/workspace/agent-pane summary for the current pane (or --session)
   add-agent            Add a new agent to an existing session
@@ -1233,7 +1230,6 @@ while [[ $# -gt 0 ]]; do
     --no-agents) NO_AGENTS=1; shift ;;
     --user-pane) USER_PANE="$2"; shift 2 ;;
     --log-dir)   LOG_DIR="$2"; shift 2 ;;
-    --install)   INSTALL=1; shift ;;
     -h|--help)   usage; exit 0 ;;
     *)           echo "Unknown argument: $1" >&2; usage >&2; exit 1 ;;
   esac
@@ -1265,31 +1261,6 @@ parse_user_pane_spec "$USER_PANE" || {
   echo "Unknown --user-pane value: $USER_PANE (examples: none, top, bottom:2, top:2,bottom:1)" >&2
   exit 1
 }
-
-if [[ "$INSTALL" -eq 1 ]]; then
-  INSTALL_DIR="${MULTIAGENT_INSTALL_DIR:-$HOME/.local/bin}"
-  mkdir -p "$INSTALL_DIR"
-  for cmd in multiagent agent-index; do
-    src="$SCRIPT_DIR/$cmd"
-    dst="$INSTALL_DIR/$cmd"
-    if [[ -e "$dst" ]] && [[ "$(readlink "$dst" 2>/dev/null)" == "$src" ]]; then
-      echo "Already installed: $dst -> $src"
-    else
-      ln -sf "$src" "$dst"
-      echo "Installed: $dst -> $src"
-    fi
-  done
-  _agent_send_src="$REPO_ROOT/message_delivery/agent-send"
-  _agent_send_dst="$INSTALL_DIR/agent-send"
-  if [[ -e "$_agent_send_dst" ]] && [[ "$(readlink "$_agent_send_dst" 2>/dev/null)" == "$_agent_send_src" ]]; then
-    echo "Already installed: $_agent_send_dst -> $_agent_send_src"
-  else
-    ln -sf "$_agent_send_src" "$_agent_send_dst"
-    echo "Installed: $_agent_send_dst -> $_agent_send_src"
-  fi
-  echo "Done. Make sure $INSTALL_DIR is in your PATH."
-  exit 0
-fi
 
 if [[ "$NO_AGENTS" -eq 1 ]]; then
   SELECTED_AGENTS=()

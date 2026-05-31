@@ -78,8 +78,8 @@ Claude-3のようにインスタンス名で処理されます
 
 webでも動きますが、UI・UXを確認していないので、基本的にTauri App前提です。
 
-事前に `python3`, `tmux`, `cargo`, Xcode Command Line Tools をインストールしてください。
-`tauri-cli` は初回実行時に `.multiagent/tools/tauri-cli` へ自動で入ります。
+事前に `python3`, `tmux`, `cargo`, `tauri-cli`, Xcode Command Line Tools をインストールしてください。
+
 Claude, Codex, Gemini, Cursor, Copilot などのAgent CLIは自動インストールされません。使うCLIを事前にインストールし、認証まで済ませてください。
 
 ```bash

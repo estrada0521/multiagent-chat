@@ -20,7 +20,7 @@ Dev / rebuild helper: rebuild and open the macOS Tauri desktop app without
 re-running the interactive setup. First-time users should run
 `./tauri_app/tauri_start` instead.
 
-python3, tmux, Rust / cargo, and Xcode Command Line Tools must already be installed.
+python3, tmux, Rust / cargo, tauri-cli, and Xcode Command Line Tools must already be installed.
 
 Options:
   --dev         run `cargo tauri dev`
@@ -104,20 +104,9 @@ if ! command -v xcode-select >/dev/null 2>&1 || ! xcode-select -p >/dev/null 2>&
   exit 1
 fi
 
-TAURI_CLI_ROOT="$ROOT/.multiagent/tools/tauri-cli"
-TAURI_CLI_BIN="$TAURI_CLI_ROOT/bin/cargo-tauri"
-
 if ! cargo tauri --help >/dev/null 2>&1; then
-  if [[ ! -x "$TAURI_CLI_BIN" ]]; then
-    echo "tauri-build: installing tauri-cli into .multiagent/tools/tauri-cli..." >&2
-    cargo install tauri-cli --version "^2" --locked --root "$TAURI_CLI_ROOT"
-  fi
-  PATH="$TAURI_CLI_ROOT/bin:$PATH"
-  export PATH
-fi
-
-if ! cargo tauri --help >/dev/null 2>&1; then
-  echo "tauri-build: tauri-cli is unavailable after installation." >&2
+  echo "tauri-build: tauri-cli is required for the desktop app." >&2
+  echo "tauri-build: install it with \`cargo install tauri-cli --version \"^2\" --locked\`, then re-run this command." >&2
   exit 1
 fi
 

@@ -17,11 +17,10 @@ usage() {
 Usage: tauri_app/tauri_start [--dev] [--build-only] [--no-open] [--setup-only] [--local-https]
 
 Desktop app entry:
-  - caches tauri-cli under .multiagent/tools/tauri-cli on first use
   - builds and opens the local macOS .app by default
   - starts the local Hub over HTTP by default
 
-Requires python3, tmux, cargo, and Xcode Command Line Tools; install them yourself before running.
+Requires python3, tmux, cargo, tauri-cli, and Xcode Command Line Tools; install them yourself before running.
 
 Use --local-https only after enabling phone/PWA access with ./setup/pwa/enable.
 
@@ -123,20 +122,9 @@ if ! command -v xcode-select >/dev/null 2>&1 || ! xcode-select -p >/dev/null 2>&
   exit 1
 fi
 
-TAURI_CLI_ROOT="$ROOT/.multiagent/tools/tauri-cli"
-TAURI_CLI_BIN="$TAURI_CLI_ROOT/bin/cargo-tauri"
-
 if ! cargo tauri --help >/dev/null 2>&1; then
-  if [[ ! -x "$TAURI_CLI_BIN" ]]; then
-    echo "tauri_start: installing tauri-cli into .multiagent/tools/tauri-cli..." >&2
-    cargo install tauri-cli --version "^2" --locked --root "$TAURI_CLI_ROOT"
-  fi
-  PATH="$TAURI_CLI_ROOT/bin:$PATH"
-  export PATH
-fi
-
-if ! cargo tauri --help >/dev/null 2>&1; then
-  echo "tauri_start: tauri-cli is unavailable after installation." >&2
+  echo "tauri_start: tauri-cli is required for the desktop app." >&2
+  echo "tauri_start: install it with \`cargo install tauri-cli --version \"^2\" --locked\`, then re-run this command." >&2
   exit 1
 fi
 
