@@ -105,7 +105,6 @@ multiagent_dispatch_prelaunch_modes() {
           echo "[multiagent] warning: failed to stop chat server for $session" >&2
         fi
         rm -f "/tmp/multiagent_save_${session}.sh" 2>/dev/null || true
-        rm -f "$(multiagent_panes_state_path)" 2>/dev/null || true
         tmux kill-session -t "$session"
         echo "Killed tmux session: $session"
         killed=1
@@ -128,7 +127,6 @@ multiagent_dispatch_prelaunch_modes() {
       echo "[multiagent] warning: failed to stop chat server for $SESSION_NAME" >&2
     fi
     rm -f "/tmp/multiagent_save_${SESSION_NAME}.sh" 2>/dev/null || true
-    rm -f "$(multiagent_panes_state_path)" 2>/dev/null || true
     tmux kill-session -t "$SESSION_NAME"
     echo "Killed tmux session: $SESSION_NAME"
     exit 0
@@ -234,7 +232,7 @@ PYEOF
     )"
     tmux set-environment -t "$SESSION_NAME" "MULTIAGENT_PANE_${upper_instance}" "$new_pane"
     tmux set-environment -t "$SESSION_NAME" MULTIAGENT_AGENTS "$updated_agents"
-    write_session_state_file "$SESSION_NAME"
+    update_session_meta_file "$SESSION_NAME"
 
     start_agent "$new_pane" "$base_agent" "$instance_name"
     initiator_name="${MULTIAGENT_AGENT_NAME:-user}"
@@ -366,7 +364,7 @@ PYEOF
       retile_session_preserving_user_panes "$SESSION_NAME" "$user_panes_csv"
     fi
 
-    write_session_state_file "$SESSION_NAME"
+    update_session_meta_file "$SESSION_NAME"
     initiator_name="${MULTIAGENT_AGENT_NAME:-user}"
     append_session_system_entry "$SESSION_NAME" "$(format_session_topology_message "remove-agent" "$canonical" "$initiator_name")" "session-topology" "remove-agent" "$canonical" "$initiator_name"
     echo "Removed agent $canonical from session: $SESSION_NAME"

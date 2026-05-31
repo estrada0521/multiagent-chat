@@ -87,24 +87,6 @@ PYEOF
 TMUX_SOCKET_NAME="${MULTIAGENT_TMUX_SOCKET:-$(default_tmux_socket_name)}"
 SESSION_TOPOLOGY_LOCK_DIR=""
 
-multiagent_panes_state_path() {
-  local sock="${1:-$TMUX_SOCKET_NAME}"
-  local session_name="${2:-${SESSION_NAME:-${MULTIAGENT_SESSION:-default}}}"
-  python3 - "$REPO_ROOT" "$sock" "$session_name" <<'PYEOF'
-import sys
-from pathlib import Path
-
-repo_root = Path(sys.argv[1]).resolve()
-sock = sys.argv[2]
-session_name = sys.argv[3]
-sys.path.insert(0, str(repo_root / "src"))
-sys.path.insert(0, str(repo_root))
-from message_delivery.send import multiagent_panes_state_path
-
-print(multiagent_panes_state_path(sock, session_name))
-PYEOF
-}
-
 session_topology_lock_dir() {
   local sock="${1:-$TMUX_SOCKET_NAME}"
   local session_name="${2:-${SESSION_NAME:-${MULTIAGENT_SESSION:-default}}}"
@@ -652,7 +634,7 @@ reconcile_session_agent_registry() {
   done
 
   if [[ "$changed" -eq 1 ]]; then
-    write_session_state_file "$session"
+    update_session_meta_file "$session"
   fi
 
   if [[ "$recovered_any" -eq 1 ]]; then
@@ -739,28 +721,26 @@ PYEOF
   else
     tmux set-environment -t "$session" -u MULTIAGENT_AGENTS 2>/dev/null || true
   fi
-  write_session_state_file "$session"
+  update_session_meta_file "$session"
 }
 
-write_session_state_file() {
-  local session="$1" agents_str state_path env_output
+update_session_meta_file() {
+  local session="$1" agents_str env_output
   agents_str="$(tmux show-environment -t "$session" MULTIAGENT_AGENTS 2>/dev/null | sed 's/^[^=]*=//' || true)"
-  state_path="$(multiagent_panes_state_path "$TMUX_SOCKET_NAME" "$session")"
   env_output="$(tmux show-environment -t "$session" 2>/dev/null || true)"
-  MULTIAGENT_TMUX_ENV_OUTPUT="$env_output" python3 - "$REPO_ROOT" "$state_path" "$session" "$agents_str" <<'PYEOF'
+  MULTIAGENT_TMUX_ENV_OUTPUT="$env_output" python3 - "$REPO_ROOT" "$session" "$agents_str" <<'PYEOF'
 import os
 import sys
 from pathlib import Path
 
 repo_root = Path(sys.argv[1]).resolve()
-state_path = Path(sys.argv[2])
-session = sys.argv[3]
-agents_csv = sys.argv[4]
+session = sys.argv[2]
+agents_csv = sys.argv[3]
 tmux_env_output = os.environ.get("MULTIAGENT_TMUX_ENV_OUTPUT", "")
 sys.path.insert(0, str(repo_root / "bin"))
-from multiagent_lib.state import write_session_state_file as write_state_file
+from multiagent_lib.state import write_session_meta_file
 
-write_state_file(state_path, session, agents_csv, tmux_env_output)
+write_session_meta_file(session, agents_csv, tmux_env_output)
 PYEOF
 }
 
@@ -1532,7 +1512,7 @@ else
   tmux set-environment -t "$SESSION_NAME" MULTIAGENT_AGENTS "$(IFS=,; echo "${INSTANCE_NAMES[*]}")"
 fi
 
-write_session_state_file "$SESSION_NAME"
+update_session_meta_file "$SESSION_NAME"
 
 _priority_idx=-1
 _max_priority=0

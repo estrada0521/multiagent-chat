@@ -6,7 +6,6 @@ import re
 import subprocess
 import sys
 import time
-import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -27,15 +26,6 @@ def default_tmux_socket_name(repo_root) -> str:
 
 def _safe_session_name(s: str) -> str:
     return (s or "default").replace("/", "_")
-
-
-def multiagent_panes_state_path(tmux_socket: str, session_name: str):
-    safe = _safe_session_name(session_name)
-    sock = tmux_socket or "default"
-    if sock.startswith("/"):
-        digest = _hashlib.sha1(f"{sock}|{safe}".encode()).hexdigest()[:20]
-        return Path(f"/tmp/multiagent_sock_{digest}_panes")
-    return Path(f"/tmp/multiagent_{sock}_{safe}_panes")
 
 
 def session_topology_lock_path(tmux_socket: str, session_name: str) -> Path:
@@ -71,22 +61,6 @@ def tmux_socket_from_env(repo_root: Path | str, env: dict[str, str]) -> str:
             return Path(socket_path).name
         return socket_path
     return default_tmux_socket_name(repo_root)
-
-
-def _state_file_value(path: Path, key: str) -> str:
-    if not path.is_file():
-        return ""
-    needle = f"{key}="
-    try:
-        with path.open("r", encoding="utf-8") as handle:
-            for raw in handle:
-                line = raw.rstrip("\n")
-                if line.startswith(needle):
-                    return line[len(needle) :]
-    except Exception:
-        return ""
-    return ""
-
 
 def _symlink_target_abs(path: Path) -> str:
     target = os.readlink(path)
@@ -214,24 +188,12 @@ class AgentSendRuntime:
         if len(matched_repo_sessions) > 1:
             raise AgentSendError("Multiple active multiagent sessions exist; set MULTIAGENT_SESSION or pass --session.")
 
-        hinted_session_name = self.env.get("MULTIAGENT_SESSION") or "default"
-        state_file = multiagent_panes_state_path(self.tmux_socket_name, hinted_session_name)
-        hint_session = _state_file_value(state_file, "MULTIAGENT_SESSION")
-        if hint_session:
-            result = self.tmux.run(["has-session", "-t", hint_session])
-            if result.returncode == 0:
-                return hint_session
-
         raise AgentSendError("No active multiagent session found for this workspace.")
 
     def resolve_pane(self, session_name: str, key: str) -> str:
         value = self.tmux_env(session_name, key)
         if value:
             return value
-        state_file = multiagent_panes_state_path(self.tmux_socket_name, session_name)
-        state_session = _state_file_value(state_file, "MULTIAGENT_SESSION")
-        if state_session == session_name:
-            return _state_file_value(state_file, key)
         return ""
 
     def resolve_agent_name(self, token: str) -> str | None:

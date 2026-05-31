@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import os
 import shutil
-import tempfile
 import time
 from datetime import datetime
 from pathlib import Path
@@ -20,15 +19,11 @@ def _parse_tmux_environment_output(output: str) -> dict[str, str]:
     return env_map
 
 
-def _pane_var_for_instance(instance: str) -> str:
-    return f"MULTIAGENT_PANE_{instance.upper().replace('-', '_')}"
-
-
 def _parse_agents_csv(agents_csv: str) -> list[str]:
     return [item.strip() for item in (agents_csv or "").split(",") if item.strip()]
 
 
-def _write_session_meta(*, session: str, agents_csv: str, tmux_env_output: str) -> None:
+def write_session_meta_file(session: str, agents_csv: str, tmux_env_output: str) -> None:
     env_map = _parse_tmux_environment_output(tmux_env_output)
     index_path_raw = str(env_map.get("MULTIAGENT_INDEX_PATH") or "").strip()
     if not index_path_raw:
@@ -59,34 +54,6 @@ def _write_session_meta(*, session: str, agents_csv: str, tmux_env_output: str) 
     meta["updated_at"] = updated_at
     meta_path.parent.mkdir(parents=True, exist_ok=True)
     meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-
-
-def build_state_lines(session: str, agents_csv: str, tmux_env_output: str) -> list[str]:
-    env_map = _parse_tmux_environment_output(tmux_env_output)
-    lines = [
-        f"MULTIAGENT_SESSION={session}",
-        f"MULTIAGENT_AGENTS={agents_csv}",
-    ]
-    if agents_csv:
-        for instance in [item.strip() for item in agents_csv.split(",") if item.strip()]:
-            pane_var = _pane_var_for_instance(instance)
-            pane_id = env_map.get(pane_var, "")
-            if pane_id:
-                lines.append(f"{pane_var}={pane_id}")
-    return lines
-
-
-def write_session_state_file(path: Path | str, session: str, agents_csv: str, tmux_env_output: str) -> None:
-    target = Path(path)
-    target.parent.mkdir(parents=True, exist_ok=True)
-    lines = build_state_lines(session, agents_csv, tmux_env_output)
-    content = "\n".join(lines) + "\n"
-
-    with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=str(target.parent), delete=False) as tmp:
-        tmp.write(content)
-        tmp_path = Path(tmp.name)
-    tmp_path.replace(target)
-    _write_session_meta(session=session, agents_csv=agents_csv, tmux_env_output=tmux_env_output)
 
 
 def _pid_alive(pid: int) -> bool:
