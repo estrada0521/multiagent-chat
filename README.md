@@ -1,6 +1,12 @@
+# Agent Window
+
 Claude, Codex, Gemini, Cursor, Copilot の CLI を制御する Agent Window です
 必要であれば辞書的に任意のCLIを追加登録することができます
 通常のサブスクリプションだけで動作します
+
+![Agent Window hero 1](media/agent-window-hero-1.png)
+
+![Agent Window hero 2](media/agent-window-hero-2.png)
 
 # バックエンド
 このrepoにおけるセッションには1つのtmuxプロセスとチャットサーバーが紐づけられます
@@ -65,6 +71,5 @@ ONにするとmacのスリープが防止されます
 
 **Add / Remove Agent** : セッションにエージェントを追加・削除できます。同一エージェントの複数追加も可能です。
 Claude-3のようにインスタンス名で処理されます
-
 
 
