@@ -20,7 +20,7 @@ Dev / rebuild helper: rebuild and open the macOS Tauri desktop app without
 re-running the interactive setup. First-time users should run
 `./tauri_app/tauri_start` instead.
 
-Rust / cargo and Xcode Command Line Tools must already be installed.
+python3, tmux, Rust / cargo, and Xcode Command Line Tools must already be installed.
 
 Options:
   --dev         run `cargo tauri dev`
@@ -72,11 +72,12 @@ export PATH
 export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$HOME/.cache/multiagent-tauri-target}"
 mkdir -p "$CARGO_TARGET_DIR"
 
-if [[ "${MULTIAGENT_SKIP_DEPS_CHECK:-}" != "1" ]]; then
-  if ! command -v python3 >/dev/null 2>&1 || ! command -v tmux >/dev/null 2>&1; then
-    bash "$ROOT/setup/ensure-deps"
+for _cmd in python3 tmux; do
+  if ! command -v "$_cmd" >/dev/null 2>&1; then
+    echo "tauri-build: $_cmd is required on PATH. Install it, then re-run ./tauri_app/tauri-build." >&2
+    exit 1
   fi
-fi
+done
 
 if [[ "$LOCAL_HTTPS" == "1" ]]; then
   if [[ ! -f "$ROOT/.multiagent/pwa/enabled" ]]; then
@@ -97,8 +98,8 @@ if ! command -v cargo >/dev/null 2>&1; then
   exit 1
 fi
 
-if [[ "$(uname -s)" == "Darwin" ]] && ! xcode-select -p >/dev/null 2>&1; then
-  echo "tauri-build: Xcode Command Line Tools are required on macOS." >&2
+if ! command -v xcode-select >/dev/null 2>&1 || ! xcode-select -p >/dev/null 2>&1; then
+  echo "tauri-build: Xcode Command Line Tools are required." >&2
   echo "tauri-build: run \`xcode-select --install\`, then re-run this command." >&2
   exit 1
 fi

@@ -21,7 +21,7 @@ Desktop app entry:
   - builds and opens the local macOS .app by default
   - starts the local Hub over HTTP by default
 
-Requires python3, tmux, and cargo on PATH; install them yourself before running.
+Requires python3, tmux, cargo, and Xcode Command Line Tools; install them yourself before running.
 
 Use --local-https only after enabling phone/PWA access with ./setup/pwa/enable.
 
@@ -117,8 +117,8 @@ if ! command -v cargo >/dev/null 2>&1; then
   exit 1
 fi
 
-if [[ "$(uname -s)" == "Darwin" ]] && ! xcode-select -p >/dev/null 2>&1; then
-  echo "tauri_start: Xcode Command Line Tools are required on macOS." >&2
+if ! command -v xcode-select >/dev/null 2>&1 || ! xcode-select -p >/dev/null 2>&1; then
+  echo "tauri_start: Xcode Command Line Tools are required." >&2
   echo "tauri_start: run \`xcode-select --install\`, then re-run this command." >&2
   exit 1
 fi

@@ -10,11 +10,12 @@ AGENT_INDEX_BOOTSTRAP_SH=1
 SCRIPT_DIR="$REPO_ROOT/bin"
 AGENT_INDEX_PYTHONPATH="${REPO_ROOT}/src:${REPO_ROOT}${PYTHONPATH:+:${PYTHONPATH}}"
 
-if [[ "${MULTIAGENT_SKIP_DEPS_CHECK:-}" != "1" ]]; then
-  if ! command -v python3 >/dev/null 2>&1 || ! command -v tmux >/dev/null 2>&1; then
-    bash "$SCRIPT_DIR/ensure-multiagent-deps" || exit 1
+for _cmd in python3 tmux; do
+  if ! command -v "$_cmd" >/dev/null 2>&1; then
+    echo "agent-index: $_cmd is required on PATH. Install it, then re-run this command." >&2
+    exit 1
   fi
-fi
+done
 
 _ALL_AGENTS="$(PYTHONPATH="$AGENT_INDEX_PYTHONPATH" python3 -c "from backend_core.agents.registry import ALL_AGENT_NAMES; print(' '.join(ALL_AGENT_NAMES))" 2>/dev/null || echo "claude codex gemini kimi copilot cursor opencode qwen")"
 read -ra _ALL_AGENTS_ARR <<< "$_ALL_AGENTS"

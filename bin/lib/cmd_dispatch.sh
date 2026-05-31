@@ -327,7 +327,6 @@ PYEOF
       if command -v nohup >/dev/null 2>&1; then
         nohup env \
           MULTIAGENT_REMOVE_HELPER=1 \
-          MULTIAGENT_SKIP_DEPS_CHECK=1 \
           MULTIAGENT_SESSION="$SESSION_NAME" \
           MULTIAGENT_TMUX_SOCKET="$TMUX_SOCKET_NAME" \
           "$SCRIPT_DIR/multiagent" remove-agent --session "$SESSION_NAME" --agent "$canonical" \
@@ -335,7 +334,6 @@ PYEOF
       else
         env \
           MULTIAGENT_REMOVE_HELPER=1 \
-          MULTIAGENT_SKIP_DEPS_CHECK=1 \
           MULTIAGENT_SESSION="$SESSION_NAME" \
           MULTIAGENT_TMUX_SOCKET="$TMUX_SOCKET_NAME" \
           "$SCRIPT_DIR/multiagent" remove-agent --session "$SESSION_NAME" --agent "$canonical" \

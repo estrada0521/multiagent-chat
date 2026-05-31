@@ -72,4 +72,41 @@ ONにするとmacのスリープが防止されます
 **Add / Remove Agent** : セッションにエージェントを追加・削除できます。同一エージェントの複数追加も可能です。
 Claude-3のようにインスタンス名で処理されます
 
+# Setup
 
+## Tauri App + HTTP
+
+webでも動きますが、UI・UXを確認していないので、基本的にTauri App前提です。
+
+事前に `python3`, `tmux`, `cargo`, Xcode Command Line Tools をインストールしてください。
+`tauri-cli` は初回実行時に `.multiagent/tools/tauri-cli` へ自動で入ります。
+Claude, Codex, Gemini, Cursor, Copilot などのAgent CLIは自動インストールされません。使うCLIを事前にインストールし、認証まで済ませてください。
+
+```bash
+./tauri_app/tauri_start
+```
+
+このコマンドで、Tauri Appをbuildし、HubはTauri Appから `http://127.0.0.1:8788/` で起動されます。
+起動後はHubの `New Session` からセッションを開始してください。
+
+再buildだけ行う場合:
+
+```bash
+./tauri_app/tauri-build
+```
+
+## PWA / HTTPS for Mobile
+
+先にHTTPのTauri Appが動いている必要があります。
+
+```bash
+./tauri_app/tauri_start
+./setup/pwa/enable
+./tauri_app/tauri_start --local-https
+```
+
+`./setup/pwa/enable` は実行中のHubを確認して、mkcertとローカル証明書を準備します。
+iPhone/iPadで使う場合は、表示されるmkcert root CAの信頼手順も行ってください。
+
+PWA有効化後は `--local-https` で起動します。
+このときHubとChatはHTTPSで揃います。
