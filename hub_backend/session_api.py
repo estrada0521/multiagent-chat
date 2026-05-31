@@ -200,7 +200,10 @@ class HubSessionApi:
                 return False, chat_port, str(exc)
             for _ in range(80):
                 if self.ctx.hub.chat_ready(chat_port):
-                    state = self.ctx.hub.chat_server_state(chat_port)
+                    state = self.ctx.hub.chat_server_state(
+                        chat_port,
+                        scheme=getattr(self.ctx.hub, "hub_scheme", ""),
+                    )
                     if state and str(state.get("session") or "").strip() == session_name:
                         return True, chat_port, ""
                 time.sleep(0.05)

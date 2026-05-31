@@ -14,7 +14,7 @@ ROOT="$(cd "$_TAURI_DIR/.." && pwd)"
 
 usage() {
   cat <<'EOF'
-Usage: tauri_app/tauri-build [--dev] [--build-only] [--no-open]
+Usage: tauri_app/tauri-build [--dev] [--build-only] [--no-open] [--local-https]
 
 Dev / rebuild helper: rebuild and open the macOS Tauri desktop app without
 re-running the interactive setup. First-time users should run
@@ -26,12 +26,14 @@ Options:
   --dev         run `cargo tauri dev`
   --build-only  build the .app bundle but do not open it
   --no-open     alias for --build-only
+  --local-https open app with HTTPS Hub after ./setup/pwa/enable
   --help        show this help
 EOF
 }
 
 MODE="build"
 OPEN_APP=1
+LOCAL_HTTPS=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -41,6 +43,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --build-only|--no-open)
       OPEN_APP=0
+      shift
+      ;;
+    --local-https)
+      LOCAL_HTTPS=1
       shift
       ;;
     --help|-h)
@@ -72,9 +78,17 @@ if [[ "${MULTIAGENT_SKIP_DEPS_CHECK:-}" != "1" ]]; then
   fi
 fi
 
-if [[ ! -f "$ROOT/certs/cert.pem" || ! -f "$ROOT/certs/key.pem" ]]; then
-  echo "tauri-build: local HTTPS certificates are missing; running quickstart setup first." >&2
-  bash "$ROOT/tauri_app/tauri_start" --setup-only
+if [[ "$LOCAL_HTTPS" == "1" ]]; then
+  if [[ ! -f "$ROOT/.multiagent/pwa/enabled" ]]; then
+    echo "tauri-build: PWA HTTPS is not enabled yet." >&2
+    echo "tauri-build: start the HTTP app first, then run ./setup/pwa/enable." >&2
+    exit 1
+  fi
+  if [[ ! -f "$ROOT/certs/cert.pem" || ! -f "$ROOT/certs/key.pem" ]]; then
+    echo "tauri-build: local HTTPS certificates are missing." >&2
+    echo "tauri-build: start the HTTP app first, then run ./setup/pwa/enable." >&2
+    exit 1
+  fi
 fi
 
 if ! command -v cargo >/dev/null 2>&1; then
@@ -107,6 +121,12 @@ if ! cargo tauri --help >/dev/null 2>&1; then
 fi
 
 mkdir -p "$ROOT/assets/sounds"
+export MULTIAGENT_REPO_ROOT="$ROOT"
+if [[ "$LOCAL_HTTPS" == "1" ]]; then
+  export MULTIAGENT_TAURI_USE_HTTPS=1
+else
+  unset MULTIAGENT_TAURI_USE_HTTPS MULTIAGENT_ENABLE_LOCAL_HTTPS MULTIAGENT_CERT_FILE MULTIAGENT_KEY_FILE
+fi
 
 cd "$_TAURI_DIR/src-tauri"
 

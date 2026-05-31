@@ -30,10 +30,11 @@ def chat_ready(self, chat_port: int) -> bool:
         return False
 
 
-def chat_server_state(self, chat_port: int) -> dict | None:
-    for scheme in ("https", "http"):
+def chat_server_state(self, chat_port: int, *, scheme: str = "") -> dict | None:
+    schemes = (scheme,) if scheme in {"http", "https"} else ("https", "http")
+    for scheme_name in schemes:
         try:
-            if scheme == "https":
+            if scheme_name == "https":
                 conn = http.client.HTTPSConnection(
                     "127.0.0.1",
                     chat_port,
@@ -59,8 +60,8 @@ def chat_server_state(self, chat_port: int) -> dict | None:
     return None
 
 
-def chat_server_matches(self, session_name: str, chat_port: int) -> bool:
-    state = self.chat_server_state(chat_port)
+def chat_server_matches(self, session_name: str, chat_port: int, *, scheme: str = "") -> bool:
+    state = self.chat_server_state(chat_port, scheme=scheme)
     if not state:
         return True
     if (state.get("session") or "") != session_name:
@@ -187,6 +188,10 @@ def chat_launch_env(self) -> dict[str, str]:
     if existing_pythonpath:
         pythonpath_parts.append(existing_pythonpath)
     env["PYTHONPATH"] = os.pathsep.join(pythonpath_parts)
+    if str(getattr(self, "hub_scheme", "") or "").strip().lower() == "http":
+        env.pop("MULTIAGENT_CERT_FILE", None)
+        env.pop("MULTIAGENT_KEY_FILE", None)
+        env.pop("MULTIAGENT_ENABLE_LOCAL_HTTPS", None)
     return env
 
 
@@ -204,18 +209,18 @@ def ensure_chat_server(
     with lock:
         chat_port = self.chat_port_for_session(session_name)
         if self.chat_ready(chat_port):
-            if self.chat_server_matches(session_name, chat_port):
+            if self.chat_server_matches(session_name, chat_port, scheme=getattr(self, "hub_scheme", "")):
                 return True, chat_port, ""
             stop_ok, stop_detail = self.stop_chat_server(session_name)
             if not stop_ok:
                 logging.warning("stop_chat_server failed before relaunch: %s", stop_detail)
 
         if not port_is_bindable_fn(chat_port):
-            if self.chat_ready(chat_port) and self.chat_server_matches(session_name, chat_port):
+            if self.chat_ready(chat_port) and self.chat_server_matches(session_name, chat_port, scheme=getattr(self, "hub_scheme", "")):
                 return True, chat_port, ""
 
             for candidate in range(chat_port, chat_port + 10):
-                if self.chat_ready(candidate) and self.chat_server_matches(session_name, candidate):
+                if self.chat_ready(candidate) and self.chat_server_matches(session_name, candidate, scheme=getattr(self, "hub_scheme", "")):
                     save_chat_port_override_fn(self.repo_root, session_name, candidate)
                     return True, candidate, ""
                 if port_is_bindable_fn(candidate):
@@ -264,7 +269,7 @@ def ensure_chat_server(
             logging.error(f"Unexpected error: {exc}", exc_info=True)
             return False, chat_port, str(exc)
         for _ in range(60):
-            if self.chat_ready(chat_port):
+            if self.chat_ready(chat_port) and self.chat_server_state(chat_port, scheme=getattr(self, "hub_scheme", "")):
                 return True, chat_port, ""
             time_module.sleep(0.1)
         return False, chat_port, "chat server did not become ready"

@@ -916,6 +916,8 @@ def main(argv: list[str] | None = None) -> None:
     key_file = os.environ.get("MULTIAGENT_KEY_FILE", "")
     use_https = bool(cert_file and key_file)
     _scheme = "https" if use_https else "http"
+    if hub is not None:
+        hub.hub_scheme = _scheme
     ThreadingHTTPServer.allow_reuse_address = True
     hub_server = ThreadingHTTPServer(("0.0.0.0", port), Handler)
     if use_https:

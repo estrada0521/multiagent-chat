@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+_HERE="${BASH_SOURCE[0]:-$0}"
+while [[ -L "$_HERE" ]]; do
+  _D="$(cd "$(dirname "$_HERE")" && pwd)"
+  _T="$(readlink "$_HERE")"
+  [[ "$_T" == /* ]] || _T="$_D/$_T"
+  _HERE="$_T"
+done
+_SCRIPT_DIR="$(cd "$(dirname "$_HERE")" && pwd)"
+REPO_ROOT="$(cd "$_SCRIPT_DIR/../.." && pwd)"
+HUB_PORT="${AGENT_INDEX_HUB_PORT:-8788}"
+
+# shellcheck source=/dev/null
+source "$REPO_ROOT/bin/agent_index_lib/https.sh"
+
+usage() {
+  cat <<'EOF'
+Usage: setup/pwa/enable [--hub-port N]
+
+Upgrade an existing HTTP Tauri setup for phone/PWA access.
+
+This intentionally requires the HTTP Hub to be running first. Start the Tauri
+app with `./tauri_app/tauri_start`, confirm Hub works, then run this command.
+After it finishes, restart the app with `./tauri_app/tauri_start --local-https`.
+
+Options:
+  --hub-port N  HTTP Hub port to check before enabling PWA HTTPS (default: 8788)
+  --help        show this help
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --hub-port)
+      HUB_PORT="$2"
+      shift 2
+      ;;
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "pwa-enable: unknown option: $1" >&2
+      usage >&2
+      exit 1
+      ;;
+  esac
+done
+
+HUB_MODE=""
+if port_serves_expected_url "http" "$HUB_PORT" "/hub.webmanifest"; then
+  HUB_MODE="http"
+elif port_serves_expected_url "https" "$HUB_PORT" "/hub.webmanifest"; then
+  HUB_MODE="https"
+fi
+
+if [[ -z "$HUB_MODE" ]]; then
+  echo "pwa-enable: Hub is not running on http://127.0.0.1:${HUB_PORT}/" >&2
+  echo "pwa-enable: start the Tauri app first: ./tauri_app/tauri_start" >&2
+  exit 1
+fi
+if [[ "$HUB_MODE" == "https" ]]; then
+  echo "pwa-enable: adopting the already-running HTTPS Hub on port $HUB_PORT." >&2
+fi
+
+bash "$REPO_ROOT/setup/ensure-local-https" >/dev/null
+export MULTIAGENT_ENABLE_LOCAL_HTTPS=1
+ensure_repo_https_cert
+
+if [[ -z "${MULTIAGENT_CERT_FILE:-}" || -z "${MULTIAGENT_KEY_FILE:-}" ]]; then
+  echo "pwa-enable: local HTTPS certificate was not created." >&2
+  exit 1
+fi
+
+mkdir -p "$REPO_ROOT/.multiagent/pwa"
+cat > "$REPO_ROOT/.multiagent/pwa/enabled" <<EOF
+enabled_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+hub_port=$HUB_PORT
+cert_file=$MULTIAGENT_CERT_FILE
+EOF
+
+echo "pwa-enable: PWA HTTPS preparation complete."
+if [[ "$HUB_MODE" == "http" ]]; then
+  echo "pwa-enable: next, quit the HTTP Tauri app and restart with:"
+else
+  echo "pwa-enable: next restart with:"
+fi
+echo "pwa-enable:   ./tauri_app/tauri_start --local-https"

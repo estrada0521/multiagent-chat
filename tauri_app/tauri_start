@@ -14,23 +14,23 @@ ROOT="$(cd "$_TAURI_DIR/.." && pwd)"
 
 usage() {
   cat <<'EOF'
-Usage: tauri_app/tauri_start [--dev] [--build-only] [--no-open] [--setup-only]
+Usage: tauri_app/tauri_start [--dev] [--build-only] [--no-open] [--setup-only] [--local-https]
 
-Desktop app entry (HTTPS-only):
-  - installs mkcert and creates local HTTPS certificates under ./certs
-  - installs multiagent, agent-index, and agent-send into ~/.local/bin
+Desktop app entry:
   - caches tauri-cli under .multiagent/tools/tauri-cli on first use
   - builds and opens the local macOS .app by default
+  - starts the local Hub over HTTP by default
 
 Requires python3, tmux, and cargo on PATH; install them yourself before running.
 
-For browser or PWA use, run `./setup/quickstart` instead.
+Use --local-https only after enabling phone/PWA access with ./setup/pwa/enable.
 
 Options:
   --dev         run `cargo tauri dev` instead of building a .app bundle
   --build-only  build the .app bundle but do not open it
   --no-open     alias for --build-only
   --setup-only  prepare dependencies/certificates, then exit (skip build)
+  --local-https start the Tauri-launched Hub over HTTPS after PWA enablement
   --help        show this help
 EOF
 }
@@ -38,6 +38,7 @@ EOF
 MODE="build"
 OPEN_APP=1
 SETUP_ONLY=0
+LOCAL_HTTPS=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -51,6 +52,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --setup-only)
       SETUP_ONLY=1
+      shift
+      ;;
+    --local-https)
+      LOCAL_HTTPS=1
       shift
       ;;
     --help|-h)
@@ -83,19 +88,25 @@ for _cmd in python3 tmux; do
   fi
 done
 
-if [[ -f "$ROOT/setup/ensure-local-https" ]]; then
-  LOCAL_HTTPS_MODE="$(bash "$ROOT/setup/ensure-local-https")" || exit 1
-  [[ "$LOCAL_HTTPS_MODE" == "enabled" ]] || { echo "tauri_start: local HTTPS setup failed" >&2; exit 1; }
-  export MULTIAGENT_ENABLE_LOCAL_HTTPS=1
+if [[ "$LOCAL_HTTPS" == "1" ]]; then
+  if [[ ! -f "$ROOT/.multiagent/pwa/enabled" ]]; then
+    echo "tauri_start: PWA HTTPS is not enabled yet." >&2
+    echo "tauri_start: start the HTTP app first, then run ./setup/pwa/enable." >&2
+    exit 1
+  fi
+  if [[ ! -f "$ROOT/certs/cert.pem" || ! -f "$ROOT/certs/key.pem" ]]; then
+    echo "tauri_start: local HTTPS certificates are missing." >&2
+    echo "tauri_start: start the HTTP app first, then run ./setup/pwa/enable." >&2
+    exit 1
+  fi
 fi
-
-"$ROOT/bin/multiagent" --install
 
 if [[ "$SETUP_ONLY" == "1" ]]; then
   cat <<EOF
 tauri_start: setup complete.
 tauri_start: build and open the app: ./tauri_app/tauri_start
 tauri_start: rebuild only:           ./tauri_app/tauri-build
+tauri_start: enable phone/PWA later: ./setup/pwa/enable
 EOF
   exit 0
 fi
@@ -130,6 +141,12 @@ if ! cargo tauri --help >/dev/null 2>&1; then
 fi
 
 mkdir -p "$ROOT/assets/sounds"
+export MULTIAGENT_REPO_ROOT="$ROOT"
+if [[ "$LOCAL_HTTPS" == "1" ]]; then
+  export MULTIAGENT_TAURI_USE_HTTPS=1
+else
+  unset MULTIAGENT_TAURI_USE_HTTPS MULTIAGENT_ENABLE_LOCAL_HTTPS MULTIAGENT_CERT_FILE MULTIAGENT_KEY_FILE
+fi
 
 cd "$_TAURI_DIR/src-tauri"
 

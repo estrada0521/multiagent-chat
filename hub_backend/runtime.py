@@ -72,6 +72,7 @@ class HubRuntime:
         self.central_log_dir = local_runtime_log_dir(self.repo_root)
         self.tmux_socket = tmux_socket
         self.hub_port = int(hub_port or 0)
+        self.hub_scheme = "http"
         self.tmux_prefix = ["tmux"]
         if tmux_socket:
             if "/" in tmux_socket:
@@ -241,11 +242,11 @@ class HubRuntime:
     def chat_ready(self, chat_port: int) -> bool:
         return _chat_ready_impl(self, chat_port)
 
-    def chat_server_state(self, chat_port: int) -> dict | None:
-        return _chat_server_state_impl(self, chat_port)
+    def chat_server_state(self, chat_port: int, *, scheme: str = "") -> dict | None:
+        return _chat_server_state_impl(self, chat_port, scheme=scheme)
 
-    def chat_server_matches(self, session_name: str, chat_port: int) -> bool:
-        return _chat_server_matches_impl(self, session_name, chat_port)
+    def chat_server_matches(self, session_name: str, chat_port: int, *, scheme: str = "") -> bool:
+        return _chat_server_matches_impl(self, session_name, chat_port, scheme=scheme)
 
     def stop_chat_server(self, session_name: str) -> tuple[bool, str]:
         return _stop_chat_server_impl(

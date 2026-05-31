@@ -26,6 +26,7 @@ FOLLOW_MODE=0
 CHAT_MODE=0
 HUB_MODE=0
 HTTPS_MODE=0
+HTTPS_MODE_EXPLICIT=0
 HUB_PORT="${AGENT_INDEX_HUB_PORT:-8788}"
 SESSION_WORKSPACE="${MULTIAGENT_WORKSPACE:-$PWD}"
 SESSION_IS_ACTIVE=0
@@ -39,33 +40,47 @@ while [[ $# -gt 0 ]]; do
     --chat) CHAT_MODE=1; shift ;;
     --hub) HUB_MODE=1; shift ;;
     --hub-port) HUB_PORT="$2"; shift 2 ;;
-    --https) HTTPS_MODE=1; shift ;;
+    --https) HTTPS_MODE=1; HTTPS_MODE_EXPLICIT=1; shift ;;
+    --http) HTTPS_MODE=0; HTTPS_MODE_EXPLICIT=1; shift ;;
     --no-open) shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage >&2; exit 1 ;;
   esac
 done
 
-export MULTIAGENT_ENABLE_LOCAL_HTTPS=1
-if [[ -z "${MULTIAGENT_CERT_FILE:-}" || -z "${MULTIAGENT_KEY_FILE:-}" ]]; then
-  ensure_repo_https_cert
+if [[ "$HTTPS_MODE" -eq 1 || ( "$HTTPS_MODE_EXPLICIT" -eq 0 && "${MULTIAGENT_ENABLE_LOCAL_HTTPS:-}" == "1" ) ]]; then
+  if [[ ! -f "$REPO_ROOT/.multiagent/pwa/enabled" ]]; then
+    echo "PWA HTTPS is not enabled yet." >&2
+    echo "Start the HTTP Tauri app first, then run ./setup/pwa/enable." >&2
+    exit 1
+  fi
+  export MULTIAGENT_ENABLE_LOCAL_HTTPS=1
+  if [[ -z "${MULTIAGENT_CERT_FILE:-}" || -z "${MULTIAGENT_KEY_FILE:-}" ]]; then
+    ensure_repo_https_cert
+  fi
+  if [[ -z "${MULTIAGENT_CERT_FILE:-}" || -z "${MULTIAGENT_KEY_FILE:-}" ]]; then
+    echo "local HTTPS certificate is required. Run ./setup/pwa/enable first." >&2
+    exit 1
+  fi
+  if [[ ! -f "${MULTIAGENT_CERT_FILE}" || ! -f "${MULTIAGENT_KEY_FILE}" ]]; then
+    echo "configured local HTTPS certificate files are missing." >&2
+    exit 1
+  fi
+  HTTPS_SCHEME="https"
+else
+  unset MULTIAGENT_CERT_FILE MULTIAGENT_KEY_FILE MULTIAGENT_ENABLE_LOCAL_HTTPS
+  HTTPS_SCHEME="http"
 fi
-if [[ -z "${MULTIAGENT_CERT_FILE:-}" || -z "${MULTIAGENT_KEY_FILE:-}" ]]; then
-  echo "local HTTPS certificate is required. Run setup/ensure-local-https first." >&2
-  exit 1
+if [[ "$HTTPS_SCHEME" == "https" ]]; then
+  if [[ -z "${MULTIAGENT_PUBLIC_HOST:-}" ]] && [[ -f "$REPO_ROOT/certs/public-host.txt" ]]; then
+    export MULTIAGENT_PUBLIC_HOST="$(tr -d '\r\n' < "$REPO_ROOT/certs/public-host.txt")"
+  fi
+  if [[ -z "${MULTIAGENT_PUBLIC_HUB_PORT:-}" ]]; then
+    export MULTIAGENT_PUBLIC_HUB_PORT="443"
+  fi
+else
+  unset MULTIAGENT_PUBLIC_HOST MULTIAGENT_PUBLIC_HUB_PORT
 fi
-if [[ ! -f "${MULTIAGENT_CERT_FILE}" || ! -f "${MULTIAGENT_KEY_FILE}" ]]; then
-  echo "configured local HTTPS certificate files are missing." >&2
-  exit 1
-fi
-if [[ -z "${MULTIAGENT_PUBLIC_HOST:-}" ]] && [[ -f "$REPO_ROOT/certs/public-host.txt" ]]; then
-  export MULTIAGENT_PUBLIC_HOST="$(tr -d '\r\n' < "$REPO_ROOT/certs/public-host.txt")"
-fi
-if [[ -z "${MULTIAGENT_PUBLIC_HUB_PORT:-}" ]]; then
-  export MULTIAGENT_PUBLIC_HUB_PORT="443"
-fi
-HTTPS_SCHEME="https"
-
 if [[ "$HUB_MODE" -eq 1 ]]; then
   HUB_LOG="$(mktemp "${TMPDIR:-/tmp}/agent-index-hub.XXXXXX")"
   HUB_LOG="${HUB_LOG}.log"
@@ -102,7 +117,11 @@ if [[ "$HUB_MODE" -eq 1 ]]; then
   else
     echo "Tip (phone): open Hub using this Mac's LAN IP instead of 127.0.0.1 (same Wi‑Fi)."
   fi
-  echo "From Hub: New Session, Resume, Settings, … — see README if HTTPS warns on iPhone."
+  if [[ "$HTTPS_SCHEME" == "https" ]]; then
+    echo "From Hub: New Session, Resume, Settings, ... — see README if HTTPS warns on iPhone."
+  else
+    echo "From Hub: New Session, Resume, Settings, ..."
+  fi
   exit 0
 fi
 
@@ -170,4 +189,3 @@ if [[ "$CHAT_MODE" -eq 1 ]]; then
   echo "Log file:         $INDEX_FILE"
   exit 0
 fi
-

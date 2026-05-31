@@ -484,12 +484,20 @@ fn main() {
             let hub_already_up = probe_local_hub(hub_port).is_some();
 
             if !hub_already_up {
+                let tauri_use_https =
+                    std::env::var("MULTIAGENT_TAURI_USE_HTTPS").ok().as_deref() == Some("1");
                 let mut cmd = Command::new(format!("{}/bin/agent-index", repo_root));
-                cmd.args(["--hub", "--hub-port", &hub_port.to_string(), "--no-open", "--https"])
+                cmd.args([
+                    "--hub",
+                    "--hub-port",
+                    &hub_port.to_string(),
+                    "--no-open",
+                    if tauri_use_https { "--https" } else { "--http" },
+                ])
                     .current_dir(&repo_root)
                     .env("PATH", &path)
                     .env("PYTHONPATH", format!("{0}/src:{0}", repo_root));
-                if has_certs {
+                if has_certs && tauri_use_https {
                     cmd.env("MULTIAGENT_CERT_FILE", &cert_file)
                         .env("MULTIAGENT_KEY_FILE", &key_file);
                 }
