@@ -16,6 +16,7 @@ from native_log_sync.agents._shared.path_state import (
 )
 from native_log_sync.event_format import _pane_runtime_gemini_with_occurrence_ids
 from backend_core.access.files import append_jsonl_entry
+from native_log_sync.duplicate import already_synced_message, mark_message_synced
 
 from native_log_sync.agents._shared.runtime_display import runtime_event
 from native_log_sync.agents._shared.runtime_paths import display_path
@@ -128,7 +129,7 @@ def sync_codex_native_log(
             src_ts = str(entry.get("timestamp") or "")
             key = f"codex:{agent}:{src_ts}:{display}"
             msg_id = hashlib.sha256(key.encode("utf-8")).hexdigest()[:12]
-            if msg_id in self._synced_msg_ids:
+            if already_synced_message(self, agent, display, msg_id):
                 return False
 
             timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
@@ -143,7 +144,7 @@ def sync_codex_native_log(
             if kind:
                 jsonl_entry["kind"] = kind
             append_jsonl_entry(self.index_path, jsonl_entry)
-            self._synced_msg_ids.add(msg_id)
+            mark_message_synced(self, agent, display, msg_id)
             return True
 
         def _scan_recent_codex_entries(min_event_ts: float) -> bool:

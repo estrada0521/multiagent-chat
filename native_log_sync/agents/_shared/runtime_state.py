@@ -9,6 +9,7 @@ from native_log_sync.agents._shared.path_state import (
     _load_cursor_dict,
     _load_opencode_dict,
 )
+from native_log_sync.duplicate import mark_message_synced
 
 
 def initialize_native_log_runtime_state(runtime: object) -> None:
@@ -40,15 +41,25 @@ def initialize_native_log_runtime_state(runtime: object) -> None:
                 runtime._agent_first_seen_ts[key] = float(value)
 
     runtime._synced_msg_ids = set()
+    runtime._synced_message_fingerprints = set()
     persisted_ids = runtime._sync_state.get("synced_msg_ids")
     if isinstance(persisted_ids, list):
         for msg_id in persisted_ids:
             if isinstance(msg_id, str) and msg_id.strip():
                 runtime._synced_msg_ids.add(msg_id.strip())
+    persisted_fingerprints = runtime._sync_state.get("synced_message_fingerprints")
+    if isinstance(persisted_fingerprints, list):
+        for fingerprint in persisted_fingerprints:
+            if isinstance(fingerprint, str) and fingerprint.strip():
+                runtime._synced_message_fingerprints.add(fingerprint.strip())
 
+    # Older sync-state files did not persist content fingerprints. Fall back to
+    # one index scan only for initial bootstrap/migration, then rely on the
+    # persisted sets and O(1) lookups during normal sync.
+    needs_index_preload = not runtime._synced_msg_ids or not runtime._synced_message_fingerprints
     preload_prefixes = ("gemini", "codex", "cursor", "claude", "copilot", "qwen", "opencode")
     try:
-        if runtime.index_path.exists():
+        if needs_index_preload and runtime.index_path.exists():
             with open(runtime.index_path, "r", encoding="utf-8") as handle:
                 for line in handle:
                     line = line.strip()
@@ -62,8 +73,8 @@ def initialize_native_log_runtime_state(runtime: object) -> None:
                     agent = str(obj.get("agent") or "")
                     if sender.startswith(preload_prefixes) or agent:
                         msg_id = str(obj.get("msg_id") or "").strip()
-                        if msg_id:
-                            runtime._synced_msg_ids.add(msg_id)
+                        message = str(obj.get("message") or "")
+                        mark_message_synced(runtime, sender, message, msg_id)
     except Exception:
         pass
 

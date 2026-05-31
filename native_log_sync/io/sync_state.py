@@ -70,6 +70,7 @@ def save_sync_state(runtime, *, time_module=time) -> None:
             "opencode_cursors": _opencode_dict_to_json(runtime._opencode_cursors),
             "agent_first_seen_ts": dict(runtime._agent_first_seen_ts),
             "synced_msg_ids": sorted(runtime._synced_msg_ids),
+            "synced_message_fingerprints": sorted(runtime._synced_message_fingerprints),
             "last_sync": time_module.strftime("%Y-%m-%d %H:%M:%S"),
         }
         with canonical_native_log_sync_state_path(runtime.index_path.parent).open("w", encoding="utf-8") as handle:

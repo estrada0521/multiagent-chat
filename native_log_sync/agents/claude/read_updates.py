@@ -13,6 +13,7 @@ from native_log_sync.agents._shared.path_state import (
     _parse_iso_timestamp_epoch,
 )
 from backend_core.access.files import append_jsonl_entry
+from native_log_sync.duplicate import already_synced_message, mark_message_synced
 
 from native_log_sync.agents.claude.read_runtime import iter_tool_calls, runtime_tool_events
 from native_log_sync.agents._shared.runtime_push import push_runtime_display
@@ -101,7 +102,7 @@ def sync_claude_native_log(
             msg_id = str(entry.get("uuid") or entry.get("id") or "")[:12]
             if not msg_id:
                 msg_id = uuid.uuid4().hex[:12]
-            if msg_id in self._synced_msg_ids:
+            if already_synced_message(self, agent, display, msg_id):
                 return False
             timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
             jsonl_entry = {
@@ -113,7 +114,7 @@ def sync_claude_native_log(
                 "msg_id": msg_id,
             }
             append_jsonl_entry(self.index_path, jsonl_entry)
-            self._synced_msg_ids.add(msg_id)
+            mark_message_synced(self, agent, display, msg_id)
             return True
 
         def _scan_recent_claude_entries(min_event_ts: float) -> bool:

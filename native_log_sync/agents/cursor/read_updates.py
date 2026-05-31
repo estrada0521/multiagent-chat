@@ -12,6 +12,7 @@ from native_log_sync.agents._shared.path_state import (
     _cursor_binding_changed,
 )
 from backend_core.access.files import append_jsonl_entry
+from native_log_sync.duplicate import already_synced_message, mark_message_synced
 from native_log_sync.redacted import normalize_cursor_plaintext_for_index
 from native_log_sync.agents.cursor.read_runtime import iter_tool_calls, runtime_tool_events
 from native_log_sync.agents._shared.runtime_push import push_runtime_display
@@ -118,7 +119,7 @@ def sync_cursor_native_log(
 
             key = f"cursor:{agent}:{transcript_path}:{line_start}:{display}"
             msg_id = hashlib.sha256(key.encode("utf-8")).hexdigest()[:12]
-            if msg_id in self._synced_msg_ids:
+            if already_synced_message(self, agent, display, msg_id):
                 continue
             timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
             jsonl_entry = {
@@ -130,7 +131,7 @@ def sync_cursor_native_log(
                 "msg_id": msg_id,
             }
             append_jsonl_entry(self.index_path, jsonl_entry)
-            self._synced_msg_ids.add(msg_id)
+            mark_message_synced(self, agent, display, msg_id)
 
         for _ls, entry in batch:
             tool_evs = []

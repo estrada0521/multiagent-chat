@@ -10,6 +10,7 @@ from pathlib import Path
 from native_log_sync.event_format import _pane_runtime_with_occurrence_ids
 from native_log_sync.agents._shared.path_state import OpenCodeCursor
 from backend_core.access.files import append_jsonl_entry
+from native_log_sync.duplicate import already_synced_message, mark_message_synced
 
 from native_log_sync.agents._shared.runtime_display import runtime_event
 from native_log_sync.agents._shared.runtime_paths import display_path
@@ -125,7 +126,7 @@ def sync_opencode_native_log(
 
             sync_key = f"opencode:{agent}:{msg_id}:{display[:100]}"
             msg_id_hash = hashlib.sha256(sync_key.encode("utf-8")).hexdigest()[:12]
-            if msg_id_hash in self._synced_msg_ids:
+            if already_synced_message(self, agent, display, msg_id_hash):
                 new_last_msg_id = msg_id
                 continue
 
@@ -139,7 +140,7 @@ def sync_opencode_native_log(
                 "msg_id": msg_id_hash,
             }
             append_jsonl_entry(self.index_path, jsonl_entry)
-            self._synced_msg_ids.add(msg_id_hash)
+            mark_message_synced(self, agent, display, msg_id_hash)
             new_last_msg_id = msg_id
 
         conn.close()

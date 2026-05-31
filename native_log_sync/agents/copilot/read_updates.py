@@ -15,6 +15,7 @@ from native_log_sync.agents._shared.path_state import (
 from native_log_sync.agents._shared.runtime_push import push_runtime_display
 from native_log_sync.agents.copilot.read_runtime import iter_tool_calls, runtime_tool_events
 from backend_core.access.files import append_jsonl_entry
+from native_log_sync.duplicate import already_synced_message, mark_message_synced
 
 
 def _copilot_rate_limit_content(entry: dict) -> str:
@@ -92,7 +93,7 @@ def sync_copilot_native_log(
             if payload is None:
                 return False
             content, msg_id = payload
-            if msg_id in self._synced_msg_ids:
+            if already_synced_message(self, agent, content, msg_id):
                 return False
             timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
             jsonl_entry = {
@@ -104,7 +105,7 @@ def sync_copilot_native_log(
                 "msg_id": msg_id,
             }
             append_jsonl_entry(self.index_path, jsonl_entry)
-            self._synced_msg_ids.add(msg_id)
+            mark_message_synced(self, agent, content, msg_id)
             return True
 
         def _scan_recent_copilot_entries(min_event_ts: float) -> bool:

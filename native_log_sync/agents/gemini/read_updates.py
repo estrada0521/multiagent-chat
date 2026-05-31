@@ -11,6 +11,7 @@ from native_log_sync.agents._shared.path_state import (
     _cursor_binding_changed,
 )
 from backend_core.access.files import append_jsonl_entry
+from native_log_sync.duplicate import already_synced_message, mark_message_synced
 
 from native_log_sync.agents.gemini.read_runtime import extract_gemini_message, iter_tool_calls, runtime_tool_events
 from native_log_sync.agents._shared.runtime_push import push_runtime_display
@@ -41,11 +42,10 @@ def sync_gemini_native_log(
                 return False
             
             msg_id = extracted["msg_id"]
-            if msg_id in self._synced_msg_ids:
+            display_text = extracted["display_text"]
+            if already_synced_message(self, agent, display_text, msg_id):
                 return False
                 
-            self._synced_msg_ids.add(msg_id)
-            
             if extracted["is_thought"]:
                 return False
 
@@ -54,10 +54,11 @@ def sync_gemini_native_log(
                 "session": self.session_name,
                 "sender": agent,
                 "targets": ["user"],
-                "message": extracted["display_text"],
+                "message": display_text,
                 "msg_id": msg_id,
             }
             append_jsonl_entry(self.index_path, jsonl_entry)
+            mark_message_synced(self, agent, display_text, msg_id)
             return True
 
         def _scan_recent_gemini_entries(min_event_ts: float) -> bool:
@@ -109,7 +110,7 @@ def sync_gemini_native_log(
                     content = str(entry.get("content") or "").strip()
                     if "exhausted your capacity" in content.lower() or "usage limit" in content.lower() or "quota" in content.lower():
                         msg_id = str(entry.get("id") or "").strip()
-                        if msg_id and msg_id not in self._synced_msg_ids:
+                        if msg_id and not already_synced_message(self, agent, content, msg_id):
                             import uuid
                             timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
                             jsonl_entry = {
@@ -121,8 +122,7 @@ def sync_gemini_native_log(
                                 "msg_id": msg_id or uuid.uuid4().hex[:12],
                             }
                             append_jsonl_entry(self.index_path, jsonl_entry)
-                            if msg_id:
-                                self._synced_msg_ids.add(msg_id)
+                            mark_message_synced(self, agent, content, msg_id)
                         _cancelled = True
                 if _append_gemini_entry(entry):
                     _assistant_appended = True

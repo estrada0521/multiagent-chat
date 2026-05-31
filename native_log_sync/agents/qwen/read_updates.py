@@ -14,6 +14,7 @@ from native_log_sync.agents._shared.path_state import (
     _parse_iso_timestamp_epoch,
 )
 from backend_core.access.files import append_jsonl_entry
+from native_log_sync.duplicate import already_synced_message, mark_message_synced
 
 from native_log_sync.agents._shared.jsonl_runtime import parse_jsonl_tail_for_runtime
 from native_log_sync.agents._shared.runtime_display import runtime_event
@@ -71,7 +72,7 @@ def sync_qwen_native_log(
                 return False
             content = "\n".join(texts) if texts else "\n".join(thought_texts)
             msg_id = str(entry.get("uuid") or "").strip()
-            if msg_id and msg_id in self._synced_msg_ids:
+            if already_synced_message(self, agent, content, msg_id):
                 return False
             timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
             jsonl_entry = {
@@ -83,8 +84,7 @@ def sync_qwen_native_log(
                 "msg_id": msg_id or uuid.uuid4().hex[:12],
             }
             append_jsonl_entry(self.index_path, jsonl_entry)
-            if msg_id:
-                self._synced_msg_ids.add(msg_id)
+            mark_message_synced(self, agent, content, msg_id)
             return True
 
         def _scan_recent_qwen_entries(min_event_ts: float) -> bool:
