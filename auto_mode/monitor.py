@@ -26,14 +26,7 @@ def monitor_status(
     except Exception as exc:
         logging_module.error(f"Unexpected error: {exc}", exc_info=True)
         active = False
-    approval_file = f"/tmp/auto_mode_approved_{session_name}"
-    try:
-        last_approval = os_module.path.getmtime(approval_file)
-        last_approval_agent = path_class(approval_file).read_text().strip().lower()
-    except OSError:
-        last_approval = 0
-        last_approval_agent = ""
-    return {"active": active, "last_approval": last_approval, "last_approval_agent": last_approval_agent}
+    return {"active": active}
 
 
 def set_monitor_active(

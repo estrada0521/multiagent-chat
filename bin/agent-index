@@ -82,13 +82,11 @@ else
   unset MULTIAGENT_PUBLIC_HOST MULTIAGENT_PUBLIC_HUB_PORT
 fi
 if [[ "$HUB_MODE" -eq 1 ]]; then
-  HUB_LOG="$(mktemp "${TMPDIR:-/tmp}/agent-index-hub.XXXXXX")"
-  HUB_LOG="${HUB_LOG}.log"
   HUB_READY=0
   if port_serves_expected_url "$HTTPS_SCHEME" "$HUB_PORT" "/hub.webmanifest"; then
     HUB_READY=1
   else
-    PYTHONPATH="$AGENT_INDEX_PYTHONPATH" MULTIAGENT_AGENT_NAME="user" nohup python3 -m hub_backend.hub_server "$REPO_ROOT" "$SCRIPT_DIR/agent-index" "$HUB_PORT" "$TMUX_SOCKET_NAME" >"$HUB_LOG" 2>&1 </dev/null &
+    PYTHONPATH="$AGENT_INDEX_PYTHONPATH" MULTIAGENT_AGENT_NAME="user" nohup python3 -m hub_backend.hub_server "$REPO_ROOT" "$SCRIPT_DIR/agent-index" "$HUB_PORT" "$TMUX_SOCKET_NAME" >/dev/null 2>&1 </dev/null &
     HUB_SERVER_PID=$!
     disown "$HUB_SERVER_PID" || true
     for _ in $(seq 1 50); do
@@ -104,7 +102,7 @@ if [[ "$HUB_MODE" -eq 1 ]]; then
   fi
 
   if [[ "$HUB_READY" -ne 1 ]]; then
-    echo "Hub server failed to start or a stale server with the wrong scheme is still listening on port $HUB_PORT. Check log: $HUB_LOG" >&2
+    echo "Hub server failed to start or a stale server with the wrong scheme is still listening on port $HUB_PORT." >&2
     exit 1
   fi
 
@@ -153,15 +151,13 @@ fi
 if [[ "$CHAT_MODE" -eq 1 ]]; then
   CHAT_TARGETS="$(available_agents)"
   CHAT_PORT="$(PYTHONPATH="$AGENT_INDEX_PYTHONPATH" python3 -m server.port_cli "$REPO_ROOT" "$SESSION_NAME")"
-  CHAT_LOG="$(mktemp "${TMPDIR:-/tmp}/agent-index-chat.${SESSION_NAME}.XXXXXX")"
-  CHAT_LOG="${CHAT_LOG}.log"
   CHAT_LOG_DIR="$(dirname "$SESSION_LOG_DIR")"
   STALE_CHAT_PIDS="$(list_listening_pids "$CHAT_PORT")"
   if [[ -n "${STALE_CHAT_PIDS//[[:space:]]/}" ]]; then
     printf '%s\n' "$STALE_CHAT_PIDS" | xargs kill -9 2>/dev/null || true
     wait_for_port_to_clear "$CHAT_PORT" 50 0.1 || true
   fi
-  SESSION_IS_ACTIVE="$SESSION_IS_ACTIVE" PYTHONPATH="$AGENT_INDEX_PYTHONPATH" MULTIAGENT_AGENT_NAME="user" nohup python3 -m server.server "$INDEX_FILE" "$LIMIT" "$SESSION_NAME" "$FOLLOW_MODE" "$CHAT_PORT" "$REPO_ROOT/message_delivery/agent-send" "$SESSION_WORKSPACE" "$CHAT_LOG_DIR" "$CHAT_TARGETS" "$TMUX_SOCKET_NAME" "$HUB_PORT" >"$CHAT_LOG" 2>&1 </dev/null &
+  SESSION_IS_ACTIVE="$SESSION_IS_ACTIVE" PYTHONPATH="$AGENT_INDEX_PYTHONPATH" MULTIAGENT_AGENT_NAME="user" nohup python3 -m server.server "$INDEX_FILE" "$LIMIT" "$SESSION_NAME" "$FOLLOW_MODE" "$CHAT_PORT" "$REPO_ROOT/message_delivery/agent-send" "$SESSION_WORKSPACE" "$CHAT_LOG_DIR" "$CHAT_TARGETS" "$TMUX_SOCKET_NAME" "$HUB_PORT" >/dev/null 2>&1 </dev/null &
   CHAT_SERVER_PID=$!
   disown "$CHAT_SERVER_PID" || true
   CHAT_READY=0
@@ -176,7 +172,7 @@ if [[ "$CHAT_MODE" -eq 1 ]]; then
     sleep 0.1
   done
   if [[ "$CHAT_READY" -ne 1 ]]; then
-    echo "Chat server failed to start or a stale server with the wrong scheme is still listening on port $CHAT_PORT. Check log: $CHAT_LOG" >&2
+    echo "Chat server failed to start or a stale server with the wrong scheme is still listening on port $CHAT_PORT." >&2
     exit 1
   fi
   CHAT_URL="${HTTPS_SCHEME}://127.0.0.1:${CHAT_PORT}/?follow=1"

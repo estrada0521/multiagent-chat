@@ -156,13 +156,20 @@ case "$ACTION" in
 
     _tmux() { command tmux -L "$TMUX_SOCKET_NAME" "$@"; }
 
-    ts_file() {
-      local pane="${1//%/_}"
-      printf '%s' "/tmp/auto_mode_last_${SESSION_NAME}_${pane}"
-    }
-    hash_file() {
-      local pane="${1//%/_}"
-      printf '%s' "/tmp/auto_mode_hash_${SESSION_NAME}_${pane}"
+    _state_panes=()
+    _state_ts=()
+    _state_hash=()
+
+    state_index() {
+      local pane="$1"
+      local i
+      for ((i = 0; i < ${#_state_panes[@]}; i++)); do
+        if [[ "${_state_panes[$i]}" == "$pane" ]]; then
+          printf '%s' "$i"
+          return
+        fi
+      done
+      printf '%s' "-1"
     }
 
     while true; do
@@ -190,7 +197,14 @@ case "$ACTION" in
         _any_running=1
 
         now="$(date +%s)"
-        last_ts="$(cat "$(ts_file "$pane_id")" 2>/dev/null || echo 0)"
+        state_i="$(state_index "$pane_id")"
+        if [[ "$state_i" -ge 0 ]]; then
+          last_ts="${_state_ts[$state_i]}"
+          last_hash="${_state_hash[$state_i]}"
+        else
+          last_ts=0
+          last_hash=""
+        fi
         [[ $((now - last_ts)) -gt 3 ]] || continue
 
         content="$(_tmux capture-pane -p -S -30 -t "$pane_id" 2>/dev/null || true)"
@@ -198,12 +212,16 @@ case "$ACTION" in
         if load_agent_auto_mode_rule "$base" && auto_mode_agent_needs_approval "$content"; then
           approval_key="${AUTO_MODE_APPROVAL_KEY:-Enter}"
           content_hash="$(printf '%s' "$content" | cksum | cut -d' ' -f1)"
-          last_hash="$(cat "$(hash_file "$pane_id")" 2>/dev/null || echo "")"
           if [[ "$content_hash" != "$last_hash" ]]; then
             _tmux send-keys -t "$pane_id" "$approval_key"
-            echo "$now" > "$(ts_file "$pane_id")"
-            echo "$content_hash" > "$(hash_file "$pane_id")"
-            printf '%s\n' "$instance" > "/tmp/auto_mode_approved_${SESSION_NAME}" 2>/dev/null || true
+            if [[ "$state_i" -ge 0 ]]; then
+              _state_ts[$state_i]="$now"
+              _state_hash[$state_i]="$content_hash"
+            else
+              _state_panes+=("$pane_id")
+              _state_ts+=("$now")
+              _state_hash+=("$content_hash")
+            fi
           fi
         fi
       done
@@ -213,8 +231,6 @@ case "$ACTION" in
       sleep 0.5
     done
 
-    rm -f "/tmp/auto_mode_last_${SESSION_NAME}_"* 2>/dev/null || true
-    rm -f "/tmp/auto_mode_hash_${SESSION_NAME}_"* 2>/dev/null || true
     cleanup_pid_file_if_owned
     ;;
 

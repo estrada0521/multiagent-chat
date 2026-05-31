@@ -137,13 +137,6 @@ def local_runtime_log_dir(repo_root: Path | str) -> Path:
     return local_state_dir(repo_root) / "logs"
 
 
-def local_workspace_log_dir(repo_root: Path | str, workspace: Path | str) -> Path:
-    workspace_real = str(Path(workspace).resolve())
-    workspace_hash = hashlib.sha1(workspace_real.encode("utf-8")).hexdigest()[:12]
-    name = Path(workspace_real).name or "workspace"
-    return local_state_dir(repo_root) / "workspaces" / f"{name}-{workspace_hash}"
-
-
 def default_chat_port(session_name: str) -> int:
     digest = int(hashlib.md5(session_name.encode()).hexdigest(), 16)
     return 8200 + (digest % 700)

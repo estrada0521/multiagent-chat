@@ -8,9 +8,6 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
-from backend_core.access.settings import local_state_dir
-from backend_core.access.settings import local_workspace_log_dir
-
 
 _PREVIEW_TAIL_BYTES = 2 * 1024 * 1024
 _PREVIEW_TAIL_CHUNK_BYTES = 64 * 1024
@@ -177,12 +174,7 @@ def session_index_paths(
     workspace_candidates: list[str] = []
     if workspace:
         workspace_path = Path(workspace)
-        workspace_candidates.extend(
-            [
-                str(local_workspace_log_dir(runtime.repo_root, workspace_path)),
-                str(workspace_path / "logs"),
-            ]
-        )
+        workspace_candidates.append(str(workspace_path / "logs"))
     root_candidates = [
         explicit_log_dir,
         *workspace_candidates,
@@ -401,10 +393,7 @@ def archived_sessions(runtime: Any, active_names: set[str] | list[str] | None = 
     active_names_set = set(active_names or [])
     records: dict[str, dict] = {}
     log_roots: list[Path] = []
-    for candidate in (
-        runtime.central_log_dir,
-        local_state_dir(runtime.repo_root) / "workspaces",
-    ):
+    for candidate in (runtime.central_log_dir,):
         if not candidate or not Path(candidate).is_dir():
             continue
         root = Path(candidate)
