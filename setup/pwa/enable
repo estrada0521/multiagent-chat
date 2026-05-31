@@ -65,7 +65,7 @@ if [[ "$HUB_MODE" == "https" ]]; then
   echo "pwa-enable: adopting the already-running HTTPS Hub on port $HUB_PORT." >&2
 fi
 
-bash "$REPO_ROOT/setup/ensure-local-https" >/dev/null
+bash "$REPO_ROOT/setup/pwa/ensure-local-https" >/dev/null
 export MULTIAGENT_ENABLE_LOCAL_HTTPS=1
 ensure_repo_https_cert
 
