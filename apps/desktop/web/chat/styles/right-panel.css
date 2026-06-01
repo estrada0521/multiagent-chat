@@ -950,9 +950,9 @@
     .git-commit-file-header {
       display: flex;
       align-items: center;
-      gap: 8px;
-      min-height: 34px;
-      padding: 4px 8px 4px 34px;
+      gap: 6px;
+      min-height: 0;
+      padding: 6px 6px 6px 30px;
       position: relative;
       box-sizing: border-box;
     }
@@ -1018,7 +1018,7 @@
     }
     .git-commit-file-icon {
       position: absolute;
-      left: 10px;
+      left: 6px;
       top: 50%;
       transform: translateY(-50%);
       width: 18px;
