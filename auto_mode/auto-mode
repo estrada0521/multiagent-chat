@@ -8,12 +8,7 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 AGENTS_DIR="$SCRIPT_DIR/agents"
 
 default_tmux_socket_name() {
-  python3 - "$REPO_ROOT" <<'PYEOF'
-import hashlib, os, sys
-root = os.path.realpath(sys.argv[1])
-digest = hashlib.sha1(root.encode("utf-8")).hexdigest()[:12]
-print(f"auto-mode-{digest}")
-PYEOF
+  printf '%s\n' "agent-window-auto-mode"
 }
 
 TMUX_SOCKET_NAME="${MULTIAGENT_TMUX_SOCKET:-$(default_tmux_socket_name)}"

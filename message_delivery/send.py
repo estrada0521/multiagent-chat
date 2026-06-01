@@ -18,10 +18,7 @@ import hashlib as _hashlib
 from message_delivery.paste_timing import delivery_paste_delay_seconds
 
 def default_tmux_socket_name(repo_root) -> str:
-    import os as _os
-    root = _os.path.realpath(str(repo_root))
-    digest = _hashlib.sha1(root.encode("utf-8")).hexdigest()[:12]
-    return f"multiagent-{digest}"
+    return "agent-window"
 
 
 def _safe_session_name(s: str) -> str:

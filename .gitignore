@@ -51,10 +51,10 @@ tauri_app/src-tauri/gen/
 local/external-access/
 
 # Local-only external entrypoints (not published)
-bin/multiagent-cloudflare
-bin/multiagent-cloudflare-watchdog
-bin/multiagent-public-edge
-bin/multiagent-public-edge-supervisor
+bin/agent-window-cloudflare
+bin/agent-window-cloudflare-watchdog
+bin/agent-window-public-edge
+bin/agent-window-public-edge-supervisor
 classes_multiagent.svg
 packages_multiagent.svg
 tests/

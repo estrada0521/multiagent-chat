@@ -43,15 +43,7 @@ _ALL_AGENTS="$(PYTHONPATH="$AGENT_INDEX_PYTHONPATH" python3 -c "from backend_cor
 read -ra _ALL_AGENTS_ARR <<< "$_ALL_AGENTS"
 
 default_tmux_socket_name() {
-  python3 - "$REPO_ROOT" <<'PYEOF'
-import hashlib
-import os
-import sys
-
-root = os.path.realpath(sys.argv[1])
-digest = hashlib.sha1(root.encode("utf-8")).hexdigest()[:12]
-print(f"multiagent-{digest}")
-PYEOF
+  printf '%s\n' "agent-window"
 }
 
 TMUX_SOCKET_NAME="${MULTIAGENT_TMUX_SOCKET:-$(default_tmux_socket_name)}"
