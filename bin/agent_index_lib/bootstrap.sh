@@ -16,7 +16,7 @@ from pathlib import Path
 repo_root = Path(sys.argv[1]).resolve()
 from backend_core.access.settings import agent_window_run_dir
 
-print(agent_window_run_dir(repo_root))
+print(agent_window_run_dir())
 PYEOF
 )}"
 export AGENT_WINDOW_RUN_DIR
@@ -27,7 +27,7 @@ from pathlib import Path
 repo_root = Path(sys.argv[1]).resolve()
 from backend_core.access.settings import local_runtime_log_dir
 
-print(local_runtime_log_dir(repo_root))
+print(local_runtime_log_dir())
 PYEOF
 )}"
 export AGENT_WINDOW_LOG_DIR

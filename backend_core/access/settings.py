@@ -122,33 +122,28 @@ HUB_SETTINGS_DEFAULTS = {
 }
 
 
-def repo_state_id(repo_root: Path | str) -> str:
-    repo = str(Path(repo_root).resolve())
-    return hashlib.sha1(repo.encode("utf-8")).hexdigest()[:12]
-
-
 def agent_window_root() -> Path:
     return Path.home() / ".agent-window"
 
 
-def agent_window_state_dir(repo_root: Path | str) -> Path:
-    return agent_window_root() / "state" / repo_state_id(repo_root)
+def agent_window_state_dir() -> Path:
+    return agent_window_root() / "state"
 
 
-def agent_window_run_dir(repo_root: Path | str) -> Path:
-    return agent_window_root() / "run" / repo_state_id(repo_root)
+def agent_window_run_dir() -> Path:
+    return agent_window_root() / "run"
 
 
-def agent_window_cache_dir(repo_root: Path | str) -> Path:
-    return agent_window_root() / "cache" / repo_state_id(repo_root)
+def agent_window_cache_dir() -> Path:
+    return agent_window_root() / "cache"
 
 
-def local_state_dir(repo_root: Path | str) -> Path:
-    return agent_window_state_dir(repo_root)
+def local_state_dir(repo_root: Path | str | None = None) -> Path:
+    return agent_window_state_dir()
 
 
-def local_runtime_log_dir(repo_root: Path | str) -> Path:
-    return local_state_dir(repo_root) / "logs"
+def local_runtime_log_dir(repo_root: Path | str | None = None) -> Path:
+    return local_state_dir() / "logs"
 
 
 def default_chat_port(session_name: str) -> int:

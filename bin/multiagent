@@ -47,7 +47,7 @@ sys.path.insert(0, str(repo_root / "src"))
 sys.path.insert(0, str(repo_root))
 from backend_core.access.settings import local_runtime_log_dir
 
-print(local_runtime_log_dir(repo_root))
+print(local_runtime_log_dir())
 PYEOF
 )"
 AGENT_WINDOW_RUN_DIR="${AGENT_WINDOW_RUN_DIR:-$(python3 - "$REPO_ROOT" <<'PYEOF'
@@ -59,7 +59,7 @@ sys.path.insert(0, str(repo_root / "src"))
 sys.path.insert(0, str(repo_root))
 from backend_core.access.settings import agent_window_run_dir
 
-print(agent_window_run_dir(repo_root))
+print(agent_window_run_dir())
 PYEOF
 )}"
 export AGENT_WINDOW_RUN_DIR

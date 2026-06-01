@@ -182,7 +182,7 @@ def chat_launch_env(self) -> dict[str, str]:
     env["MULTIAGENT_AGENT_NAME"] = "user"
     if self.tmux_socket:
         env["MULTIAGENT_TMUX_SOCKET"] = self.tmux_socket
-    env["AGENT_WINDOW_RUN_DIR"] = str(agent_window_run_dir(self.repo_root))
+    env["AGENT_WINDOW_RUN_DIR"] = str(agent_window_run_dir())
     env["SESSION_IS_ACTIVE"] = "1"
     pythonpath_parts = [str(self.repo_root / "src"), str(self.repo_root)]
     existing_pythonpath = (env.get("PYTHONPATH") or "").strip()

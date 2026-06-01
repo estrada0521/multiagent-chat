@@ -41,7 +41,7 @@ def _cursor_usage_monitor_loop(runtime):
                 safe_pane = pane_id.replace("%", "_")
                 run_dir = Path(
                     os.environ.get("AGENT_WINDOW_RUN_DIR")
-                    or agent_window_run_dir(getattr(runtime, "repo_root", Path.cwd()))
+                    or agent_window_run_dir()
                 )
                 signal_file = run_dir / "cursor-usage-limits" / safe_pane
                 
