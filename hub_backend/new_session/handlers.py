@@ -148,7 +148,7 @@ def post_start_session_draft(handler, _parsed, ctx) -> None:
     else:
         session_name = ctx["session_api"].unique_session_name_for_workspace(resolved_workspace)
     try:
-        # Write session metadata files (meta + index), but skip .pending-launch.json
+        # Write session metadata files before launching the empty tmux session.
         session_state = ctx["session_api"].write_session_metadata(
             session_name,
             resolved_workspace,
@@ -199,18 +199,3 @@ def post_start_session_draft(handler, _parsed, ctx) -> None:
             "session_record": record,
         },
     )
-
-
-def post_start_session(handler, _parsed, ctx) -> None:
-    try:
-        ctx["post_start_session_fn"](
-            handler,
-            all_agent_names=ctx["all_agent_names"],
-            new_session_max_per_agent=ctx["new_session_max_per_agent"],
-            script_path=ctx["script_path"],
-            ensure_chat_server_fn=ctx["ensure_chat_server_fn"],
-            active_session_records_query_fn=ctx["active_session_records_query_fn"],
-            agent_launch_readiness_fn=ctx["agent_launch_readiness_fn"],
-        )
-    except Exception as exc:
-        handler._send_json(500, {"ok": False, "error": str(exc)})

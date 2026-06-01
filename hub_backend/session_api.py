@@ -75,7 +75,7 @@ class HubSessionApi:
         return candidate
 
     def write_session_metadata(self, session_name: str, workspace: str, agents: list[str]) -> dict:
-        """Write .meta and .log.jsonl (no .pending-launch.json)."""
+        """Write .meta and ensure .log.jsonl exists."""
         session_dir = self.session_logs_dir(session_name)
         session_dir.mkdir(parents=True, exist_ok=True)
         index_path = session_log_path(session_name)

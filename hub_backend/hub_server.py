@@ -43,14 +43,10 @@ from hub_backend.presentation.hub.settings_view import (
 )
 from hub_backend.branding import APP_DISPLAY_NAME
 from hub_backend.color_constants import apply_color_tokens, resolve_theme_palette
-from hub_backend.new_session.launch import (
-    post_start_session as _post_start_session_impl,
-)
 from hub_backend.new_session.handlers import (
     get_check_session_name as _get_check_session_name_action,
     post_mkdir as _post_mkdir_action,
     post_pick_workspace as _post_pick_workspace_action,
-    post_start_session as _post_start_session_action,
     post_start_session_draft as _post_start_session_draft_action,
 )
 from hub_backend.actions import (
@@ -595,7 +591,6 @@ def _hub_action_context() -> dict[str, object]:
         "format_session_chat_url_fn": format_session_chat_url,
         "kill_repo_session_fn": kill_repo_session,
         "new_session_max_per_agent": NEW_SESSION_MAX_PER_AGENT,
-        "post_start_session_fn": _post_start_session_impl,
         "queue_hub_restart_fn": queue_hub_restart,
         "revive_archived_session_fn": revive_archived_session,
         "save_hub_settings_fn": save_hub_settings,
@@ -626,7 +621,6 @@ _POST_ROUTE_HANDLERS = {
     "/pick-workspace": _post_pick_workspace_action,
     "/mkdir": _post_mkdir_action,
     "/start-session-draft": _post_start_session_draft_action,
-    "/start-session": _post_start_session_action,
 }
 
 class Handler(BaseHTTPRequestHandler):
