@@ -38,7 +38,6 @@ def launch_session(runtime, delivery_targets: list[str]) -> tuple[bool, dict]:
     env = os.environ.copy()
     env["MULTIAGENT_SESSION"] = runtime.session_name
     env["MULTIAGENT_WORKSPACE"] = runtime.workspace
-    env["MULTIAGENT_LOG_DIR"] = runtime.log_dir
     env["MULTIAGENT_INDEX_PATH"] = str(runtime.index_path)
     env["MULTIAGENT_BIN_DIR"] = str(Path(runtime.agent_send_path).parent)
     env["MULTIAGENT_TMUX_SOCKET"] = runtime.tmux_socket

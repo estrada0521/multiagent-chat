@@ -21,16 +21,9 @@ wait_for_agent_ready() {
 
 start_user_pane() {
   local pane_id="$1" launch_cmd
-  local index_path log_dir_mode log_dir_value
+  local index_path
   index_path="$(_canonical_session_index_path "$SESSION_NAME")"
-  if [[ -z "${LOG_DIR+x}" ]]; then
-    log_dir_mode="unset"
-    log_dir_value=""
-  else
-    log_dir_mode="set"
-    log_dir_value="$LOG_DIR"
-  fi
-  launch_cmd="$(python3 - "$REPO_ROOT" "$SCRIPT_DIR" "$SESSION_NAME" "$WORKSPACE" "$TMUX_SOCKET_NAME" "$index_path" "$log_dir_mode" "$log_dir_value" <<'PYEOF'
+  launch_cmd="$(python3 - "$REPO_ROOT" "$SCRIPT_DIR" "$SESSION_NAME" "$WORKSPACE" "$TMUX_SOCKET_NAME" "$index_path" <<'PYEOF'
 import sys
 from pathlib import Path
 
@@ -40,9 +33,6 @@ session_name = sys.argv[3]
 workspace = sys.argv[4]
 tmux_socket = sys.argv[5]
 index_path = sys.argv[6]
-log_dir_mode = sys.argv[7]
-log_dir_value = sys.argv[8]
-log_dir = None if log_dir_mode == "unset" else log_dir_value
 sys.path.insert(0, str(repo_root / "bin"))
 from multiagent_lib.launch import build_env_exports, build_user_launch_command
 
@@ -52,7 +42,6 @@ env_exports = build_env_exports(
     workspace=workspace,
     tmux_socket=tmux_socket,
     index_path=index_path,
-    log_dir=log_dir,
 )
 print(build_user_launch_command(env_exports=env_exports, script_dir=script_dir))
 PYEOF

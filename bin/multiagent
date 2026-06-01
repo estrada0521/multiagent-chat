@@ -299,7 +299,6 @@ context = session_context_from_env_output(env_output)
 print(f"WORKSPACE={context.get('workspace', '')}")
 print(f"BIN_DIR={context.get('bin_dir', '')}")
 print(f"TMUX_SOCKET={context.get('tmux_socket', '')}")
-print(f"LOG_DIR={context.get('log_dir', '')}")
 PYEOF
   )"
 
@@ -312,18 +311,12 @@ PYEOF
       WORKSPACE) session_workspace="$value" ;;
       BIN_DIR) session_bin_dir="$value" ;;
       TMUX_SOCKET) session_socket="$value" ;;
-      LOG_DIR) session_log_dir="$value" ;;
     esac
   done <<< "$parsed"
 
   [[ -n "$session_workspace" ]] && WORKSPACE="$session_workspace"
   [[ -n "$session_bin_dir" ]] && SCRIPT_DIR="$session_bin_dir"
   [[ -n "$session_socket" ]] && TMUX_SOCKET_NAME="$session_socket"
-  if [[ -n "$session_log_dir" ]]; then
-    LOG_DIR="$session_log_dir"
-  else
-    unset LOG_DIR
-  fi
 }
 
 session_user_pane_value() {
@@ -828,9 +821,6 @@ def format_mtime(path):
         return ""
 
 def parse_session_dir(name):
-    parts = name.split("_")
-    if len(parts) >= 3 and all(len(part) == 6 and part.isdigit() for part in parts[-2:]):
-        return "_".join(parts[:-2]) or name
     return name
 
 records = {}
@@ -840,7 +830,7 @@ if os.path.isdir(central_log_dir):
         if not os.path.isdir(path):
             continue
         meta_path = os.path.join(path, ".meta")
-        index_path = os.path.join(path, ".agent-index.jsonl")
+        index_path = os.path.join(path, ".log.jsonl")
         if not os.path.exists(meta_path) and not os.path.exists(index_path):
             continue
         meta = {}
@@ -948,7 +938,7 @@ Usage:
   multiagent resume [--session NAME | --latest] [--detach]
   multiagent kill [--session NAME | --all]
   multiagent rename --session NAME --to NEW_NAME
-  multiagent [--session NAME] [--workspace PATH] [--detach] [--fresh] [--no-auto] [--agents AGENT_LIST] [--log-dir PATH]
+  multiagent [--session NAME] [--workspace PATH] [--detach] [--fresh] [--no-auto] [--agents AGENT_LIST]
 
 Creates a tmux session where window 0 is reserved for the human terminal,
 and each agent gets its own tmux window.
@@ -962,10 +952,6 @@ Options:
 
   --user-pane SPEC     Add short terminal panes for the human operator (default: bottom:1)
                        Examples: top, bottom:2, top:2,bottom:1, none
-
-  --log-dir PATH       Directory for session artifacts (default: WORKSPACE/logs)
-                       Stores .agent-index.jsonl, uploads, and related session files.
-                       Set to empty string to use the repo-level shared logs directory.
 
   --session NAME       Name of the tmux session (default: current directory name)
   --workspace PATH     Working directory (default: current directory)
@@ -1098,12 +1084,11 @@ show_status() {
 
 print_agent_context() {
   local session="$1" resolved_note="$2"
-  local workspace bin_dir log_dir agents_str inst upper pane_id pane_title pane_dead pane_cmd
+  local workspace bin_dir agents_str inst upper pane_id pane_title pane_dead pane_cmd
   local current_pane instance_guess user_panes_csv sock
 
   workspace="$(tmux show-environment -t "$session" MULTIAGENT_WORKSPACE 2>/dev/null | sed 's/^[^=]*=//' || true)"
   bin_dir="$(tmux show-environment -t "$session" MULTIAGENT_BIN_DIR 2>/dev/null | sed 's/^[^=]*=//' || true)"
-  log_dir="$(tmux show-environment -t "$session" MULTIAGENT_LOG_DIR 2>/dev/null | sed 's/^[^=]*=//' || true)"
   sock="$(tmux show-environment -t "$session" MULTIAGENT_TMUX_SOCKET 2>/dev/null | sed 's/^[^=]*=//' || true)"
   [[ -z "$sock" ]] && sock="$TMUX_SOCKET_NAME"
   agents_str="$(session_agents_value "$session")"
@@ -1129,14 +1114,14 @@ print_agent_context() {
   fi
 
   if [[ "$CONTEXT_JSON" -eq 1 ]]; then
-    python3 - "$session" "$resolved_note" "$sock" "${MULTIAGENT_SESSION:-}" "$workspace" "$bin_dir" "$log_dir" \
+    python3 - "$session" "$resolved_note" "$sock" "${MULTIAGENT_SESSION:-}" "$workspace" "$bin_dir" \
       "$agents_str" "$current_pane" "$instance_guess" "$user_panes_csv" "$CENTRAL_LOG_DIR" <<'PYEOF'
 import json
 import os
 import sys
 
-session, resolved_note, sock, mult_session, workspace, bin_dir, log_dir = sys.argv[1:8]
-agents_str, current_pane, instance_guess, user_panes_csv, central_log = sys.argv[8:13]
+session, resolved_note, sock, mult_session, workspace, bin_dir = sys.argv[1:7]
+agents_str, current_pane, instance_guess, user_panes_csv, central_log = sys.argv[7:12]
 
 agents = [a.strip() for a in agents_str.split(",") if a.strip()] if agents_str else []
 out = {
@@ -1146,7 +1131,6 @@ out = {
     "MULTIAGENT_SESSION_env": mult_session or None,
     "workspace": workspace or None,
     "MULTIAGENT_BIN_DIR": bin_dir or None,
-    "MULTIAGENT_LOG_DIR": log_dir or None,
     "central_log_repo": central_log or None,
     "MULTIAGENT_AGENTS": agents,
     "current_tmux_pane": current_pane or None,
@@ -1166,7 +1150,6 @@ PYEOF
   [[ -n "${MULTIAGENT_SESSION:-}" ]] && printf '%s\n' "- **MULTIAGENT_SESSION (env)**: ${MULTIAGENT_SESSION}"
   [[ -n "$workspace" ]] && printf '%s\n' "- **MULTIAGENT_WORKSPACE**: ${workspace}"
   [[ -n "$bin_dir" ]] && printf '%s\n' "- **MULTIAGENT_BIN_DIR**: ${bin_dir}"
-  [[ -n "$log_dir" ]] && printf '%s\n' "- **MULTIAGENT_LOG_DIR**: ${log_dir}"
   printf '%s\n' "- **central runtime logs**: ${CENTRAL_LOG_DIR}"
   printf '%s\n' "- **MULTIAGENT_AGENTS**: ${agents_str:-<unset>}"
   [[ -n "$current_pane" ]] && printf '%s\n' "- **this tmux pane (TMUX_PANE)**: ${current_pane}"
@@ -1182,7 +1165,7 @@ PYEOF
   printf '%s\n' ""
   printf '%s\n' "### Hints"
   printf '%s\n' "- \`agent-send\` uses \`MULTIAGENT_SESSION\` (and tmux); targets come from MULTIAGENT_AGENTS and MULTIAGENT_PANE_* in this session."
-  printf '%s\n' "- Chat jsonl usually lives under **MULTIAGENT_LOG_DIR** / \`<workspace>/logs/<session>/\` (see your layout)."
+  printf '%s\n' "- Chat jsonl lives at \`${CENTRAL_LOG_DIR}/${session}/.log.jsonl\`; workspace mirror is \`${workspace}/.agent-window/.log.jsonl\`."
 }
 
 USER_PANE_CORE_SH="$REPO_ROOT/bin/lib/user_pane.sh"
@@ -1222,7 +1205,7 @@ while [[ $# -gt 0 ]]; do
     --agents|--agent) AGENTS_ARG="$2"; shift 2 ;;
     --no-agents) NO_AGENTS=1; shift ;;
     --user-pane) USER_PANE="$2"; shift 2 ;;
-    --log-dir)   LOG_DIR="$2"; shift 2 ;;
+    --log-dir)   echo "--log-dir is no longer supported; logs are stored under ~/.agent-window/session." >&2; exit 1 ;;
     -h|--help)   usage; exit 0 ;;
     *)           echo "Unknown argument: $1" >&2; usage >&2; exit 1 ;;
   esac
@@ -1363,15 +1346,8 @@ source "$SAVE_CORE_SH"
 
 start_agent() {
   local pane_id="$1" agent_name="$2" instance_name="${3:-$2}" launch_cmd
-  local index_path log_dir_mode log_dir_value
+  local index_path
   index_path="$(_canonical_session_index_path "$SESSION_NAME")"
-  if [[ -z "${LOG_DIR+x}" ]]; then
-    log_dir_mode="unset"
-    log_dir_value=""
-  else
-    log_dir_mode="set"
-    log_dir_value="$LOG_DIR"
-  fi
   local base_name="${agent_name%%-[0-9]*}"
   local executable launch_extra launch_flags launch_env
   executable="$(resolve_agent_executable "$base_name")" || {
@@ -1381,7 +1357,7 @@ start_agent() {
   launch_extra="$(agent_var AGENT_LAUNCH_EXTRA "$base_name")"
   launch_flags="$(agent_var AGENT_LAUNCH_FLAGS "$base_name")"
   launch_env="$(agent_var AGENT_LAUNCH_ENV "$base_name")"
-  launch_cmd="$(python3 - "$REPO_ROOT" "$SCRIPT_DIR" "$SESSION_NAME" "$WORKSPACE" "$TMUX_SOCKET_NAME" "$index_path" "$instance_name" "$log_dir_mode" "$log_dir_value" "$executable" "$launch_extra" "$launch_flags" "$launch_env" <<'PYEOF'
+  launch_cmd="$(python3 - "$REPO_ROOT" "$SCRIPT_DIR" "$SESSION_NAME" "$WORKSPACE" "$TMUX_SOCKET_NAME" "$index_path" "$instance_name" "$executable" "$launch_extra" "$launch_flags" "$launch_env" <<'PYEOF'
 import sys
 from pathlib import Path
 
@@ -1392,13 +1368,10 @@ workspace = sys.argv[4]
 tmux_socket = sys.argv[5]
 index_path = sys.argv[6]
 instance_name = sys.argv[7]
-log_dir_mode = sys.argv[8]
-log_dir_value = sys.argv[9]
-executable = sys.argv[10]
-launch_extra = sys.argv[11]
-launch_flags = sys.argv[12]
-launch_env = sys.argv[13]
-log_dir = None if log_dir_mode == "unset" else log_dir_value
+executable = sys.argv[8]
+launch_extra = sys.argv[9]
+launch_flags = sys.argv[10]
+launch_env = sys.argv[11]
 sys.path.insert(0, str(repo_root / "bin"))
 from multiagent_lib.launch import build_agent_launch_command, build_env_exports
 
@@ -1409,7 +1382,6 @@ env_exports = build_env_exports(
     tmux_socket=tmux_socket,
     index_path=index_path,
     agent_name=instance_name,
-    log_dir=log_dir,
 )
 print(
     build_agent_launch_command(
@@ -1442,14 +1414,16 @@ fi
 NUM_AGENTS=${#SELECTED_AGENTS[@]}
 
 if [[ "$FRESH" -eq 1 ]]; then
-  for _fresh_base in "${WORKSPACE}/logs" "$CENTRAL_LOG_DIR"; do
-    [[ -d "$_fresh_base" ]] || continue
-    while IFS= read -r _fresh_dir; do
-      [[ -n "$_fresh_dir" ]] || continue
-      rm -rf "$_fresh_dir"
-      echo "[multiagent] Removed: $_fresh_dir" >&2
-    done < <(find "$_fresh_base" -maxdepth 1 -type d -name "${SESSION_NAME}_*")
-  done
+  _fresh_dir="${CENTRAL_LOG_DIR}/${SESSION_NAME}"
+  if [[ -d "$_fresh_dir" ]]; then
+    rm -rf "$_fresh_dir"
+    echo "[multiagent] Removed: $_fresh_dir" >&2
+  fi
+  _fresh_workspace_dir="${WORKSPACE}/.agent-window"
+  if [[ -d "$_fresh_workspace_dir" ]]; then
+    rm -rf "$_fresh_workspace_dir"
+    echo "[multiagent] Removed: $_fresh_workspace_dir" >&2
+  fi
 fi
 
 ensure_session_agent_doc
@@ -1502,13 +1476,7 @@ else
   tmux set-environment -t "$SESSION_NAME" -u MULTIAGENT_PANE_USER 2>/dev/null || true
   tmux set-environment -t "$SESSION_NAME" -u MULTIAGENT_PANES_USER 2>/dev/null || true
 fi
-if [[ -z "${LOG_DIR+x}" ]]; then
-  tmux set-environment -t "$SESSION_NAME" MULTIAGENT_LOG_DIR "$CENTRAL_LOG_DIR"
-elif [[ -z "$LOG_DIR" ]]; then
-  tmux set-environment -t "$SESSION_NAME" -u MULTIAGENT_LOG_DIR 2>/dev/null || true
-else
-  tmux set-environment -t "$SESSION_NAME" MULTIAGENT_LOG_DIR "$LOG_DIR"
-fi
+tmux set-environment -t "$SESSION_NAME" -u MULTIAGENT_LOG_DIR 2>/dev/null || true
 tmux set-environment -t "$SESSION_NAME" MULTIAGENT_INDEX_PATH "$(_canonical_session_index_path "$SESSION_NAME")"
 tmux set-environment -t "$SESSION_NAME" -u CLAUDECODE 2>/dev/null || true
 ensure_session_index_mirrors "$SESSION_NAME"

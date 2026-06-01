@@ -15,7 +15,6 @@ def build_env_exports(
     tmux_socket: str,
     index_path: str,
     agent_name: str | None = None,
-    log_dir: str | None = None,
 ) -> str:
     assignments = [
         f"PATH={_q(script_dir)}:$PATH",
@@ -27,10 +26,6 @@ def build_env_exports(
     ]
     if agent_name is not None:
         assignments.append(f"MULTIAGENT_AGENT_NAME={_q(agent_name)}")
-    if log_dir is None:
-        assignments.append(f"MULTIAGENT_LOG_DIR={_q(f'{workspace}/logs')}")
-    elif log_dir != "":
-        assignments.append(f"MULTIAGENT_LOG_DIR={_q(log_dir)}")
     return "export " + " ".join(assignments)
 
 

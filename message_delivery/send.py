@@ -36,7 +36,7 @@ def session_topology_lock_path(tmux_socket: str, session_name: str) -> Path:
     return run_dir / "topology-locks" / f"{digest}.lock"
 
 
-from backend_core.access.settings import local_runtime_log_dir
+from backend_core.access.settings import session_log_path
 
 
 class AgentSendError(RuntimeError):
@@ -114,9 +114,6 @@ class AgentSendRuntime:
 
     def session_workspace_value(self, session_name: str) -> str:
         return self.tmux_env(session_name, "MULTIAGENT_WORKSPACE")
-
-    def session_log_dir_value(self, session_name: str) -> str:
-        return self.tmux_env(session_name, "MULTIAGENT_LOG_DIR")
 
     def session_bin_dir_value(self, session_name: str) -> str:
         return self.tmux_env(session_name, "MULTIAGENT_BIN_DIR")
@@ -221,7 +218,7 @@ class AgentSendRuntime:
 
     def resolve_session_index_path(self, session_name: str) -> Path:
         target_session = session_name or "default"
-        default_path = local_runtime_log_dir(self.repo_root) / target_session / ".agent-index.jsonl"
+        default_path = session_log_path(target_session)
         default_path.parent.mkdir(parents=True, exist_ok=True)
         if not default_path.exists():
             default_path.touch()

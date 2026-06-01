@@ -15,12 +15,12 @@ agent_index_session_log_dir() {
 agent_index_ensure_session_index_mirrors() {
   local session="$1" session_dir index_path link_dir link_path
   session_dir="$(agent_index_session_log_dir "$session")"
-  index_path="${session_dir}/.agent-index.jsonl"
+  index_path="${session_dir}/.log.jsonl"
   mkdir -p "$session_dir"
   [[ -e "$index_path" ]] || : > "$index_path"
   [[ -n "${SESSION_WORKSPACE:-}" ]] || return 0
-  link_dir="${SESSION_WORKSPACE}/logs/${session}"
-  link_path="${link_dir}/.agent-index.jsonl"
+  link_dir="${SESSION_WORKSPACE}/.agent-window"
+  link_path="${link_dir}/.log.jsonl"
   mkdir -p "$link_dir"
   [[ -e "$link_path" || -L "$link_path" ]] && rm -f "$link_path"
   ln -s "$index_path" "$link_path"
@@ -35,9 +35,9 @@ find_archived_index_files() {
   while IFS= read -r root; do
     [[ -d "$root" ]] || continue
     if [[ -n "$session_filter" ]]; then
-      find "$root" -maxdepth 2 -type f -path "*/${session_filter}_*/.agent-index.jsonl" 2>/dev/null
+      find "$root" -maxdepth 2 -type f -path "*/${session_filter}/.log.jsonl" 2>/dev/null
     else
-      find "$root" -maxdepth 2 -type f -name '.agent-index.jsonl' 2>/dev/null
+      find "$root" -maxdepth 2 -type f -name '.log.jsonl' 2>/dev/null
     fi
   done < <(repo_log_roots)
 }
@@ -48,12 +48,11 @@ latest_archived_index_file() {
 }
 
 matching_archived_sessions() {
-  local index_file dir base session
+  local index_file dir session
   while IFS= read -r index_file; do
     [[ -n "$index_file" ]] || continue
     dir="$(basename "$(dirname "$index_file")")"
-    base="${dir%_*}"
-    session="${base%_*}"
+    session="$dir"
     [[ -n "$session" ]] && printf '%s\n' "$session"
   done < <(find_archived_index_files)
 }

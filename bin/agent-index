@@ -134,13 +134,13 @@ if [[ -z "$SESSION_WORKSPACE" ]]; then
   SESSION_WORKSPACE="${MULTIAGENT_WORKSPACE:-$REPO_ROOT}"
 fi
 SESSION_LOG_DIR="$(resolve_session_log_dir)"
-INDEX_FILE="${SESSION_LOG_DIR}/.agent-index.jsonl"
+INDEX_FILE="${SESSION_LOG_DIR}/.log.jsonl"
 if [[ ! -f "$INDEX_FILE" ]]; then
   INDEX_FILE="$(latest_archived_index_file "$SESSION_NAME" || true)"
 fi
 
 if [[ ! -f "$INDEX_FILE" && "$CHAT_MODE" -eq 1 ]]; then
-  INDEX_FILE="${SESSION_LOG_DIR}/.agent-index.jsonl"
+  INDEX_FILE="${SESSION_LOG_DIR}/.log.jsonl"
 fi
 
 if [[ ! -f "$INDEX_FILE" && "$CHAT_MODE" -ne 1 ]]; then

@@ -13,6 +13,7 @@ __pycache__/
 # Local / restore / IDE / E2E artifacts (do not publish)
 .cursor/
 .codex-restore/
+.agent-window/
 .multiagent/
 .playwright-mcp/
 

@@ -9,6 +9,7 @@ from pathlib import Path
 from urllib.parse import unquote as url_unquote
 
 from auto_mode.monitor import set_monitor_active as _set_monitor_active
+from backend_core.access.settings import workspace_upload_dir
 from shortcut_command.execute import run_shortcut_command
 
 
@@ -193,7 +194,7 @@ def _post_upload(handler, _parsed, ctx) -> None:
     except ValueError:
         length = 0
     data = handler.rfile.read(length)
-    upload_dir = Path(ctx["workspace"]) / "logs" / ctx["session_name"] / "uploads"
+    upload_dir = workspace_upload_dir(ctx["workspace"])
     upload_dir.mkdir(parents=True, exist_ok=True)
     stem = Path(filename).stem or "upload"
     ext = Path(filename).suffix
@@ -231,7 +232,7 @@ def _post_delete_upload(handler, _parsed, ctx) -> None:
     if not path_rel:
         handler._send_json(400, {"ok": False, "error": "path required"})
         return
-    upload_dir = Path(ctx["workspace"]) / "logs" / ctx["session_name"] / "uploads"
+    upload_dir = workspace_upload_dir(ctx["workspace"])
     try:
         target = _resolve_within_root(path_rel, workspace_root=ctx["workspace"], allowed_root=upload_dir)
     except ValueError as exc:

@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Sequence
 
-from backend_core.access.settings import local_runtime_log_dir, port_is_bindable, save_chat_port_override
+from backend_core.access.settings import local_runtime_log_dir, port_is_bindable, save_chat_port_override, session_log_path
 
 
 @dataclass(frozen=True)
@@ -75,10 +75,10 @@ class HubSessionApi:
         return candidate
 
     def write_session_metadata(self, session_name: str, workspace: str, agents: list[str]) -> dict:
-        """Write .meta and .agent-index.jsonl (no .pending-launch.json)."""
+        """Write .meta and .log.jsonl (no .pending-launch.json)."""
         session_dir = self.session_logs_dir(session_name)
         session_dir.mkdir(parents=True, exist_ok=True)
-        index_path = session_dir / ".agent-index.jsonl"
+        index_path = session_log_path(session_name)
         index_path.touch(exist_ok=True)
         meta_path = session_dir / ".meta"
         existing_meta = self.read_json_file(meta_path) if meta_path.is_file() else {}
@@ -109,7 +109,7 @@ class HubSessionApi:
     ) -> dict:
         """Build a minimal session record for a newly-started active session."""
         session_dir = self.session_logs_dir(session_name)
-        index_path = session_dir / ".agent-index.jsonl"
+        index_path = session_log_path(session_name)
         now_epoch = int(time.time())
         record = self.ctx.hub._build_session_record(
             name=session_name,
@@ -167,7 +167,7 @@ class HubSessionApi:
                         chat_port = candidate
                         break
             session_dir = self.ctx.hub._chat_launch_session_dir(session_name, workspace, "")
-            index_path = session_dir / ".agent-index.jsonl"
+            index_path = session_log_path(session_name)
             index_path.touch(exist_ok=True)
             env = self.ctx.hub._chat_launch_env()
             env["MULTIAGENT_INDEX_PATH"] = str(index_path)

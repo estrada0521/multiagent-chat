@@ -8,15 +8,14 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
+from backend_core.access.settings import session_log_path
+
 
 _PREVIEW_TAIL_BYTES = 2 * 1024 * 1024
 _PREVIEW_TAIL_CHUNK_BYTES = 64 * 1024
 
 
 def parse_session_dir(name: str) -> str:
-    parts = name.split("_")
-    if len(parts) >= 3 and all(len(part) == 6 and part.isdigit() for part in parts[-2:]):
-        return "_".join(parts[:-2]) or name
     return name
 
 
@@ -187,7 +186,7 @@ def session_index_paths(
     for root in roots:
         if not root.is_dir():
             continue
-        candidates = [root / session_name / ".agent-index.jsonl", *root.glob(f"{session_name}_*/.agent-index.jsonl")]
+        candidates = [root / session_name / ".log.jsonl"]
         for index_path in candidates:
             if not index_path.is_file():
                 continue
@@ -318,13 +317,13 @@ def collect_repo_sessions(runtime: Any) -> tuple[list[dict], str, str]:
             continue
 
         workspace, t2 = runtime.tmux_env_query(name, "MULTIAGENT_WORKSPACE")
-        explicit_log_dir, t3 = runtime.tmux_env_query(name, "MULTIAGENT_LOG_DIR")
+        explicit_log_dir = ""
         r_attached = runtime.tmux_run(["display-message", "-p", "-t", name, "#{session_attached}"])
         r_created = runtime.tmux_run(["display-message", "-p", "-t", name, "#{session_created}"])
         r_dead = runtime.tmux_run(["list-panes", "-t", name, "-F", "#{pane_dead}"])
         agents, t5 = runtime.session_agents_query(name)
 
-        if t2 or t3 or r_attached.timed_out or r_created.timed_out or r_dead.timed_out or t5:
+        if t2 or r_attached.timed_out or r_created.timed_out or r_dead.timed_out or t5:
             any_timeout = True
             timeout_detail = f"tmux query timed out during session scan for {name}"
             break
@@ -346,7 +345,7 @@ def collect_repo_sessions(runtime: Any) -> tuple[list[dict], str, str]:
         else:
             status = "idle"
 
-        preferred_index_path = runtime._chat_launch_session_dir(name, workspace, explicit_log_dir) / ".agent-index.jsonl"
+        preferred_index_path = session_log_path(name)
         index_paths = session_index_paths(runtime, name, workspace, explicit_log_dir)
         sessions.append(
             build_session_record(
@@ -385,17 +384,10 @@ def archived_sessions(runtime: Any, active_names: set[str] | list[str] | None = 
     if not log_roots:
         return []
     for log_root in log_roots:
-        entry_iter = log_root.iterdir()
-        if log_root.name == "workspaces":
-            workspace_roots = [entry for entry in entry_iter if entry.is_dir()]
-            entries: list[Path] = []
-            for workspace_root in workspace_roots:
-                entries.extend(child for child in workspace_root.iterdir() if child.is_dir())
-        else:
-            entries = [entry for entry in entry_iter if entry.is_dir()]
+        entries = [entry for entry in log_root.iterdir() if entry.is_dir()]
         for entry in entries:
             meta_path = entry / ".meta"
-            index_path = entry / ".agent-index.jsonl"
+            index_path = entry / ".log.jsonl"
             try:
                 if not meta_path.exists() and not index_path.exists():
                     continue

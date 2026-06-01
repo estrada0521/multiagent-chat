@@ -6,6 +6,8 @@ import logging
 import socket
 from pathlib import Path
 
+SESSION_LOG_FILENAME = ".log.jsonl"
+
 
 def sanitize_hub_external_editor_choice(raw: str, *, allow_markedit: bool = False) -> str:
     s = str(raw or "").strip()
@@ -138,12 +140,36 @@ def agent_window_cache_dir() -> Path:
     return agent_window_root() / "cache"
 
 
+def agent_window_session_root() -> Path:
+    return agent_window_root() / "session"
+
+
 def local_state_dir(repo_root: Path | str | None = None) -> Path:
     return agent_window_state_dir()
 
 
 def local_runtime_log_dir(repo_root: Path | str | None = None) -> Path:
-    return local_state_dir() / "logs"
+    return agent_window_session_root()
+
+
+def session_artifact_dir(session_name: str) -> Path:
+    return agent_window_session_root() / str(session_name or "").strip()
+
+
+def session_log_path(session_name: str) -> Path:
+    return session_artifact_dir(session_name) / SESSION_LOG_FILENAME
+
+
+def workspace_agent_window_dir(workspace: Path | str) -> Path:
+    return Path(workspace).expanduser() / ".agent-window"
+
+
+def workspace_log_link_path(workspace: Path | str) -> Path:
+    return workspace_agent_window_dir(workspace) / SESSION_LOG_FILENAME
+
+
+def workspace_upload_dir(workspace: Path | str) -> Path:
+    return workspace_agent_window_dir(workspace) / "uploads"
 
 
 def default_chat_port(session_name: str) -> int:

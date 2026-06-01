@@ -7,28 +7,7 @@ _canonical_session_log_dir() {
 
 _canonical_session_index_path() {
   local session="$1"
-  printf '%s/.agent-index.jsonl\n' "$(_canonical_session_log_dir "$session")"
-}
-
-_workspace_session_log_root() {
-  if [[ -n "${LOG_DIR+x}" ]]; then
-    [[ -n "$LOG_DIR" ]] || return 1
-    printf '%s\n' "$LOG_DIR"
-    return 0
-  fi
-  if [[ -n "${WORKSPACE:-}" ]]; then
-    printf '%s/logs\n' "$WORKSPACE"
-    return 0
-  fi
-  if [[ -n "${MULTIAGENT_LOG_DIR:-}" ]]; then
-    printf '%s\n' "$MULTIAGENT_LOG_DIR"
-    return 0
-  fi
-  if [[ -n "${MULTIAGENT_WORKSPACE:-}" ]]; then
-    printf '%s/logs\n' "$MULTIAGENT_WORKSPACE"
-    return 0
-  fi
-  return 1
+  printf '%s/.log.jsonl\n' "$(_canonical_session_log_dir "$session")"
 }
 
 _ensure_canonical_index_healthy() {
@@ -65,18 +44,18 @@ PYEOF
 }
 
 _ensure_workspace_index_symlink() {
-  local session="$1" canonical_index="$2" log_root
-  log_root="$(_workspace_session_log_root)" || return 0
-  python3 - "$canonical_index" "$log_root" "$session" <<'PYEOF'
+  local session="$1" canonical_index="$2" workspace_root
+  workspace_root="${WORKSPACE:-${MULTIAGENT_WORKSPACE:-}}"
+  [[ -n "$workspace_root" ]] || return 0
+  python3 - "$canonical_index" "$workspace_root" <<'PYEOF'
 import os
 import sys
 from pathlib import Path
 
 canonical = Path(sys.argv[1])
-log_root = Path(sys.argv[2])
-session = sys.argv[3]
-link_dir = log_root / session
-link_path = link_dir / ".agent-index.jsonl"
+workspace_root = Path(sys.argv[2])
+link_dir = workspace_root / ".agent-window"
+link_path = link_dir / ".log.jsonl"
 
 try:
     link_dir.mkdir(parents=True, exist_ok=True)

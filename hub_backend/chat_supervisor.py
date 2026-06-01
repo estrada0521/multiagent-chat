@@ -17,6 +17,8 @@ from backend_core.access.settings import (
     local_runtime_log_dir,
     port_is_bindable,
     save_chat_port_override,
+    session_log_path,
+    workspace_log_link_path,
 )
 
 
@@ -137,8 +139,8 @@ def chat_launch_workspace(self, session_name: str) -> tuple[str, bool]:
 def _ensure_workspace_index_symlink(canonical_index: Path, session_name: str, workspace: str) -> None:
     if not workspace:
         return
-    link_dir = Path(workspace) / "logs" / session_name
-    link_path = link_dir / ".agent-index.jsonl"
+    link_path = workspace_log_link_path(workspace)
+    link_dir = link_path.parent
     try:
         link_dir.mkdir(parents=True, exist_ok=True)
         if link_path.is_symlink():
@@ -155,24 +157,8 @@ def _ensure_workspace_index_symlink(canonical_index: Path, session_name: str, wo
 def chat_launch_session_dir(self, session_name: str, workspace: str, explicit_log_dir: str) -> Path:
     session_dir = local_runtime_log_dir(self.repo_root) / session_name
     session_dir.mkdir(parents=True, exist_ok=True)
-    canonical_index = session_dir / ".agent-index.jsonl"
-    if canonical_index.is_file():
-        _ensure_workspace_index_symlink(canonical_index, session_name, workspace)
-        return session_dir
-    existing_index = self.session_index_path(
-        session_name,
-        workspace,
-        explicit_log_dir,
-    )
-    if (
-        existing_index is not None
-        and existing_index.is_file()
-        and existing_index.parent != session_dir
-    ):
-        try:
-            shutil.copy2(existing_index, canonical_index)
-        except Exception as exc:
-            logging.error(f"Unexpected error: {exc}", exc_info=True)
+    canonical_index = session_log_path(session_name)
+    canonical_index.touch(exist_ok=True)
     _ensure_workspace_index_symlink(canonical_index, session_name, workspace)
     return session_dir
 
@@ -230,12 +216,12 @@ def ensure_chat_server(
                     break
 
         workspace, workspace_timed_out = self._chat_launch_workspace(session_name)
-        explicit_log_dir, log_dir_timed_out = self.tmux_env_query(session_name, "MULTIAGENT_LOG_DIR")
+        explicit_log_dir = ""
         targets, targets_timed_out = self.session_agents_query(session_name)
-        if workspace_timed_out or log_dir_timed_out or targets_timed_out:
+        if workspace_timed_out or targets_timed_out:
             return False, chat_port, "tmux query timed out while preparing chat server launch"
         session_dir = self._chat_launch_session_dir(session_name, workspace, explicit_log_dir)
-        index_path = session_dir / ".agent-index.jsonl"
+        index_path = session_log_path(session_name)
         try:
             self.tmux_run(["set-environment", "-t", session_name, "MULTIAGENT_INDEX_PATH", str(index_path)], timeout=2)
         except Exception:
