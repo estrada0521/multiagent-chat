@@ -826,14 +826,17 @@
       line-height: 1.3;
     }
     .git-branch-commit-list .git-commit-row .git-commit-meta {
-      display: none;
+      display: flex;
+      visibility: hidden;
+      opacity: 0;
       flex: 0 0 auto;
       justify-content: flex-end;
       padding-right: 2px;
     }
     .has-hover .git-branch-commit-list .git-commit-row:hover .git-commit-meta,
     .git-branch-commit-list .git-commit-row:focus-within .git-commit-meta {
-      display: flex;
+      visibility: visible;
+      opacity: 1;
     }
     .git-branch-commit-list .git-commit-row .git-commit-meta .git-branch-summary-counts {
       gap: 8px;
@@ -1009,12 +1012,15 @@
       font-size: var(--message-text-size, 13px);
     }
     .git-commit-file-row .git-commit-file-actions {
-      display: none;
+      display: flex;
+      visibility: hidden;
+      opacity: 0;
       padding-right: 2px;
     }
     .has-hover .git-commit-file-row:hover .git-commit-file-actions,
     .git-commit-file-row:focus-within .git-commit-file-actions {
-      display: flex;
+      visibility: visible;
+      opacity: 1;
     }
     .git-commit-file-icon {
       position: absolute;
@@ -1245,14 +1251,17 @@
       min-width: 0;
     }
     .git-pinned-expand-counts {
-      display: none;
+      display: flex;
+      visibility: hidden;
+      opacity: 0;
       gap: 3px;
       font-size: 12px;
       flex-shrink: 0;
       margin-left: auto;
     }
     .git-pinned-expand-file:hover .git-pinned-expand-counts {
-      display: flex;
+      visibility: visible;
+      opacity: 1;
     }
     .git-pinned-expand-counts .ins { color: var(--git-ins-green); }
     .git-pinned-expand-counts .del { color: var(--git-del-red); }
