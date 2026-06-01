@@ -1,8 +1,9 @@
 # Agent Window
 
-Claude, Codex, Gemini, Cursor, Copilot の CLI を制御する Agent Window です
-必要であれば辞書的に任意のCLIを追加登録することができます
-通常のサブスクリプションだけで動作します
+Claude, Codex, Gemini, Cursor, Copilot の CLI を制御する Agent Window です。
+必要であれば辞書的に任意のCLIを追加登録することができます。
+
+通常のサブスクリプションだけで動作します。
 
 ![Agent Window hero 1](media/agent-window-hero-1.png)
 
@@ -105,9 +106,20 @@ Hubのデフォルトポートは `8788` です。
 
 ```bash
 ./setup/pwa/enable
-./tauri_app/tauri-build
+./tauri_app/tauri_start
 ```
 
 `./setup/pwa/enable` は実行中のHubを確認して、mkcertとローカル証明書を準備します。
 
 PWA有効化後は `~/.agent-window/state/pwa/enabled` を見て自動でHTTPS起動します。
+
+mkcert の `rootCA.pem` を端末へ送り、証明書プロファイルをインストールして信頼を有効化してください。
+
+その後、Safari で
+
+```text
+https://<MacのLAN IP>:8788/
+or
+https://<Mac名>.local:8788/
+```
+を開き、ホーム画面にアプリを追加します。

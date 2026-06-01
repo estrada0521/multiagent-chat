@@ -669,9 +669,9 @@ delay 0.2
         suffix = Path(rel).suffix or ".txt"
         safe_stem = re.sub(r"[^\w\-.]+", "_", Path(rel).name)[:96] or "file"
         token = uuid.uuid4().hex[:12]
-        tmp_root = Path(self.workspace) / ".multiagent-chat-diff"
+        tmp_root = Path(self.workspace) / ".agent-window" / "diff-snapshots"
         try:
-            tmp_root.mkdir(mode=0o700, exist_ok=True)
+            tmp_root.mkdir(mode=0o700, parents=True, exist_ok=True)
         except OSError as exc:
             raise ValueError(f"Cannot create diff cache directory in workspace: {exc}") from exc
         gitignore_path = tmp_root / ".gitignore"
