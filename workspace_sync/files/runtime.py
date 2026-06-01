@@ -105,8 +105,6 @@ class FileRuntime:
             home / ".codex",
             home / ".gemini",
             home / ".copilot",
-            home / ".qwen",
-            home / ".local" / "share" / "opencode",
         )
         out: list[Path] = []
         for r in roots:

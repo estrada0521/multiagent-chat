@@ -190,7 +190,7 @@ case "$ACTION" in
       [[ "$auto_val" == "1" ]] || break
 
       _auto_agents_str="$(_tmux show-environment -t "$SESSION_NAME" MULTIAGENT_AGENTS 2>/dev/null | sed 's/^[^=]*=//' || true)"
-      [[ -z "$_auto_agents_str" ]] && _auto_agents_str="claude,codex,gemini,copilot,cursor,opencode,qwen"
+      [[ -z "$_auto_agents_str" ]] && _auto_agents_str="claude,codex,gemini,copilot,cursor"
       IFS=',' read -ra _auto_agents <<< "$_auto_agents_str"
 
       _any_running=0

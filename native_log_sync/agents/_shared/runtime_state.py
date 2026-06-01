@@ -7,7 +7,6 @@ import time
 from native_log_sync.agents._shared.path_state import (
     _dedup_cursor_claims,
     _load_cursor_dict,
-    _load_opencode_dict,
 )
 from native_log_sync.duplicate import mark_message_synced
 
@@ -26,10 +25,8 @@ def initialize_native_log_runtime_state(runtime: object) -> None:
     runtime._codex_cursors = _dedup_cursor_claims(_load_cursor_dict(runtime._sync_state.get("codex_cursors")))
     runtime._cursor_cursors = _dedup_cursor_claims(_load_cursor_dict(runtime._sync_state.get("cursor_cursors")))
     runtime._copilot_cursors = _dedup_cursor_claims(_load_cursor_dict(runtime._sync_state.get("copilot_cursors")))
-    runtime._qwen_cursors = _dedup_cursor_claims(_load_cursor_dict(runtime._sync_state.get("qwen_cursors")))
     runtime._claude_cursors = _dedup_cursor_claims(_load_cursor_dict(runtime._sync_state.get("claude_cursors")))
     runtime._gemini_cursors = _dedup_cursor_claims(_load_cursor_dict(runtime._sync_state.get("gemini_cursors")))
-    runtime._opencode_cursors = _load_opencode_dict(runtime._sync_state.get("opencode_cursors"))
 
     runtime._native_log_blocked_paths: dict[str, str] = {}
 
@@ -57,7 +54,7 @@ def initialize_native_log_runtime_state(runtime: object) -> None:
     # one index scan only for initial bootstrap/migration, then rely on the
     # persisted sets and O(1) lookups during normal sync.
     needs_index_preload = not runtime._synced_msg_ids or not runtime._synced_message_fingerprints
-    preload_prefixes = ("gemini", "codex", "cursor", "claude", "copilot", "qwen", "opencode")
+    preload_prefixes = ("gemini", "codex", "cursor", "claude", "copilot")
     try:
         if needs_index_preload and runtime.index_path.exists():
             with open(runtime.index_path, "r", encoding="utf-8") as handle:

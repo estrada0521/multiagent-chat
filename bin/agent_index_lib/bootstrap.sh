@@ -39,7 +39,7 @@ for _cmd in python3 tmux; do
   fi
 done
 
-_ALL_AGENTS="$(PYTHONPATH="$AGENT_INDEX_PYTHONPATH" python3 -c "from backend_core.agents.registry import ALL_AGENT_NAMES; print(' '.join(ALL_AGENT_NAMES))" 2>/dev/null || echo "claude codex gemini kimi copilot cursor opencode qwen")"
+_ALL_AGENTS="$(PYTHONPATH="$AGENT_INDEX_PYTHONPATH" python3 -c "from backend_core.agents.registry import ALL_AGENT_NAMES; print(' '.join(ALL_AGENT_NAMES))" 2>/dev/null || echo "claude codex gemini copilot cursor")"
 read -ra _ALL_AGENTS_ARR <<< "$_ALL_AGENTS"
 
 default_tmux_socket_name() {

@@ -10,7 +10,6 @@ from native_log_sync.agents._shared.path_state import (
     NativeLogCursor,
     _agent_base_name,
     _cursor_dict_to_json,
-    _opencode_dict_to_json,
 )
 from native_log_sync.io.state_paths import (
     canonical_native_log_sync_state_path,
@@ -64,10 +63,8 @@ def save_sync_state(runtime, *, time_module=time) -> None:
             "codex_cursors": _cursor_dict_to_json(runtime._codex_cursors),
             "cursor_cursors": _cursor_dict_to_json(runtime._cursor_cursors),
             "copilot_cursors": _cursor_dict_to_json(runtime._copilot_cursors),
-            "qwen_cursors": _cursor_dict_to_json(runtime._qwen_cursors),
             "claude_cursors": _cursor_dict_to_json(runtime._claude_cursors),
             "gemini_cursors": _cursor_dict_to_json(runtime._gemini_cursors),
-            "opencode_cursors": _opencode_dict_to_json(runtime._opencode_cursors),
             "agent_first_seen_ts": dict(runtime._agent_first_seen_ts),
             "synced_msg_ids": sorted(runtime._synced_msg_ids),
             "synced_message_fingerprints": sorted(runtime._synced_message_fingerprints),
@@ -88,7 +85,6 @@ def sync_cursor_status(runtime, *, os_module=os) -> list[dict]:
         ("codex", runtime._codex_cursors),
         ("cursor", runtime._cursor_cursors),
         ("copilot", runtime._copilot_cursors),
-        ("qwen", runtime._qwen_cursors),
         ("claude", runtime._claude_cursors),
         ("gemini", runtime._gemini_cursors),
     ]
@@ -99,8 +95,6 @@ def sync_cursor_status(runtime, *, os_module=os) -> list[dict]:
             "log_path": None,
             "offset": None,
             "file_size": None,
-            "session_id": None,
-            "last_msg_id": None,
             "first_seen_ts": runtime._first_seen_for_agent(agent),
         }
         for _type, cmap in cursor_maps:
@@ -113,9 +107,5 @@ def sync_cursor_status(runtime, *, os_module=os) -> list[dict]:
                 except OSError:
                     entry["file_size"] = None
                 break
-        if agent in runtime._opencode_cursors:
-            cursor = runtime._opencode_cursors[agent]
-            entry["session_id"] = cursor.session_id
-            entry["last_msg_id"] = cursor.last_msg_id
         result.append(entry)
     return result

@@ -65,6 +65,6 @@ def should_omit_entry_from_chat(entry: dict) -> bool:
     body = strip_sender_prefix(str(entry.get("message") or ""))
     if sender_base == "gemini" and _has_gemini_plan_prefix(body):
         return True
-    if sender_base != "qwen" and _is_planning_style_text(body):
+    if _is_planning_style_text(body):
         return True
     return False

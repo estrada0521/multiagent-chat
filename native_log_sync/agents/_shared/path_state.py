@@ -24,11 +24,6 @@ class NativeLogCursor(NamedTuple):
     offset: int
 
 
-class OpenCodeCursor(NamedTuple):
-    session_id: str
-    last_msg_id: str
-
-
 def _coerce_native_cursor(raw: object) -> NativeLogCursor | None:
     if isinstance(raw, NativeLogCursor):
         return raw
@@ -36,16 +31,6 @@ def _coerce_native_cursor(raw: object) -> NativeLogCursor | None:
         path, offset = raw
         if isinstance(path, str) and isinstance(offset, int):
             return NativeLogCursor(path=path, offset=offset)
-    return None
-
-
-def _coerce_opencode_cursor(raw: object) -> OpenCodeCursor | None:
-    if isinstance(raw, OpenCodeCursor):
-        return raw
-    if isinstance(raw, (list, tuple)) and len(raw) == 2:
-        session_id, msg_id = raw
-        if isinstance(session_id, str) and isinstance(msg_id, str):
-            return OpenCodeCursor(session_id=session_id, last_msg_id=msg_id)
     return None
 
 
@@ -61,24 +46,8 @@ def _load_cursor_dict(raw: object) -> dict[str, NativeLogCursor]:
     return result
 
 
-def _load_opencode_dict(raw: object) -> dict[str, OpenCodeCursor]:
-    result: dict[str, OpenCodeCursor] = {}
-    if isinstance(raw, dict):
-        for agent, value in raw.items():
-            if not isinstance(agent, str):
-                continue
-            cursor = _coerce_opencode_cursor(value)
-            if cursor is not None:
-                result[agent] = cursor
-    return result
-
-
 def _cursor_dict_to_json(cursors: dict[str, NativeLogCursor]) -> dict[str, list]:
     return {agent: [c.path, c.offset] for agent, c in cursors.items()}
-
-
-def _opencode_dict_to_json(cursors: dict[str, OpenCodeCursor]) -> dict[str, list]:
-    return {agent: [c.session_id, c.last_msg_id] for agent, c in cursors.items()}
 
 
 def _dedup_cursor_claims(cursors: dict[str, NativeLogCursor]) -> dict[str, NativeLogCursor]:

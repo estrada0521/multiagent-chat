@@ -65,7 +65,6 @@ from frontedge.session_state import (
     publish_session_state_change as _publish_session_state_change_impl,
     wait_for_session_state_change as _wait_for_session_state_change_impl,
 )
-from native_log_sync.agents.opencode.read_runtime import parse_opencode_runtime as _parse_opencode_runtime_impl
 from pane_trace import trace_content as _trace_content_impl
 from backend_core.tmux.instances import resolve_target_agents as resolve_target_agent_names
 from backend_core.access.files import append_jsonl_entry
@@ -174,9 +173,6 @@ class ChatRuntime:
         from native_log_sync.api import start_watchers
         self.refresh_native_log_bindings(reason="startup")
         start_watchers(self._native_log)
-
-    def _parse_opencode_runtime(self, agent: str, limit: int) -> list[dict] | None:
-        return _parse_opencode_runtime_impl(self._native_log, agent, limit)
 
     @staticmethod
     def _font_family_stack(selection: str, role: str) -> str:
