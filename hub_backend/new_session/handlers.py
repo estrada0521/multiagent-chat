@@ -8,7 +8,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from urllib.parse import parse_qs, quote as url_quote
+from urllib.parse import parse_qs
 
 
 def get_check_session_name(handler, parsed, ctx) -> None:
@@ -184,7 +184,12 @@ def post_start_session_draft(handler, _parsed, ctx) -> None:
     except Exception as exc:
         handler._send_json(500, {"ok": False, "error": str(exc)})
         return
-    chat_url = f"/session/{url_quote(session_name, safe='')}/?follow=1&ts={int(time.time() * 1000)}"
+    chat_url = ctx["format_session_chat_url_fn"](
+        handler.headers.get("Host", "127.0.0.1"),
+        session_name,
+        int(chat_port or 0),
+        f"/?follow=1&ts={int(time.time() * 1000)}",
+    )
     handler._send_json(
         200,
         {

@@ -75,7 +75,8 @@
       }
     };
     const startSessionStateEvents = () => {
-      const es = new EventSource("/session-state-events");
+      if (typeof EventSource !== "function") return;
+      const es = new EventSource(withChatBase("/session-state-events"));
       es.addEventListener("state", (event) => {
         let projections = [];
         try {
