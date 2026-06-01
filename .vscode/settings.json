@@ -1,9 +1,0 @@
-{
-  "editor.formatOnSave": false,
-  "editor.formatOnPaste": false,
-  "editor.formatOnType": false,
-  "files.eol": "\n",
-  "files.insertFinalNewline": true,
-  "files.trimTrailingWhitespace": false,
-  "notebook.formatOnSave.enabled": false
-}
