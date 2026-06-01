@@ -95,23 +95,8 @@
     let _deskActivePrewarmToken = 0;
     let _deskOpenSwipeRow = null;
     let _deskNewSessionStarting = false;
-    let _deskBoldModeState = document.documentElement.dataset.boldMode === "1";
     const _deskSessionRunningState = new Map();
 
-    function applyDeskBoldMode(enabled) {
-      if (enabled) {
-        document.documentElement.dataset.boldMode = "1";
-        return;
-      }
-      delete document.documentElement.dataset.boldMode;
-    }
-
-    function syncDeskBoldModeFromSessionsPayload(payload) {
-      const next = !!payload?.bold_mode_desktop;
-      if (next === _deskBoldModeState) return;
-      _deskBoldModeState = next;
-      applyDeskBoldMode(next);
-    }
     function pruneDeskSessionRunningState(now = Date.now()) {
       _deskSessionRunningState.forEach((entry, name) => {
         const ttl = entry?.source === "live" ? DESK_RUNNING_LIVE_TTL_MS : DESK_RUNNING_SERVER_TTL_MS;
@@ -1216,7 +1201,6 @@
         if (!response.ok) throw new Error("failed");
         const data = await response.json();
         if (requestSeq !== _deskSessionsRequestSeq) return;
-        syncDeskBoldModeFromSessionsPayload(data);
         const active = data.active_sessions || data.sessions || [];
         const archived = data.archived_sessions || [];
         syncDeskSessionRunningFromServer(active);

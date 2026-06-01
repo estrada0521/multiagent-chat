@@ -1,11 +1,7 @@
 __CHAT_INCLUDE:../../../shared/chat/base.js__
     const currentFilePreviewBoldEnabled = () => {
-      const html = document.documentElement;
-      if (html.dataset.tauriApp === "1" && html.dataset.hubIframeChat === "1") {
-        return !!currentBoldModeDesktop;
-      }
       const isNarrowViewport = (window.innerWidth || 0) <= 480;
-      return isNarrowViewport ? !!currentBoldModeMobile : !!currentBoldModeDesktop;
+      return isNarrowViewport ? !!currentBoldModeMobile : false;
     };
     const normalizeWorkspaceFilePath = (p) => {
       let s = String(p || "").trim();

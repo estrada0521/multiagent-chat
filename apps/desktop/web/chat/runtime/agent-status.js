@@ -136,7 +136,6 @@
         if (!res.ok) return;
         const data = await res.json();
         currentBoldModeMobile = !!data?.bold_mode_mobile;
-        currentBoldModeDesktop = !!data?.bold_mode_desktop;
         openFilesDirectInExternalEditor = !!data?.open_files_direct_external_editor;
         const _theme = data?.theme_desktop ?? data?.theme;
         if (_theme === "light" || _theme === "dark") {

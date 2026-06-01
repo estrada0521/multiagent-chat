@@ -544,7 +544,7 @@ def hub_new_session_html(variant="desktop"):
         message_text_size = int(current_settings.get("message_text_size", 13) or 13)
     except Exception:
         message_text_size = 13
-    bold_mode_mobile = bool(current_settings.get("bold_mode_mobile", False))
+    bold_mode_mobile = bool(current_settings.get("bold_mode_mobile", False)) if is_mobile else False
     header_html = render_hub_page_header(
         title_href="/",
         title_id="hubPageTitleLink",
@@ -736,7 +736,6 @@ class Handler(BaseHTTPRequestHandler):
         except Exception:
             hub_settings = {}
         bold_mode_mobile = bool(hub_settings.get("bold_mode_mobile", False))
-        bold_mode_desktop = bool(hub_settings.get("bold_mode_desktop", False))
         self._send_json(200, {
             "sessions": active,
             "active_sessions": active,
@@ -744,7 +743,6 @@ class Handler(BaseHTTPRequestHandler):
             "tmux_state": query.state,
             "tmux_detail": query.detail,
             "bold_mode_mobile": bold_mode_mobile,
-            "bold_mode_desktop": bold_mode_desktop,
         })
 
 

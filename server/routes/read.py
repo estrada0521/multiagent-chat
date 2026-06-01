@@ -210,7 +210,7 @@ def _get_file_view(handler, parsed, ctx) -> None:
         elif requested_message_bold in {"0", "false", "no", "off"}:
             message_bold = False
         else:
-            message_bold = bool(settings.get("bold_mode_mobile", False) or settings.get("bold_mode_desktop", False))
+            message_bold = bool(settings.get("bold_mode_mobile", False))
         page = ctx["workspace_sync_api"].file_view(
             rel,
             embed=embed,
@@ -301,8 +301,7 @@ def _get_hub_settings(handler, _parsed, ctx) -> None:
     body = json.dumps(
         {
             "bold_mode_mobile": bool(settings.get("bold_mode_mobile", False)),
-            "bold_mode_desktop": bool(settings.get("bold_mode_desktop", False)),
-            "bold_mode": bool(settings.get("bold_mode_mobile", False) or settings.get("bold_mode_desktop", False)),
+            "bold_mode": bool(settings.get("bold_mode_mobile", False)),
             "agent_font_mode": str(settings.get("agent_font_mode", "serif")),
             "theme": "light" if str(settings.get("theme", "dark")).strip().lower() == "light" else "dark",
             "theme_mobile": "light" if str(settings.get("theme_mobile", settings.get("theme", "dark"))).strip().lower() == "light" else "dark",

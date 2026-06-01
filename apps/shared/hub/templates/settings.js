@@ -2,12 +2,7 @@
     const VIEW_VARIANT = document.documentElement.dataset.viewVariant || "";
     const isMobileView = VIEW_VARIANT === "mobile";
 
-    const boldMobileToggle = isMobileView
-      ? document.querySelector('#settingsFormMobile input[name="bold_mode_mobile"]')
-      : document.querySelector('#settingsFormDesktop input[name="bold_mode_mobile"]');
-    const boldDesktopToggle = isMobileView
-      ? document.querySelector('#settingsFormMobile input[name="bold_mode_desktop"]')
-      : document.querySelector('#settingsFormDesktop input[name="bold_mode_desktop"]');
+    const boldMobileToggle = document.querySelector('#settingsFormMobile input[name="bold_mode_mobile"]');
     const initialThemeValue = document.documentElement.dataset.theme || "dark";
     let _themeReloadPending = false;
 
@@ -39,8 +34,7 @@
     const applyBoldMode = () => {
       const html = document.documentElement;
       const mobileBold = boldMobileToggle?.checked;
-      const desktopBold = boldDesktopToggle?.checked;
-      const active = (isMobileView && mobileBold) || (!isMobileView && desktopBold);
+      const active = isMobileView && mobileBold;
       if (active) {
         html.dataset.boldMode = '1';
       } else {
@@ -48,7 +42,6 @@
       }
     };
     boldMobileToggle?.addEventListener('change', applyBoldMode);
-    boldDesktopToggle?.addEventListener('change', applyBoldMode);
     applyBoldMode();
 
     const _makeNumberStepper = (input, minusBtnId, plusBtnId, valueDisplayId, onApply, options = {}) => {

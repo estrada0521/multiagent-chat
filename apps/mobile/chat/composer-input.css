@@ -356,7 +356,7 @@
     main::after {
       content: "";
       display: block;
-      min-height: var(--main-after-height, 70vh);
+      min-height: var(--main-after-height, 50vh);
       flex-shrink: 0;
     }
 

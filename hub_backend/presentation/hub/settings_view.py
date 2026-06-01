@@ -129,7 +129,6 @@ def hub_settings_html(
     light_mode_mobile = str(settings.get("theme_mobile", theme) or theme).strip().lower() == "light"
     render_theme = "light" if (light_mode_desktop if resolved_view_variant == "desktop" else light_mode_mobile) else "dark"
     bold_mode_mobile = settings.get("bold_mode_mobile", False)
-    bold_mode_desktop = settings.get("bold_mode_desktop", False)
     open_files_direct_external_editor = settings.get("open_files_direct_external_editor", False)
     external_editor = sanitize_hub_external_editor_choice(
         str(settings.get("external_editor", "vscode") or "vscode").strip(),
@@ -205,7 +204,6 @@ def hub_settings_html(
         .replace("__THEME_MOBILE_HIDDEN__", html.escape("light" if light_mode_mobile else "dark"))
         .replace("__THEME_DESKTOP_HIDDEN__", html.escape("light" if light_mode_desktop else "dark"))
         .replace("__BOLD_MODE_MOBILE_CHECKED__", " checked" if bold_mode_mobile else "")
-        .replace("__BOLD_MODE_DESKTOP_CHECKED__", " checked" if bold_mode_desktop else "")
         .replace("__OPEN_FILES_DIRECT_EXTERNAL_EDITOR_CHECKED__", " checked" if open_files_direct_external_editor else "")
         .replace(
             "__OPEN_FILES_DIRECT_EXTERNAL_EDITOR_HIDDEN__",
@@ -213,7 +211,6 @@ def hub_settings_html(
         )
         .replace("__EXTERNAL_EDITOR_MARKDOWN_HIDDEN__", html.escape(external_editor_markdown))
         .replace("__BOLD_MODE_MOBILE_HIDDEN__", html.escape("on" if bold_mode_mobile else ""))
-        .replace("__BOLD_MODE_DESKTOP_HIDDEN__", html.escape("on" if bold_mode_desktop else ""))
         .replace("__VIEW_VARIANT__", resolved_view_variant)
     )
     page = (

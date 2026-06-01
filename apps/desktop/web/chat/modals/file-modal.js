@@ -14,7 +14,6 @@
     let fileModalBaseTheme = document.documentElement.dataset.theme === "light" ? "light" : "dark";
     let fileModalHtmlPreviewMode = "text";
     let currentBoldModeMobile = false;
-    let currentBoldModeDesktop = false;
     let openFilesDirectInExternalEditor = false;
     let _desktopFilePaneWidthPx = 0;
     let _fileModalResizeState = null;

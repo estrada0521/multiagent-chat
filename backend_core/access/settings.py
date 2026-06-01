@@ -92,7 +92,6 @@ def _apply_hub_settings(raw: dict, settings: dict, *, missing_flags_false: bool 
         "chat_auto_mode",
         "chat_awake",
         "bold_mode_mobile",
-        "bold_mode_desktop",
         "open_files_direct_external_editor",
     ):
         if missing_flags_false and key not in raw:
@@ -100,7 +99,6 @@ def _apply_hub_settings(raw: dict, settings: dict, *, missing_flags_false: bool 
             continue
         value = raw.get(key, settings[key])
         settings[key] = value in (True, "true", "1", "on") if not isinstance(value, bool) else value
-
     return settings
 
 
@@ -119,7 +117,6 @@ HUB_SETTINGS_DEFAULTS = {
     "chat_auto_mode": False,
     "chat_awake": False,
     "bold_mode_mobile": False,
-    "bold_mode_desktop": False,
     "open_files_direct_external_editor": False,
 }
 
