@@ -18,18 +18,18 @@ Usage: tauri_app/tauri_start [--dev] [--build-only] [--no-open] [--setup-only] [
 
 Desktop app entry:
   - builds and opens the local macOS .app by default
-  - starts the local Hub over HTTP by default
+  - starts the local Hub over HTTP unless PWA HTTPS has been enabled
 
 Requires python3, tmux, cargo, tauri-cli, and Xcode Command Line Tools; install them yourself before running.
 
-Use --local-https only after enabling phone/PWA access with ./setup/pwa/enable.
+After phone/PWA access is enabled with ./setup/pwa/enable, this command starts HTTPS automatically.
 
 Options:
   --dev         run `cargo tauri dev` instead of building a .app bundle
   --build-only  build the .app bundle but do not open it
   --no-open     alias for --build-only
   --setup-only  prepare dependencies/certificates, then exit (skip build)
-  --local-https start the Tauri-launched Hub over HTTPS after PWA enablement
+  --local-https require the Tauri-launched Hub to use HTTPS
   --help        show this help
 EOF
 }
@@ -87,8 +87,12 @@ for _cmd in python3 tmux; do
   fi
 done
 
+PWA_ENABLED_FILE="${AGENT_WINDOW_STATE_DIR:-$HOME/.agent-window/state}/pwa/enabled"
+if [[ "$LOCAL_HTTPS" != "1" && -f "$PWA_ENABLED_FILE" ]]; then
+  LOCAL_HTTPS=1
+fi
+
 if [[ "$LOCAL_HTTPS" == "1" ]]; then
-  PWA_ENABLED_FILE="${AGENT_WINDOW_STATE_DIR:-$HOME/.agent-window/state}/pwa/enabled"
   if [[ ! -f "$PWA_ENABLED_FILE" ]]; then
     echo "tauri_start: PWA HTTPS is not enabled yet." >&2
     echo "tauri_start: start the HTTP app first, then run ./setup/pwa/enable." >&2

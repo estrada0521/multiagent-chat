@@ -26,7 +26,7 @@ Options:
   --dev         run `cargo tauri dev`
   --build-only  build the .app bundle but do not open it
   --no-open     alias for --build-only
-  --local-https open app with HTTPS Hub after ./setup/pwa/enable
+  --local-https require the opened app to use HTTPS
   --help        show this help
 EOF
 }
@@ -79,8 +79,12 @@ for _cmd in python3 tmux; do
   fi
 done
 
+PWA_ENABLED_FILE="${AGENT_WINDOW_STATE_DIR:-$HOME/.agent-window/state}/pwa/enabled"
+if [[ "$LOCAL_HTTPS" != "1" && -f "$PWA_ENABLED_FILE" ]]; then
+  LOCAL_HTTPS=1
+fi
+
 if [[ "$LOCAL_HTTPS" == "1" ]]; then
-  PWA_ENABLED_FILE="${AGENT_WINDOW_STATE_DIR:-$HOME/.agent-window/state}/pwa/enabled"
   if [[ ! -f "$PWA_ENABLED_FILE" ]]; then
     echo "tauri-build: PWA HTTPS is not enabled yet." >&2
     echo "tauri-build: start the HTTP app first, then run ./setup/pwa/enable." >&2

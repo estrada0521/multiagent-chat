@@ -23,7 +23,7 @@ Upgrade an existing HTTP Tauri setup for phone/PWA access.
 
 This intentionally requires the HTTP Hub to be running first. Start the Tauri
 app with `./tauri_app/tauri_start`, confirm Hub works, then run this command.
-After it finishes, restart the app with `./tauri_app/tauri_start --local-https`.
+After it finishes, restart the app with `./tauri_app/tauri_start`.
 
 Options:
   --hub-port N  HTTP Hub port to check before enabling PWA HTTPS (default: 8788)
@@ -88,4 +88,4 @@ if [[ "$HUB_MODE" == "http" ]]; then
 else
   echo "pwa-enable: next restart with:"
 fi
-echo "pwa-enable:   ./tauri_app/tauri_start --local-https"
+echo "pwa-enable:   ./tauri_app/tauri_start"

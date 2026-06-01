@@ -48,8 +48,8 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ "$HTTPS_MODE" -eq 1 || ( "$HTTPS_MODE_EXPLICIT" -eq 0 && "${MULTIAGENT_ENABLE_LOCAL_HTTPS:-}" == "1" ) ]]; then
-  PWA_ENABLED_FILE="${AGENT_WINDOW_STATE_DIR:-$HOME/.agent-window/state}/pwa/enabled"
+PWA_ENABLED_FILE="${AGENT_WINDOW_STATE_DIR:-$HOME/.agent-window/state}/pwa/enabled"
+if [[ "$HTTPS_MODE" -eq 1 || ( "$HTTPS_MODE_EXPLICIT" -eq 0 && ( "${MULTIAGENT_ENABLE_LOCAL_HTTPS:-}" == "1" || -f "$PWA_ENABLED_FILE" ) ) ]]; then
   if [[ ! -f "$PWA_ENABLED_FILE" ]]; then
     echo "PWA HTTPS is not enabled yet." >&2
     echo "Start the HTTP Tauri app first, then run ./setup/pwa/enable." >&2
@@ -88,6 +88,19 @@ if [[ "$HUB_MODE" -eq 1 ]]; then
   if port_serves_expected_url "$HTTPS_SCHEME" "$HUB_PORT" "/hub.webmanifest"; then
     HUB_READY=1
   else
+    OPPOSITE_SCHEME="http"
+    [[ "$HTTPS_SCHEME" == "http" ]] && OPPOSITE_SCHEME="https"
+    if port_serves_expected_url "$OPPOSITE_SCHEME" "$HUB_PORT" "/hub.webmanifest"; then
+      STALE_HUB_PIDS="$(list_listening_pids "$HUB_PORT")"
+      while IFS= read -r stale_pid; do
+        [[ -n "$stale_pid" ]] || continue
+        stale_cmd="$(ps -p "$stale_pid" -o command= 2>/dev/null || true)"
+        if [[ "$stale_cmd" == *"hub_backend.hub_server"* && "$stale_cmd" == *"$REPO_ROOT"* ]]; then
+          kill "$stale_pid" 2>/dev/null || true
+        fi
+      done <<< "$STALE_HUB_PIDS"
+      wait_for_port_to_clear "$HUB_PORT" 50 0.1 || true
+    fi
     PYTHONPATH="$AGENT_INDEX_PYTHONPATH" MULTIAGENT_AGENT_NAME="user" nohup python3 -m hub_backend.hub_server "$REPO_ROOT" "$SCRIPT_DIR/agent-index" "$HUB_PORT" "$TMUX_SOCKET_NAME" >/dev/null 2>&1 </dev/null &
     HUB_SERVER_PID=$!
     disown "$HUB_SERVER_PID" || true

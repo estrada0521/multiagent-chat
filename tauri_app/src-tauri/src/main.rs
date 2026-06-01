@@ -490,12 +490,22 @@ fn main() {
             let cert_file = format!("{}/cert.pem", cert_dir);
             let key_file = format!("{}/key.pem", cert_dir);
             let has_certs = Path::new(&cert_file).exists() && Path::new(&key_file).exists();
+            let state_dir = std::env::var("AGENT_WINDOW_STATE_DIR")
+                .unwrap_or_else(|_| format!("{}/.agent-window/state", home));
+            let pwa_enabled_file = format!("{}/pwa/enabled", state_dir);
+            let pwa_https_enabled = Path::new(&pwa_enabled_file).exists();
 
-            let hub_already_up = probe_local_hub(hub_port).is_some();
+            let tauri_use_https =
+                std::env::var("MULTIAGENT_TAURI_USE_HTTPS").ok().as_deref() == Some("1")
+                    || pwa_https_enabled;
+            let expected_transport = if tauri_use_https {
+                LocalHubTransport::Https
+            } else {
+                LocalHubTransport::Http
+            };
+            let hub_already_up = probe_local_hub(hub_port) == Some(expected_transport);
 
             if !hub_already_up {
-                let tauri_use_https =
-                    std::env::var("MULTIAGENT_TAURI_USE_HTTPS").ok().as_deref() == Some("1");
                 let mut cmd = Command::new(format!("{}/bin/agent-index", repo_root));
                 cmd.args([
                     "--hub",
@@ -545,6 +555,13 @@ fn main() {
                         return;
                     }
                 };
+                if transport != expected_transport {
+                    eprintln!(
+                        "[app] Hub on port {} is using the wrong transport for this launch",
+                        hub_port
+                    );
+                    return;
+                }
                 let scheme = match transport {
                     LocalHubTransport::Http => "http",
                     LocalHubTransport::Https => "https",

@@ -65,7 +65,7 @@ def chat_server_state(self, chat_port: int, *, scheme: str = "") -> dict | None:
 def chat_server_matches(self, session_name: str, chat_port: int, *, scheme: str = "") -> bool:
     state = self.chat_server_state(chat_port, scheme=scheme)
     if not state:
-        return True
+        return scheme not in {"http", "https"}
     if (state.get("session") or "") != session_name:
         return False
     expected_agents = self.session_agents(session_name)
