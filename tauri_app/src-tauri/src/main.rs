@@ -346,7 +346,40 @@ enum LocalHubTransport {
     Https,
 }
 
-fn probe_local_hub(port: u16) -> Option<LocalHubTransport> {
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum LocalHubProbe {
+    AgentWindow(LocalHubTransport),
+    OtherListener,
+}
+
+fn configured_hub_port() -> u16 {
+    std::env::var("AGENT_INDEX_HUB_PORT")
+        .ok()
+        .and_then(|value| value.parse::<u16>().ok())
+        .filter(|port| *port > 0)
+        .unwrap_or(8788)
+}
+
+fn probe_manifest_with_curl(port: u16, transport: LocalHubTransport) -> bool {
+    let scheme = match transport {
+        LocalHubTransport::Http => "http",
+        LocalHubTransport::Https => "https",
+    };
+    let url = format!("{}://127.0.0.1:{}/hub.webmanifest", scheme, port);
+    let Ok(output) = Command::new("/usr/bin/curl")
+        .args(["-sk", "--max-time", "1", &url])
+        .output()
+    else {
+        return false;
+    };
+    if !output.status.success() {
+        return false;
+    }
+    let body = String::from_utf8_lossy(&output.stdout);
+    body.contains("\"name\"") && body.contains("Agent Window")
+}
+
+fn probe_local_hub(port: u16) -> Option<LocalHubProbe> {
     let mut stream = TcpStream::connect_timeout(
         &format!("127.0.0.1:{}", port).parse().unwrap(),
         Duration::from_millis(400),
@@ -358,9 +391,14 @@ fn probe_local_hub(port: u16) -> Option<LocalHubTransport> {
         b"GET /hub.webmanifest HTTP/1.0\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
     );
     let mut buf = [0_u8; 16];
-    match stream.read(&mut buf) {
-        Ok(n) if n >= 5 && &buf[..5] == b"HTTP/" => Some(LocalHubTransport::Http),
-        Ok(_) | Err(_) => Some(LocalHubTransport::Https),
+    let transport = match stream.read(&mut buf) {
+        Ok(n) if n >= 5 && &buf[..5] == b"HTTP/" => LocalHubTransport::Http,
+        Ok(_) | Err(_) => LocalHubTransport::Https,
+    };
+    if probe_manifest_with_curl(port, transport) {
+        Some(LocalHubProbe::AgentWindow(transport))
+    } else {
+        Some(LocalHubProbe::OtherListener)
     }
 }
 
@@ -428,8 +466,6 @@ fn center_traffic_lights(window: &tauri::WebviewWindow) {
 }
 
 fn main() {
-    let hub_port: u16 = 8788;
-
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
@@ -480,6 +516,7 @@ fn main() {
             }
             eprintln!("[app] repo = {}", repo_root);
 
+            let hub_port = configured_hub_port();
             let home = std::env::var("HOME").unwrap_or_default();
             let path = format!(
                 "/opt/homebrew/bin:/opt/homebrew/sbin:{}/.cargo/bin:{}/.nvm/versions/node/v24.14.0/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
@@ -503,7 +540,17 @@ fn main() {
             } else {
                 LocalHubTransport::Http
             };
-            let hub_already_up = probe_local_hub(hub_port) == Some(expected_transport);
+            let hub_probe = probe_local_hub(hub_port);
+            let hub_already_up =
+                hub_probe == Some(LocalHubProbe::AgentWindow(expected_transport));
+
+            if matches!(hub_probe, Some(LocalHubProbe::OtherListener)) {
+                let _ = window.eval(&format!(
+                    "document.body.style.cssText='background:{};color:#fff;padding:60px 40px;font:18px -apple-system,sans-serif';document.body.textContent='Port {} is already in use by another service. Set AGENT_INDEX_HUB_PORT to use a different Hub port.';",
+                    DARK_BG, hub_port
+                ));
+                return Ok(());
+            }
 
             if !hub_already_up {
                 let mut cmd = Command::new(format!("{}/bin/agent-index", repo_root));
@@ -516,6 +563,7 @@ fn main() {
                 ])
                     .current_dir(&repo_root)
                     .env("PATH", &path)
+                    .env("AGENT_INDEX_HUB_PORT", hub_port.to_string())
                     .env("PYTHONPATH", format!("{0}/src:{0}", repo_root));
                 if has_certs && tauri_use_https {
                     cmd.env("MULTIAGENT_CERT_FILE", &cert_file)
@@ -546,7 +594,14 @@ fn main() {
                     thread::sleep(Duration::from_millis(600));
                 }
                 let transport = match probe_local_hub(hub_port) {
-                    Some(t) => t,
+                    Some(LocalHubProbe::AgentWindow(t)) => t,
+                    Some(LocalHubProbe::OtherListener) => {
+                        eprintln!(
+                            "[app] Port {} is in use by another service",
+                            hub_port
+                        );
+                        return;
+                    }
                     None => {
                         eprintln!(
                             "[app] No Hub response on port {} (expected HTTP or HTTPS)",
