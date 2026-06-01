@@ -49,7 +49,8 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ "$HTTPS_MODE" -eq 1 || ( "$HTTPS_MODE_EXPLICIT" -eq 0 && "${MULTIAGENT_ENABLE_LOCAL_HTTPS:-}" == "1" ) ]]; then
-  if [[ ! -f "$REPO_ROOT/.multiagent/pwa/enabled" ]]; then
+  PWA_ENABLED_FILE="${AGENT_WINDOW_STATE_DIR:-$HOME/.agent-window/state}/pwa/enabled"
+  if [[ ! -f "$PWA_ENABLED_FILE" ]]; then
     echo "PWA HTTPS is not enabled yet." >&2
     echo "Start the HTTP Tauri app first, then run ./setup/pwa/enable." >&2
     exit 1
@@ -72,8 +73,9 @@ else
   HTTPS_SCHEME="http"
 fi
 if [[ "$HTTPS_SCHEME" == "https" ]]; then
-  if [[ -z "${MULTIAGENT_PUBLIC_HOST:-}" ]] && [[ -f "$REPO_ROOT/certs/public-host.txt" ]]; then
-    export MULTIAGENT_PUBLIC_HOST="$(tr -d '\r\n' < "$REPO_ROOT/certs/public-host.txt")"
+  PUBLIC_HOST_FILE="${AGENT_WINDOW_CERTS_DIR:-$HOME/.agent-window/state/certs}/public-host.txt"
+  if [[ -z "${MULTIAGENT_PUBLIC_HOST:-}" ]] && [[ -f "$PUBLIC_HOST_FILE" ]]; then
+    export MULTIAGENT_PUBLIC_HOST="$(tr -d '\r\n' < "$PUBLIC_HOST_FILE")"
   fi
   if [[ -z "${MULTIAGENT_PUBLIC_HUB_PORT:-}" ]]; then
     export MULTIAGENT_PUBLIC_HUB_PORT="443"

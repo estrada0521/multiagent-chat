@@ -74,8 +74,9 @@ if [[ -z "${MULTIAGENT_CERT_FILE:-}" || -z "${MULTIAGENT_KEY_FILE:-}" ]]; then
   exit 1
 fi
 
-mkdir -p "$REPO_ROOT/.multiagent/pwa"
-cat > "$REPO_ROOT/.multiagent/pwa/enabled" <<EOF
+PWA_STATE_DIR="${AGENT_WINDOW_STATE_DIR:-$HOME/.agent-window/state}/pwa"
+mkdir -p "$PWA_STATE_DIR"
+cat > "$PWA_STATE_DIR/enabled" <<EOF
 enabled_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 hub_port=$HUB_PORT
 cert_file=$MULTIAGENT_CERT_FILE

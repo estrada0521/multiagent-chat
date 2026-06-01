@@ -35,7 +35,7 @@ detect_local_host_name() {
 }
 
 read_local_https_extra_names() {
-  local extra_names_file="$REPO_ROOT/certs/local-https-extra-names.txt"
+  local extra_names_file="${AGENT_WINDOW_CERTS_DIR:-$HOME/.agent-window/state/certs}/local-https-extra-names.txt"
   local line=""
   [[ -f "$extra_names_file" ]] || return 0
   while IFS= read -r line || [[ -n "$line" ]]; do
@@ -79,9 +79,10 @@ PYEOF
 }
 
 ensure_repo_https_cert() {
-  local cert_file="$REPO_ROOT/certs/cert.pem"
-  local key_file="$REPO_ROOT/certs/key.pem"
-  local archive_dir="$REPO_ROOT/certs/archive"
+  local cert_dir="${AGENT_WINDOW_CERTS_DIR:-$HOME/.agent-window/state/certs}"
+  local cert_file="$cert_dir/cert.pem"
+  local key_file="$cert_dir/key.pem"
+  local archive_dir="$cert_dir/archive"
   local current_ip local_name ts
   local required_missing=0
   local names=()
@@ -118,6 +119,7 @@ ensure_repo_https_cert() {
   fi
 
   if [[ "$required_missing" -eq 1 ]]; then
+    mkdir -p "$cert_dir"
     mkdir -p "$archive_dir"
     ts="$(date +%Y%m%d-%H%M%S)"
     [[ -f "$cert_file" ]] && cp "$cert_file" "$archive_dir/cert.pem.${ts}"

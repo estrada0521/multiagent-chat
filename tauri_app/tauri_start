@@ -88,12 +88,14 @@ for _cmd in python3 tmux; do
 done
 
 if [[ "$LOCAL_HTTPS" == "1" ]]; then
-  if [[ ! -f "$ROOT/.multiagent/pwa/enabled" ]]; then
+  PWA_ENABLED_FILE="${AGENT_WINDOW_STATE_DIR:-$HOME/.agent-window/state}/pwa/enabled"
+  if [[ ! -f "$PWA_ENABLED_FILE" ]]; then
     echo "tauri_start: PWA HTTPS is not enabled yet." >&2
     echo "tauri_start: start the HTTP app first, then run ./setup/pwa/enable." >&2
     exit 1
   fi
-  if [[ ! -f "$ROOT/certs/cert.pem" || ! -f "$ROOT/certs/key.pem" ]]; then
+  CERTS_DIR="${AGENT_WINDOW_CERTS_DIR:-$HOME/.agent-window/state/certs}"
+  if [[ ! -f "$CERTS_DIR/cert.pem" || ! -f "$CERTS_DIR/key.pem" ]]; then
     echo "tauri_start: local HTTPS certificates are missing." >&2
     echo "tauri_start: start the HTTP app first, then run ./setup/pwa/enable." >&2
     exit 1

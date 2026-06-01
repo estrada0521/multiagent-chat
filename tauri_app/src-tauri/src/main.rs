@@ -485,8 +485,10 @@ fn main() {
                 "/opt/homebrew/bin:/opt/homebrew/sbin:{}/.cargo/bin:{}/.nvm/versions/node/v24.14.0/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
                 home, home,
             );
-            let cert_file = format!("{}/certs/cert.pem", repo_root);
-            let key_file = format!("{}/certs/key.pem", repo_root);
+            let cert_dir = std::env::var("AGENT_WINDOW_CERTS_DIR")
+                .unwrap_or_else(|_| format!("{}/.agent-window/state/certs", home));
+            let cert_file = format!("{}/cert.pem", cert_dir);
+            let key_file = format!("{}/key.pem", cert_dir);
             let has_certs = Path::new(&cert_file).exists() && Path::new(&key_file).exists();
 
             let hub_already_up = probe_local_hub(hub_port).is_some();
