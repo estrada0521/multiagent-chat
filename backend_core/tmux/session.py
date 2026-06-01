@@ -24,6 +24,31 @@ def active_agents(runtime, *, subprocess_module=subprocess, logging_module=loggi
     return []
 
 
+def running_agents_from_env(runtime, agents: list[str], *, subprocess_module=subprocess, logging_module=logging) -> set[str]:
+    running: set[str] = set()
+    for agent in agents or []:
+        name = str(agent or "").strip()
+        if not name:
+            continue
+        upper = name.upper().replace("-", "_")
+        var = f"MULTIAGENT_RUNNING_{upper}"
+        try:
+            result = subprocess_module.run(
+                [*runtime.tmux_prefix, "show-environment", "-t", runtime.session_name, var],
+                capture_output=True,
+                text=True,
+                timeout=1,
+                check=False,
+            )
+        except Exception as exc:
+            logging_module.error(f"Unexpected error: {exc}", exc_info=True)
+            continue
+        line = result.stdout.strip()
+        if result.returncode == 0 and "=" in line and line.split("=", 1)[1].strip() == "1":
+            running.add(name)
+    return running
+
+
 def pane_id_for_agent(runtime, agent_name: str, *, subprocess_module=subprocess) -> str:
     pane_var = f"MULTIAGENT_PANE_{agent_name.upper().replace('-', '_')}"
     res = subprocess_module.run(

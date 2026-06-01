@@ -56,6 +56,7 @@ from backend_core.tmux.session import (
     active_agents as _active_agents_impl,
     pane_field as _pane_field_impl,
     pane_id_for_agent as _pane_id_for_agent_impl,
+    running_agents_from_env as _running_agents_from_env_impl,
 )
 from auto_mode.monitor import monitor_status as _monitor_status_impl, set_monitor_active as _set_monitor_active_impl, ensure_monitor_running as _ensure_monitor_running_impl
 from frontedge.session_state import (
@@ -120,7 +121,7 @@ class ChatRuntime:
                 self.tmux_prefix.extend(["-S", self.tmux_socket])
             else:
                 self.tmux_prefix.extend(["-L", self.tmux_socket])
-        self._agent_running: set[str] = set()
+        self._agent_running: set[str] = self._restore_running_agents_from_tmux_env()
         _initialize_session_state_bus_impl(self)
         self._native_log = NativeLogSyncer(
             index_path=self.index_path,
@@ -355,6 +356,9 @@ class ChatRuntime:
 
     def mark_session_activated(self) -> None:
         self.session_is_active = True
+        restored = self._restore_running_agents_from_tmux_env()
+        if restored:
+            self._agent_running.update(restored)
         self.notify_session_state_changed(["base", "targets", "statuses"], reason="session-activated")
         threading.Thread(
             target=self._post_activation_bind,
@@ -503,6 +507,23 @@ class ChatRuntime:
 
     def _mark_agent_sent(self, agent_name: str) -> None:
         _mark_agent_sent_impl(self, agent_name)
+
+    def _restore_running_agents_from_tmux_env(self) -> set[str]:
+        if not self.session_is_active:
+            return set()
+        agents = _active_agents_impl(
+            self,
+            subprocess_module=subprocess,
+            logging_module=logging,
+        )
+        if not agents and self.targets:
+            agents = list(self.targets)
+        return _running_agents_from_env_impl(
+            self,
+            agents,
+            subprocess_module=subprocess,
+            logging_module=logging,
+        )
 
     def _mark_running(self, agent: str) -> None:
         already_running = agent in self._agent_running
