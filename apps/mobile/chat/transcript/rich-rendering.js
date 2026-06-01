@@ -143,8 +143,6 @@
     };
     const entryQualifiesForStreamReveal = (entry) => {
       const s = String(entry?.sender || "").trim().toLowerCase();
-      const kind = String(entry?.kind || "").trim().toLowerCase();
-      if (kind === "agent-thinking") return false;
       return s !== "" && s !== "user" && s !== "system";
     };
     const STREAM_CHAR_SKIP_SEL = ".katex, .katex-display, table, .table-scroll, script, style";

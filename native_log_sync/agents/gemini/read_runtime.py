@@ -13,7 +13,7 @@ from native_log_sync.agents._shared.path_state import (
     _cursor_binding_changed,
     _parse_iso_timestamp_epoch,
 )
-from native_log_sync.entry_kind import classify_gemini_message_kind, strip_sender_prefix
+from native_log_sync.entry_kind import is_ephemeral_thought_content, strip_sender_prefix
 from backend_core.access.files import append_jsonl_entry
 
 from native_log_sync.agents._shared.runtime_display import runtime_event
@@ -168,8 +168,7 @@ def extract_gemini_message(entry: dict, min_event_ts: float | None = None) -> di
     if not texts:
         return None
 
-    kind = classify_gemini_message_kind(texts, has_thought_part=has_thought_part)
-    if kind == "agent-thinking":
+    if is_ephemeral_thought_content(texts, has_thought_part=has_thought_part):
         return {
             "msg_id": msg_id,
             "display_text": "",
@@ -354,11 +353,10 @@ def parse_native_gemini_log(filepath: str, limit: int, workspace: str = "") -> l
             texts, has_thought_part = _gemini_message_texts_and_thought(message)
             if not texts:
                 continue
-            kind = classify_gemini_message_kind(texts, has_thought_part=has_thought_part)
-            first_text = texts[0]
-            if kind != "agent-thinking" and not _GEMINI_PLAN_PREFIX_RE.match(strip_sender_prefix(first_text)):
+            if not is_ephemeral_thought_content(texts, has_thought_part=has_thought_part):
                 continue
 
+            first_text = texts[0]
             action, detail = _gemini_runtime_action_detail(first_text, workspace=workspace)
             source_detail = f"{action}:{detail[:80]}"
             events.append(runtime_event(action, detail, source_id=f"gemini:{msg_id}:{source_detail}"))

@@ -49,8 +49,7 @@
     const displayEntriesForData = (data) => {
       const baseEntries = Array.isArray(data?.entries) ? data.entries : [];
       const merged = mergeEntriesById(olderEntries, baseEntries);
-      const visibleEntries = merged.filter((entry) => String(entry?.kind || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-") !== "agent-thinking");
-      return olderEntries.length ? visibleEntries : visibleEntries.slice(-INITIAL_MESSAGE_WINDOW);
+      return olderEntries.length ? merged : merged.slice(-INITIAL_MESSAGE_WINDOW);
     };
     const entryTargetsSignature = (entry) => {
       const targets = Array.isArray(entry?.targets) ? entry.targets : [];

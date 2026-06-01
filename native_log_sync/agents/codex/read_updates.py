@@ -73,25 +73,12 @@ def sync_codex_native_log(
                     return False
 
             display = ""
-            kind = ""
             entry_type = entry.get("type", "")
             if entry_type == "response_item":
                 payload = entry.get("payload", {})
                 payload_type = str(payload.get("type") or "").strip().lower()
                 if payload_type == "reasoning":
-                    summary = payload.get("summary") or []
-                    reasoning_lines = []
-                    if isinstance(summary, list):
-                        for item in summary:
-                            if not isinstance(item, dict):
-                                continue
-                            text = str(item.get("text") or "").strip()
-                            if text:
-                                reasoning_lines.append(text)
-                    if not reasoning_lines:
-                        return False
-                    display = "\n".join(reasoning_lines)
-                    kind = "agent-thinking"
+                    return False
                 else:
                     if payload.get("role") != "assistant":
                         return False
@@ -112,8 +99,7 @@ def sync_codex_native_log(
                 if payload_type == "error":
                     display = str(payload.get("message") or "").strip()
                 elif payload_type == "agent_reasoning":
-                    display = str(payload.get("text") or payload.get("message") or "").strip()
-                    kind = "agent-thinking"
+                    return False
                 elif payload_type == "token_count":
                     display = _codex_token_count_limit_message(payload)
                     if not display:
@@ -141,8 +127,6 @@ def sync_codex_native_log(
                 "message": display,
                 "msg_id": msg_id,
             }
-            if kind:
-                jsonl_entry["kind"] = kind
             append_jsonl_entry(self.index_path, jsonl_entry)
             mark_message_synced(self, agent, display, msg_id)
             return True

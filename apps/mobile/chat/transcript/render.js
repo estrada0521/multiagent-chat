@@ -194,7 +194,7 @@
     const setStatus = (text, isError = false) => {
       const node = document.getElementById("statusline");
       node.textContent = text;
-      node.style.color = isError ? "#fda4af" : "";
+      node.classList.toggle("is-error", isError);
     };
     const setReconnectStatus = (active) => {
       const node = document.getElementById("statusline");

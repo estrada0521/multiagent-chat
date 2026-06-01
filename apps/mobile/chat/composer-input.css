@@ -334,6 +334,9 @@
       background: transparent;
       box-sizing: border-box;
     }
+    .statusline.is-error {
+      color: rgba(var(--git-del-red-channels), 0.9);
+    }
 
     main {
       position: absolute;

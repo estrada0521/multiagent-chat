@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from native_log_sync.entry_kind import entry_with_inferred_kind, should_omit_entry_from_chat
+from native_log_sync.entry_kind import should_omit_entry_from_chat
 from native_log_sync.redacted import agent_index_entry_omit_for_redacted
 
 
@@ -50,7 +50,6 @@ def matched_entries(runtime) -> list[dict]:
                     break
                 processed_size += len(raw_segment)
                 continue
-            entry = entry_with_inferred_kind(entry)
             if should_omit_entry_from_chat(entry):
                 processed_size += len(raw_segment)
                 continue

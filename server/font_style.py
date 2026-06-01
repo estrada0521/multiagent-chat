@@ -28,15 +28,6 @@ def chat_font_settings_inline_style(
 ) -> str:
     user_family = font_family_stack_fn(settings.get("user_message_font", "preset-gothic"), "user")
     agent_family = font_family_stack_fn(settings.get("agent_message_font", "preset-mincho"), "agent")
-    agent_font_mode = str(settings.get("agent_font_mode", "serif") or "serif").strip().lower()
-    if agent_font_mode == "gothic":
-        thinking_body_variation = '"wght" 360, "opsz" 16'
-        thinking_keyword_variation = '"wght" 530, "opsz" 16'
-        thinking_letter_spacing = "-0.01em"
-    else:
-        thinking_body_variation = '"wght" 360'
-        thinking_keyword_variation = '"wght" 530'
-        thinking_letter_spacing = "0"
     try:
         _legacy_size = max(8, min(18, int(settings.get("message_text_size", 13))))
     except Exception:
@@ -76,10 +67,6 @@ def chat_font_settings_inline_style(
       --message-max-width: {message_max_width}px;
       --user-message-font-family: {user_family};
       --agent-message-font-family: {agent_family};
-      --agent-thinking-font-family: {agent_family};
-      --agent-thinking-body-variation: {thinking_body_variation};
-      --agent-thinking-keyword-variation: {thinking_keyword_variation};
-      --agent-thinking-letter-spacing: {thinking_letter_spacing};
     }}
     .shell {{
       max-width: var(--message-max-width);
