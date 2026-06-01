@@ -4,10 +4,12 @@ import os
 import subprocess
 
 from backend_core.agents.ensure_clis import agent_launch_cmd, agent_resume_cmd
+from backend_core.tmux.process_cleanup import cleanup_target_process_groups
 
 
 def _respawn_agent_pane(runtime, pane_id: str, command: str, *, subprocess_module=subprocess, os_module=os) -> tuple[bool, str]:
     shell = os_module.environ.get("SHELL") or "/bin/zsh"
+    cleanup_target_process_groups(target=pane_id, tmux_prefix=runtime.tmux_prefix)
     respawn_res = subprocess_module.run(
         [
             *runtime.tmux_prefix,

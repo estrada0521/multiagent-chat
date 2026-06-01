@@ -12,6 +12,7 @@ import sys
 import time
 from pathlib import Path
 
+from backend_core.tmux.process_cleanup import cleanup_target_process_groups
 from backend_core.access.settings import (
     agent_window_run_dir,
     local_runtime_log_dir,
@@ -325,6 +326,7 @@ def kill_repo_session(self, session_name: str) -> tuple[bool, str]:
     if session_name not in active:
         return False, "That active session is not available in this repo."
 
+    cleanup_target_process_groups(target=session_name, tmux_prefix=self.tmux_prefix)
     result = self.tmux_run(["kill-session", "-t", session_name], timeout=4)
     if result.returncode != 0:
         detail = (result.stderr or result.stdout or "").strip() or "tmux kill-session failed"

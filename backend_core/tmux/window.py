@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import subprocess
 
+from backend_core.tmux.process_cleanup import cleanup_target_process_groups
+
 
 def tmux_prefix_args(tmux_socket: str) -> list[str]:
     socket = (tmux_socket or "").strip()
@@ -223,6 +225,7 @@ def kill_window_target(*, window_target: str, tmux_socket: str) -> bool:
     if not target:
         return False
     prefix = tmux_prefix_args(tmux_socket)
+    cleanup_target_process_groups(target=target, tmux_prefix=prefix)
     res = subprocess.run(
         [*prefix, "kill-window", "-t", target],
         stdout=subprocess.DEVNULL,
@@ -237,6 +240,7 @@ def kill_pane_target(*, pane_id: str, tmux_socket: str) -> bool:
     if not pane:
         return False
     prefix = tmux_prefix_args(tmux_socket)
+    cleanup_target_process_groups(target=pane, tmux_prefix=prefix)
     res = subprocess.run(
         [*prefix, "kill-pane", "-t", pane],
         stdout=subprocess.DEVNULL,

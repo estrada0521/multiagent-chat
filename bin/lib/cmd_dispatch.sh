@@ -104,6 +104,7 @@ multiagent_dispatch_prelaunch_modes() {
         if ! stop_session_chat_server "$session"; then
           echo "[multiagent] warning: failed to stop chat server for $session" >&2
         fi
+        cleanup_session_process_groups "$session" || true
         tmux kill-session -t "$session"
         echo "Killed tmux session: $session"
         killed=1
@@ -125,6 +126,7 @@ multiagent_dispatch_prelaunch_modes() {
     if ! stop_session_chat_server "$SESSION_NAME"; then
       echo "[multiagent] warning: failed to stop chat server for $SESSION_NAME" >&2
     fi
+    cleanup_session_process_groups "$SESSION_NAME" || true
     tmux kill-session -t "$SESSION_NAME"
     echo "Killed tmux session: $SESSION_NAME"
     exit 0

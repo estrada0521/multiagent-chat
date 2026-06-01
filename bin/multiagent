@@ -184,6 +184,24 @@ if not ok:
 PYEOF
 }
 
+cleanup_session_process_groups() {
+  local session_name="$1"
+  python3 - "$REPO_ROOT" "$session_name" "$TMUX_SOCKET_NAME" <<'PYEOF'
+import sys
+from pathlib import Path
+
+repo_root = Path(sys.argv[1]).resolve()
+session_name = sys.argv[2]
+tmux_socket = sys.argv[3]
+sys.path.insert(0, str(repo_root / "src"))
+sys.path.insert(0, str(repo_root))
+from backend_core.tmux.process_cleanup import cleanup_target_process_groups
+from backend_core.tmux.window import tmux_prefix_args
+
+cleanup_target_process_groups(target=session_name, tmux_prefix=tmux_prefix_args(tmux_socket))
+PYEOF
+}
+
 agent_in_registry() {
   local candidate="$1" agent
   for agent in "${ALL_AGENTS[@]}"; do
