@@ -99,13 +99,18 @@ def _post_add_agent(handler, _parsed, ctx) -> None:
     if proc.returncode != 0:
         handler._send_json(500, {"ok": False, "error": stderr or stdout or f"add-agent failed ({proc.returncode})"})
         return
+    targets = ctx["runtime"].active_agents()
+    ctx["runtime"].targets = list(targets)
+    with ctx["runtime"]._payload_cache_lock:
+        ctx["runtime"]._payload_cache.clear()
+        ctx["runtime"]._payload_cache_order.clear()
     handler._send_json(
         200,
         {
             "ok": True,
             "agent": agent,
             "message": stdout or f"Added agent {agent}",
-            "targets": ctx["runtime"].active_agents(),
+            "targets": targets,
         },
     )
     try:
@@ -148,13 +153,18 @@ def _post_remove_agent(handler, _parsed, ctx) -> None:
             {"ok": False, "error": stderr or stdout or f"remove-agent failed ({proc.returncode})"},
         )
         return
+    targets = ctx["runtime"].active_agents()
+    ctx["runtime"].targets = list(targets)
+    with ctx["runtime"]._payload_cache_lock:
+        ctx["runtime"]._payload_cache.clear()
+        ctx["runtime"]._payload_cache_order.clear()
     handler._send_json(
         200,
         {
             "ok": True,
             "agent": agent,
             "message": stdout or f"Removed agent {agent}",
-            "targets": ctx["runtime"].active_agents(),
+            "targets": targets,
         },
     )
     try:

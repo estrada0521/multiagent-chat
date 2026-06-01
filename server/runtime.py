@@ -425,12 +425,14 @@ class ChatRuntime:
         meta["total_messages"] = total_count
         if light_mode:
             entries = [self._light_entry(entry) for entry in entries]
-        targets_cached_at, cached_targets = self._payload_targets_cache
-        if now - targets_cached_at < 2.0:
-            targets = list(cached_targets)
-        else:
-            targets = self.active_agents()
-            self._payload_targets_cache = (now, list(targets))
+        targets = list(self.targets or [])
+        if not targets:
+            targets_cached_at, cached_targets = self._payload_targets_cache
+            if now - targets_cached_at < 2.0:
+                targets = list(cached_targets)
+            else:
+                targets = self.active_agents()
+                self._payload_targets_cache = (now, list(targets))
         payload_doc = build_payload_document(
             meta=meta,
             follow_mode=self.follow_mode,
@@ -493,7 +495,10 @@ class ChatRuntime:
         )
 
     def resolve_target_agents(self, target: str) -> list[str]:
-        return resolve_target_agent_names(target, self.active_agents())
+        agents = list(self.targets or [])
+        if not agents:
+            agents = self.active_agents()
+        return resolve_target_agent_names(target, agents)
 
     def pane_id_for_agent(self, agent_name: str) -> str:
         return _pane_id_for_agent_impl(

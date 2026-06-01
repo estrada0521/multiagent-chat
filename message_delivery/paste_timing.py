@@ -9,6 +9,7 @@ def delivery_paste_delay_seconds(
     env: Mapping[str, str] | None = None,
     session_attached_count: int | None = None,
 ) -> float:
+    del payload, session_attached_count
     environ = env or {}
     raw = str(environ.get("AGENT_SEND_PASTE_DELAY") or "").strip()
     if raw:
@@ -16,11 +17,4 @@ def delivery_paste_delay_seconds(
             return max(0.0, float(raw))
         except ValueError:
             pass
-
-    delay = 0.3
-    if session_attached_count == 0:
-        delay = max(delay, 0.45)
-
-    text_len = len(str(payload or ""))
-    delay += min(0.15, text_len / 4000.0 * 0.15)
-    return delay
+    return 0.2
