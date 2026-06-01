@@ -122,7 +122,6 @@ def hub_settings_html(
     message_text_size_mobile = int(settings.get("message_text_size_mobile") or message_text_size)
     message_text_size_desktop = int(settings.get("message_text_size_desktop") or message_text_size)
     chat_auto = settings.get("chat_auto_mode", False)
-    chat_awake = settings.get("chat_awake", False)
     theme = str(settings.get("theme", "dark") or "dark").strip().lower()
     light_mode = theme == "light"
     light_mode_desktop = str(settings.get("theme_desktop", theme) or theme).strip().lower() == "light"
@@ -197,7 +196,6 @@ def hub_settings_html(
         .replace("__MESSAGE_TEXT_SIZE_MOBILE__", str(message_text_size_mobile))
         .replace("__MESSAGE_TEXT_SIZE_DESKTOP__", str(message_text_size_desktop))
         .replace("__CHAT_AUTO_CHECKED__", " checked" if chat_auto else "")
-        .replace("__CHAT_AWAKE_CHECKED__", " checked" if chat_awake else "")
         .replace("__LIGHT_MODE_CHECKED__", " checked" if light_mode else "")
         .replace("__LIGHT_MODE_DESKTOP_CHECKED__", " checked" if light_mode_desktop else "")
         .replace("__LIGHT_MODE_MOBILE_CHECKED__", " checked" if light_mode_mobile else "")

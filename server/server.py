@@ -23,41 +23,6 @@ from hub_backend.presentation.chat.assets import (
     chat_main_style_asset,
     render_chat_html,
 )
-_caffeinate_args = ["caffeinate", "-i"]
-_caffeinate_proc: "subprocess.Popen | None" = None
-
-
-def _caffeinate_status() -> dict:
-    global _caffeinate_proc
-    if _caffeinate_proc is not None and _caffeinate_proc.poll() is None:
-        return {"active": True}
-    _caffeinate_proc = None
-    try:
-        if subprocess.run(["pgrep", "-x", "caffeinate"], capture_output=True).returncode == 0:
-            return {"active": True}
-    except Exception as exc:
-        logging.error("caffeinate status check failed: %s", exc)
-    return {"active": False}
-
-
-def _caffeinate_toggle() -> dict:
-    global _caffeinate_proc
-    if _caffeinate_status()["active"]:
-        if _caffeinate_proc is not None:
-            _caffeinate_proc.terminate()
-            _caffeinate_proc = None
-        else:
-            subprocess.run(["killall", "caffeinate"], capture_output=True, check=False)
-        return {"active": False}
-    _caffeinate_ensure_active()
-    return {"active": True}
-
-
-def _caffeinate_ensure_active() -> None:
-    global _caffeinate_proc
-    if _caffeinate_status()["active"]:
-        return
-    _caffeinate_proc = subprocess.Popen(_caffeinate_args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 from server.runtime import ChatRuntime
 from server.routes.assets import dispatch_get_assets_route
 from server.routes.read import dispatch_get_read_route
@@ -101,8 +66,6 @@ load_chat_settings = _not_initialized
 chat_font_settings_inline_style = _not_initialized
 payload = _not_initialized
 append_system_entry = _not_initialized
-caffeinate_status = _not_initialized
-caffeinate_toggle = _not_initialized
 auto_mode_status = _not_initialized
 send_message = _not_initialized
 agent_statuses = _not_initialized
@@ -346,7 +309,7 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
     global port, agent_send_path, workspace, log_dir, targets, tmux_socket, hub_port
     global PUBLIC_HOST, PUBLIC_HUB_PORT, _repo_root, runtime
     global _PWA_STATIC_DIR, server_instance, load_chat_settings, chat_font_settings_inline_style
-    global payload, append_system_entry, caffeinate_status, caffeinate_toggle, auto_mode_status
+    global payload, append_system_entry, auto_mode_status
     global send_message, agent_statuses, file_runtime, HTML, asset_runtime
     global send_queue, send_queue_thread, workspace_sync_api
 
@@ -398,13 +361,6 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
     chat_font_settings_inline_style = runtime.chat_font_settings_inline_style
     payload = runtime.payload
     append_system_entry = runtime.append_system_entry
-    caffeinate_status = _caffeinate_status
-    caffeinate_toggle = _caffeinate_toggle
-    try:
-        if bool(runtime.load_chat_settings().get("chat_awake", False)):
-            _caffeinate_ensure_active()
-    except Exception as exc:
-        logging.error("Failed to check chat_awake setting: %s", exc)
     try:
         runtime._apply_saved_monitor_setting()
     except Exception as exc:
@@ -612,8 +568,6 @@ def _route_context() -> dict:
         "public_hub_port": PUBLIC_HUB_PORT,
         "payload_fn": payload,
         "append_system_entry_fn": append_system_entry,
-        "caffeinate_status_fn": caffeinate_status,
-        "caffeinate_toggle_fn": caffeinate_toggle,
         "auto_mode_status_fn": auto_mode_status,
         "send_message_fn": send_message,
         "agent_statuses_fn": agent_statuses,

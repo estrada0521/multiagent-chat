@@ -286,11 +286,6 @@ def _get_agents(handler, _parsed, ctx) -> None:
     _send_bytes(handler, 200, body, content_type="application/json; charset=utf-8")
 
 
-def _get_caffeinate(handler, _parsed, ctx) -> None:
-    body = json.dumps(ctx["caffeinate_status_fn"](), ensure_ascii=True).encode("utf-8")
-    _send_bytes(handler, 200, body, content_type="application/json; charset=utf-8")
-
-
 def _get_auto_mode(handler, _parsed, ctx) -> None:
     body = json.dumps(ctx["auto_mode_status_fn"](), ensure_ascii=True).encode("utf-8")
     _send_bytes(handler, 200, body, content_type="application/json; charset=utf-8")
@@ -308,7 +303,6 @@ def _get_hub_settings(handler, _parsed, ctx) -> None:
             "theme_desktop": "light" if str(settings.get("theme_desktop", settings.get("theme", "dark"))).strip().lower() == "light" else "dark",
             "chat_font_settings_css": ctx["chat_font_settings_inline_style_fn"](settings),
             "chat_auto_mode": bool(settings.get("chat_auto_mode", False)),
-            "chat_awake": bool(settings.get("chat_awake", False)),
             "open_files_direct_external_editor": bool(
                 settings.get("open_files_direct_external_editor", False)
             ),
@@ -488,7 +482,6 @@ _GET_ROUTES = {
     "/files-search": _get_files_search,
     "/files-dir": _get_files_dir,
     "/agents": _get_agents,
-    "/caffeinate": _get_caffeinate,
     "/auto-mode": _get_auto_mode,
     "/hub-settings": _get_hub_settings,
     "/session-state": _get_session_state,

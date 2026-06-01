@@ -90,7 +90,6 @@ def _apply_hub_settings(raw: dict, settings: dict, *, missing_flags_false: bool 
 
     for key in (
         "chat_auto_mode",
-        "chat_awake",
         "bold_mode_mobile",
         "open_files_direct_external_editor",
     ):
@@ -115,7 +114,6 @@ HUB_SETTINGS_DEFAULTS = {
     "external_editor": "vscode",
     "external_editor_markdown": "markedit",
     "chat_auto_mode": False,
-    "chat_awake": False,
     "bold_mode_mobile": False,
     "open_files_direct_external_editor": False,
 }

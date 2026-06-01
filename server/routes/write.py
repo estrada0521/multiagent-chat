@@ -40,10 +40,6 @@ def _resolve_within_root(path_value: str, *, workspace_root: str, allowed_root: 
     return candidate
 
 
-def _post_caffeinate(handler, _parsed, ctx) -> None:
-    handler._send_json(200, ctx["caffeinate_toggle_fn"]())
-
-
 def _post_auto_mode(handler, _parsed, ctx) -> None:
     current = ctx["auto_mode_status_fn"]()
     desired_active = not current["active"]
@@ -572,7 +568,6 @@ def _post_send(handler, _parsed, ctx) -> None:
 
 
 _POST_ROUTES = {
-    "/caffeinate": _post_caffeinate,
     "/auto-mode": _post_auto_mode,
     "/new-chat": _post_new_chat,
     "/add-agent": _post_add_agent,

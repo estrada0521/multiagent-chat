@@ -41,9 +41,6 @@ Hubサーバーではセッション一覧を管理します
 Auto Approval をON にすると、CLI側の設定に依らず全てのエージェントのツールコールが自動承認されます
 Running中のエージェントのみ tmux capture pane が Poling され、承認用文字列を見つけたらEnterを送るだけの無骨な方法です
 
-### Caffeinate -i
-ONにするとmacのスリープが防止されます
-
 ## チャット画面(中央・右)
 基本画面です。よくあるAgent winodwと基本的に同じです
 
