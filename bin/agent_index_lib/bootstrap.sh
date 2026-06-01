@@ -9,6 +9,28 @@ AGENT_INDEX_BOOTSTRAP_SH=1
 
 SCRIPT_DIR="$REPO_ROOT/bin"
 AGENT_INDEX_PYTHONPATH="${REPO_ROOT}/src:${REPO_ROOT}${PYTHONPATH:+:${PYTHONPATH}}"
+AGENT_WINDOW_RUN_DIR="${AGENT_WINDOW_RUN_DIR:-$(PYTHONPATH="$AGENT_INDEX_PYTHONPATH" python3 - "$REPO_ROOT" <<'PYEOF'
+import sys
+from pathlib import Path
+
+repo_root = Path(sys.argv[1]).resolve()
+from backend_core.access.settings import agent_window_run_dir
+
+print(agent_window_run_dir(repo_root))
+PYEOF
+)}"
+export AGENT_WINDOW_RUN_DIR
+AGENT_WINDOW_LOG_DIR="${AGENT_WINDOW_LOG_DIR:-$(PYTHONPATH="$AGENT_INDEX_PYTHONPATH" python3 - "$REPO_ROOT" <<'PYEOF'
+import sys
+from pathlib import Path
+
+repo_root = Path(sys.argv[1]).resolve()
+from backend_core.access.settings import local_runtime_log_dir
+
+print(local_runtime_log_dir(repo_root))
+PYEOF
+)}"
+export AGENT_WINDOW_LOG_DIR
 
 for _cmd in python3 tmux; do
   if ! command -v "$_cmd" >/dev/null 2>&1; then

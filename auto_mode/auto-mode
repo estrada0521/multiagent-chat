@@ -17,6 +17,19 @@ PYEOF
 }
 
 TMUX_SOCKET_NAME="${MULTIAGENT_TMUX_SOCKET:-$(default_tmux_socket_name)}"
+AGENT_WINDOW_RUN_DIR="${AGENT_WINDOW_RUN_DIR:-$(python3 - "$REPO_ROOT" <<'PYEOF'
+import sys
+from pathlib import Path
+
+repo_root = Path(sys.argv[1]).resolve()
+sys.path.insert(0, str(repo_root / "src"))
+sys.path.insert(0, str(repo_root))
+from backend_core.access.settings import agent_window_run_dir
+
+print(agent_window_run_dir(repo_root))
+PYEOF
+)}"
+export AGENT_WINDOW_RUN_DIR
 
 tmux() { command tmux -L "$TMUX_SOCKET_NAME" "$@"; }
 
@@ -62,7 +75,11 @@ if [[ -z "$SESSION_NAME" ]]; then
 fi
 [[ -n "$SESSION_NAME" ]] || { echo "No session name specified or detected." >&2; exit 1; }
 
-pid_file() { printf '%s' "/tmp/auto_mode_${SESSION_NAME}.pid"; }
+pid_file() {
+  local run_dir="${AGENT_WINDOW_RUN_DIR:-$HOME/.agent-window/run}/auto-mode"
+  mkdir -p "$run_dir"
+  printf '%s' "${run_dir}/${SESSION_NAME}.pid"
+}
 
 monitor_pids() {
   python3 - "$SESSION_NAME" "$_REAL_SCRIPT" "$$" <<'PYEOF'

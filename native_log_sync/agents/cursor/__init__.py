@@ -3,9 +3,11 @@ from __future__ import annotations
 import hashlib
 import logging
 import os
+from pathlib import Path
 import threading
 import time
 
+from backend_core.access.settings import agent_window_run_dir
 from backend_core.access.files import append_jsonl_entry
 from native_log_sync.refresh.binding_models import binding_for_path
 from .resolve_path import resolve_cursor_session_jsonl_path
@@ -37,11 +39,15 @@ def _cursor_usage_monitor_loop(runtime):
                     continue
 
                 safe_pane = pane_id.replace("%", "_")
-                signal_file = f"/tmp/multiagent_cursor_usage_limit_{safe_pane}"
+                run_dir = Path(
+                    os.environ.get("AGENT_WINDOW_RUN_DIR")
+                    or agent_window_run_dir(getattr(runtime, "repo_root", Path.cwd()))
+                )
+                signal_file = run_dir / "cursor-usage-limits" / safe_pane
                 
-                if os.path.exists(signal_file):
+                if signal_file.exists():
                     try:
-                        os.remove(signal_file)
+                        signal_file.unlink()
                     except OSError:
                         pass
                     

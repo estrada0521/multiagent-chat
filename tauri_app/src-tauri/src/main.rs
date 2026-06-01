@@ -266,8 +266,15 @@ fn sync_bundled_repo(app: &tauri::App) -> Option<PathBuf> {
         return None;
     }
 
-    let app_data_dir = app.path().app_data_dir().ok()?;
-    let target = app_data_dir.join("multiagent-chat");
+    let target = std::env::var("HOME")
+        .map(|home| {
+            PathBuf::from(home)
+                .join(".agent-window")
+                .join("app")
+                .join("bundled-repo")
+        })
+        .or_else(|_| app.path().app_data_dir().map(|dir| dir.join("bundled-repo")))
+        .ok()?;
     if let Err(err) = copy_dir_contents(&source, &target) {
         eprintln!("[app] bundled repo sync failed: {}", err);
         return None;
@@ -303,6 +310,7 @@ fn find_repo_root(app: &tauri::App) -> Option<String> {
     }
     let home = std::env::var("HOME").unwrap_or_default();
     for candidate in &[
+        format!("{}/.agent-window/app/bundled-repo", home),
         format!("{}/workspace/multiagent-local", home),
         format!("{}/multiagent-chat", home),
     ] {

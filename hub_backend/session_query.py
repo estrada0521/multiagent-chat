@@ -170,16 +170,7 @@ def session_index_paths(
     explicit_log_dir: str = "",
 ) -> list[Path]:
     roots: list[Path] = []
-    workspace = (workspace or "").strip()
-    workspace_candidates: list[str] = []
-    if workspace:
-        workspace_path = Path(workspace)
-        workspace_candidates.append(str(workspace_path / "logs"))
-    root_candidates = [
-        explicit_log_dir,
-        *workspace_candidates,
-        str(runtime.central_log_dir),
-    ]
+    root_candidates = [str(runtime.central_log_dir)]
     for candidate in root_candidates:
         candidate = (candidate or "").strip()
         if not candidate:
@@ -289,7 +280,7 @@ def build_session_record(
         "chat_port": runtime.chat_port_for_session(name),
         "session_path": f"/session/{session_slug}/",
         "follow_path": f"/session/{session_slug}/?follow=1",
-        "log_dir": explicit_log_dir or str(primary_index.parent if primary_index else ""),
+        "log_dir": str(primary_index.parent if primary_index else ""),
         "index_path": str(primary_index) if primary_index else "",
         "chat_count": sum(count_nonempty_lines(path) for path in resolved_paths),
         "latest_message_sender": preview["sender"],
@@ -328,13 +319,12 @@ def collect_repo_sessions(runtime: Any) -> tuple[list[dict], str, str]:
 
         workspace, t2 = runtime.tmux_env_query(name, "MULTIAGENT_WORKSPACE")
         explicit_log_dir, t3 = runtime.tmux_env_query(name, "MULTIAGENT_LOG_DIR")
-        index_path_env, t4 = runtime.tmux_env_query(name, "MULTIAGENT_INDEX_PATH")
         r_attached = runtime.tmux_run(["display-message", "-p", "-t", name, "#{session_attached}"])
         r_created = runtime.tmux_run(["display-message", "-p", "-t", name, "#{session_created}"])
         r_dead = runtime.tmux_run(["list-panes", "-t", name, "-F", "#{pane_dead}"])
         agents, t5 = runtime.session_agents_query(name)
 
-        if t2 or t3 or t4 or r_attached.timed_out or r_created.timed_out or r_dead.timed_out or t5:
+        if t2 or t3 or r_attached.timed_out or r_created.timed_out or r_dead.timed_out or t5:
             any_timeout = True
             timeout_detail = f"tmux query timed out during session scan for {name}"
             break
@@ -356,14 +346,7 @@ def collect_repo_sessions(runtime: Any) -> tuple[list[dict], str, str]:
         else:
             status = "idle"
 
-        preferred_index_path = None
-        if index_path_env:
-            try:
-                preferred_index_path = Path(index_path_env).resolve()
-            except Exception:
-                preferred_index_path = Path(index_path_env)
-        if preferred_index_path is None:
-            preferred_index_path = runtime._chat_launch_session_dir(name, workspace, explicit_log_dir) / ".agent-index.jsonl"
+        preferred_index_path = runtime._chat_launch_session_dir(name, workspace, explicit_log_dir) / ".agent-index.jsonl"
         index_paths = session_index_paths(runtime, name, workspace, explicit_log_dir)
         sessions.append(
             build_session_record(

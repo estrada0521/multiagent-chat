@@ -56,7 +56,7 @@ def _load_cursor_dict(raw: object) -> dict[str, NativeLogCursor]:
             if not isinstance(agent, str):
                 continue
             cursor = _coerce_native_cursor(value)
-            if cursor is not None:
+            if cursor is not None and Path(cursor.path).is_file():
                 result[agent] = cursor
     return result
 

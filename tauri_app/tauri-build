@@ -69,7 +69,19 @@ for _hp in /opt/homebrew/bin /usr/local/bin "$HOME/.cargo/bin"; do
 done
 export PATH
 
-export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$HOME/.cache/multiagent-tauri-target}"
+repo_state_id() {
+  python3 - "$ROOT" <<'PYEOF'
+import hashlib
+import os
+import sys
+
+root = os.path.realpath(sys.argv[1])
+print(hashlib.sha1(root.encode("utf-8")).hexdigest()[:12])
+PYEOF
+}
+
+REPO_STATE_ID="$(repo_state_id)"
+export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$HOME/.agent-window/cache/$REPO_STATE_ID/tauri-target}"
 mkdir -p "$CARGO_TARGET_DIR"
 
 for _cmd in python3 tmux; do

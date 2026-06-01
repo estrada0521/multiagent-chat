@@ -13,8 +13,8 @@ import time
 from pathlib import Path
 
 from backend_core.access.settings import (
+    agent_window_run_dir,
     local_runtime_log_dir,
-    local_state_dir,
     port_is_bindable,
     save_chat_port_override,
 )
@@ -182,6 +182,7 @@ def chat_launch_env(self) -> dict[str, str]:
     env["MULTIAGENT_AGENT_NAME"] = "user"
     if self.tmux_socket:
         env["MULTIAGENT_TMUX_SOCKET"] = self.tmux_socket
+    env["AGENT_WINDOW_RUN_DIR"] = str(agent_window_run_dir(self.repo_root))
     env["SESSION_IS_ACTIVE"] = "1"
     pythonpath_parts = [str(self.repo_root / "src"), str(self.repo_root)]
     existing_pythonpath = (env.get("PYTHONPATH") or "").strip()
@@ -371,7 +372,6 @@ def delete_archived_session(self, session_name: str) -> tuple[bool, str]:
         return False, "Archived log directory no longer exists."
     allowed_roots = [
         self.central_log_dir.resolve(),
-        (local_state_dir(self.repo_root) / "workspaces").resolve(),
     ]
     try:
         resolved = log_dir.resolve()

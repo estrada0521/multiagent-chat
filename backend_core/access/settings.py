@@ -3,9 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-import os
 import socket
-import sys
 from pathlib import Path
 
 
@@ -124,13 +122,29 @@ HUB_SETTINGS_DEFAULTS = {
 }
 
 
-def local_state_dir(repo_root: Path | str) -> Path:
+def repo_state_id(repo_root: Path | str) -> str:
     repo = str(Path(repo_root).resolve())
-    repo_hash = hashlib.sha1(repo.encode("utf-8")).hexdigest()[:12]
-    mac_root = Path.home() / "Library" / "Application Support" / "multiagent"
-    xdg_root = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local" / "state")) / "multiagent"
-    base = mac_root if sys.platform == "darwin" else xdg_root
-    return base / repo_hash
+    return hashlib.sha1(repo.encode("utf-8")).hexdigest()[:12]
+
+
+def agent_window_root() -> Path:
+    return Path.home() / ".agent-window"
+
+
+def agent_window_state_dir(repo_root: Path | str) -> Path:
+    return agent_window_root() / "state" / repo_state_id(repo_root)
+
+
+def agent_window_run_dir(repo_root: Path | str) -> Path:
+    return agent_window_root() / "run" / repo_state_id(repo_root)
+
+
+def agent_window_cache_dir(repo_root: Path | str) -> Path:
+    return agent_window_root() / "cache" / repo_state_id(repo_root)
+
+
+def local_state_dir(repo_root: Path | str) -> Path:
+    return agent_window_state_dir(repo_root)
 
 
 def local_runtime_log_dir(repo_root: Path | str) -> Path:

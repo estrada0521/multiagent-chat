@@ -85,7 +85,7 @@ multiagent_dispatch_prelaunch_modes() {
     fi
     _auto_val="$(tmux show-environment -t "$SESSION_NAME" MULTIAGENT_AUTO_MODE 2>/dev/null | sed 's/^[^=]*=//' || echo "0")"
     if [[ "$_auto_val" == "1" ]]; then
-      _pid_file="/tmp/auto_mode_${SESSION_NAME}.pid"
+      _pid_file="${AGENT_WINDOW_RUN_DIR:-$HOME/.agent-window/run}/auto-mode/${SESSION_NAME}.pid"
       _pid="$(cat "$_pid_file" 2>/dev/null || true)"
       if [[ -z "$_pid" ]] || ! kill -0 "$_pid" 2>/dev/null; then
         "$REPO_ROOT/auto_mode/auto-mode" on --session "$SESSION_NAME" >&2 || true
@@ -104,7 +104,6 @@ multiagent_dispatch_prelaunch_modes() {
         if ! stop_session_chat_server "$session"; then
           echo "[multiagent] warning: failed to stop chat server for $session" >&2
         fi
-        rm -f "/tmp/multiagent_save_${session}.sh" 2>/dev/null || true
         tmux kill-session -t "$session"
         echo "Killed tmux session: $session"
         killed=1
@@ -126,7 +125,6 @@ multiagent_dispatch_prelaunch_modes() {
     if ! stop_session_chat_server "$SESSION_NAME"; then
       echo "[multiagent] warning: failed to stop chat server for $SESSION_NAME" >&2
     fi
-    rm -f "/tmp/multiagent_save_${SESSION_NAME}.sh" 2>/dev/null || true
     tmux kill-session -t "$SESSION_NAME"
     echo "Killed tmux session: $SESSION_NAME"
     exit 0

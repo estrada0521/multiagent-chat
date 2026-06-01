@@ -5,7 +5,9 @@ auto_mode_agent_needs_approval() {
   
   if printf '%s\n' "$content" | grep -qiE "hit your usage limit|limit reached"; then
     local safe_pane="${pane_id//%/_}"
-    > "/tmp/multiagent_cursor_usage_limit_${safe_pane}"
+    local signal_dir="${AGENT_WINDOW_RUN_DIR:-$HOME/.agent-window/run}/cursor-usage-limits"
+    mkdir -p "$signal_dir"
+    > "${signal_dir}/${safe_pane}"
     return 1
   fi
 

@@ -7,52 +7,27 @@ if [[ -n "${AGENT_INDEX_SESSION_SH:-}" ]]; then
 fi
 AGENT_INDEX_SESSION_SH=1
 
-active_repo_log_roots() {
-  local session workspace log_dir bin_dir
-  while IFS= read -r session; do
-    [[ -n "$session" ]] || continue
-    bin_dir="$(session_bin_dir_value "$session")"
-    [[ -n "$bin_dir" ]] || continue
-    bin_dir="$(realpath_or_echo "$bin_dir")"
-    [[ "$bin_dir" == "$SCRIPT_DIR" ]] || continue
-    log_dir="$(session_log_dir_value "$session")"
-    [[ -n "$log_dir" ]] && printf '%s\n' "$log_dir"
-    workspace="$(session_workspace_value "$session")"
-    [[ -n "$workspace" ]] && printf '%s\n' "${workspace}/logs"
-  done < <(tmux list-sessions -F '#S' 2>/dev/null || true)
+agent_index_session_log_dir() {
+  local session="$1"
+  printf '%s/%s\n' "$AGENT_WINDOW_LOG_DIR" "$session"
+}
+
+agent_index_ensure_session_index_mirrors() {
+  local session="$1" session_dir index_path link_dir link_path
+  session_dir="$(agent_index_session_log_dir "$session")"
+  index_path="${session_dir}/.agent-index.jsonl"
+  mkdir -p "$session_dir"
+  [[ -e "$index_path" ]] || : > "$index_path"
+  [[ -n "${SESSION_WORKSPACE:-}" ]] || return 0
+  link_dir="${SESSION_WORKSPACE}/logs/${session}"
+  link_path="${link_dir}/.agent-index.jsonl"
+  mkdir -p "$link_dir"
+  [[ -e "$link_path" || -L "$link_path" ]] && rm -f "$link_path"
+  ln -s "$index_path" "$link_path"
 }
 
 repo_log_roots() {
-  local roots=() candidate resolved existing
-  while IFS= read -r candidate; do
-    [[ -n "$candidate" ]] || continue
-    resolved="$(realpath_or_echo "$candidate")"
-    existing=0
-    for candidate in "${roots[@]:-}"; do
-      if [[ "$candidate" == "$resolved" ]]; then
-        existing=1
-        break
-      fi
-    done
-    [[ "$existing" -eq 1 ]] || roots+=("$resolved")
-  done < <(active_repo_log_roots)
-  for candidate in \
-    "${MULTIAGENT_LOG_DIR:-}" \
-    "${MULTIAGENT_WORKSPACE:-}/logs" \
-    "${REPO_ROOT}/logs"
-  do
-    [[ -n "$candidate" ]] || continue
-    resolved="$(realpath_or_echo "$candidate")"
-    existing=0
-    for candidate in "${roots[@]:-}"; do
-      if [[ "$candidate" == "$resolved" ]]; then
-        existing=1
-        break
-      fi
-    done
-    [[ "$existing" -eq 1 ]] || roots+=("$resolved")
-  done
-  printf '%s\n' "${roots[@]}"
+  printf '%s\n' "$AGENT_WINDOW_LOG_DIR"
 }
 
 find_archived_index_files() {
@@ -88,16 +63,6 @@ session_workspace_value() {
   tmux show-environment -t "$session" MULTIAGENT_WORKSPACE 2>/dev/null | sed 's/^[^=]*=//' || true
 }
 
-session_log_dir_value() {
-  local session="$1"
-  tmux show-environment -t "$session" MULTIAGENT_LOG_DIR 2>/dev/null | sed 's/^[^=]*=//' || true
-}
-
-session_index_path_value() {
-  local session="$1"
-  tmux show-environment -t "$session" MULTIAGENT_INDEX_PATH 2>/dev/null | sed 's/^[^=]*=//' || true
-}
-
 session_bin_dir_value() {
   local session="$1"
   tmux show-environment -t "$session" MULTIAGENT_BIN_DIR 2>/dev/null | sed 's/^[^=]*=//' || true
@@ -126,57 +91,15 @@ available_agents() {
 }
 
 resolve_session_log_dir() {
-  local log_dir="${MULTIAGENT_LOG_DIR:-}"
-  local index_path="${MULTIAGENT_INDEX_PATH:-}"
-  local existing_dir session_dir dir jsonl
-  local repo_session_dir="${REPO_ROOT}/logs/${SESSION_NAME}"
-  if [[ -z "$index_path" && -n "$SESSION_NAME" ]]; then
-    index_path="$(session_index_path_value "$SESSION_NAME")"
-  fi
-  if [[ -n "$index_path" ]]; then
-    mkdir -p "$(dirname "$index_path")"
-    printf '%s\n' "$(dirname "$index_path")"
+  local session_dir
+  if [[ "${SESSION_IS_ACTIVE:-0}" == "1" && -n "$SESSION_NAME" ]]; then
+    agent_index_ensure_session_index_mirrors "$SESSION_NAME"
+    printf '%s\n' "$(agent_index_session_log_dir "$SESSION_NAME")"
     return
   fi
-  if [[ -z "$log_dir" && -n "$SESSION_NAME" ]]; then
-    log_dir="$(session_log_dir_value "$SESSION_NAME")"
-  fi
-  if [[ -d "$repo_session_dir" ]]; then
-    printf '%s\n' "$repo_session_dir"
-    return
-  fi
-  if [[ -z "$log_dir" ]]; then
-    log_dir="${SESSION_WORKSPACE:-${MULTIAGENT_WORKSPACE:-}}/logs"
-  fi
-  if [[ "$log_dir" == "/logs" || -z "$log_dir" ]]; then
-    log_dir="${REPO_ROOT}/logs"
-  fi
-  session_dir="${log_dir}/${SESSION_NAME}"
-  if [[ -d "$session_dir" ]]; then
-    printf '%s\n' "$session_dir"
-    return
-  fi
-  existing_dir=""
-  while IFS= read -r jsonl; do
-    [[ -f "$jsonl" ]] || continue
-    dir="$(dirname "$jsonl")"
-    if [[ -z "$existing_dir" ]]; then
-      existing_dir="$dir"
-    else
-      [[ $(wc -c < "$jsonl") -gt $(wc -c < "${existing_dir}/.agent-index.jsonl") ]] && existing_dir="$dir"
-    fi
-  done < <(find "$log_dir" -maxdepth 2 -name ".agent-index.jsonl" -path "*/${SESSION_NAME}_*" 2>/dev/null)
-  if [[ -z "$existing_dir" ]]; then
-    existing_dir="$(find "$log_dir" -maxdepth 1 -type d -name "${SESSION_NAME}_*" 2>/dev/null | sort | tail -n 1)"
-  fi
-  if [[ -z "$existing_dir" ]]; then
-    existing_dir="$(find "${MULTIAGENT_WORKSPACE:-$PWD}" -maxdepth 3 -type d -name "${SESSION_NAME}_*" 2>/dev/null | sort | tail -n 1)"
-  fi
-  if [[ -n "$existing_dir" ]]; then
-    printf '%s\n' "$existing_dir"
-  else
-    printf '%s\n' "$session_dir"
-  fi
+  session_dir="$(agent_index_session_log_dir "$SESSION_NAME")"
+  mkdir -p "$session_dir"
+  printf '%s\n' "$session_dir"
 }
 
 resolve_session_name() {

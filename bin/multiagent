@@ -50,6 +50,19 @@ from backend_core.access.settings import local_runtime_log_dir
 print(local_runtime_log_dir(repo_root))
 PYEOF
 )"
+AGENT_WINDOW_RUN_DIR="${AGENT_WINDOW_RUN_DIR:-$(python3 - "$REPO_ROOT" <<'PYEOF'
+import sys
+from pathlib import Path
+
+repo_root = Path(sys.argv[1]).resolve()
+sys.path.insert(0, str(repo_root / "src"))
+sys.path.insert(0, str(repo_root))
+from backend_core.access.settings import agent_window_run_dir
+
+print(agent_window_run_dir(repo_root))
+PYEOF
+)}"
+export AGENT_WINDOW_RUN_DIR
 SESSION_NAME="${MULTIAGENT_SESSION_NAME:-}"
 SESSION_NAME_EXPLICIT=0
 WORKSPACE="$PWD"
@@ -1490,7 +1503,7 @@ else
   tmux set-environment -t "$SESSION_NAME" -u MULTIAGENT_PANES_USER 2>/dev/null || true
 fi
 if [[ -z "${LOG_DIR+x}" ]]; then
-  tmux set-environment -t "$SESSION_NAME" MULTIAGENT_LOG_DIR "${WORKSPACE}/logs"
+  tmux set-environment -t "$SESSION_NAME" MULTIAGENT_LOG_DIR "$CENTRAL_LOG_DIR"
 elif [[ -z "$LOG_DIR" ]]; then
   tmux set-environment -t "$SESSION_NAME" -u MULTIAGENT_LOG_DIR 2>/dev/null || true
 else

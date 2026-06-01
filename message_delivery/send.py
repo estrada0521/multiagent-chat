@@ -33,8 +33,10 @@ def session_topology_lock_path(tmux_socket: str, session_name: str) -> Path:
     sock = tmux_socket or "default"
     if sock.startswith("/"):
         digest = _hashlib.sha1(f"{sock}|{safe}".encode()).hexdigest()[:20]
-        return Path(f"/tmp/multiagent_sock_{digest}_topology_lock")
-    return Path(f"/tmp/multiagent_{sock}_{safe}_topology_lock")
+    else:
+        digest = _hashlib.sha1(f"{sock}|{safe}".encode()).hexdigest()[:20]
+    run_dir = Path(os.environ.get("AGENT_WINDOW_RUN_DIR") or (Path.home() / ".agent-window" / "run"))
+    return run_dir / "topology-locks" / f"{digest}.lock"
 
 
 from backend_core.access.settings import local_runtime_log_dir
@@ -61,31 +63,6 @@ def tmux_socket_from_env(repo_root: Path | str, env: dict[str, str]) -> str:
             return Path(socket_path).name
         return socket_path
     return default_tmux_socket_name(repo_root)
-
-def _symlink_target_abs(path: Path) -> str:
-    target = os.readlink(path)
-    if os.path.isabs(target):
-        return os.path.abspath(target)
-    return os.path.abspath(path.parent / target)
-
-
-def ensure_session_index_mirror(canonical_path: Path, mirror_base: Path, session_name: str) -> None:
-    canonical_path.parent.mkdir(parents=True, exist_ok=True)
-    canonical_abs = os.path.abspath(canonical_path)
-
-    if canonical_path.is_symlink():
-        try:
-            if _symlink_target_abs(canonical_path) == canonical_abs:
-                canonical_path.unlink()
-        except Exception:
-            try:
-                canonical_path.unlink()
-            except Exception:
-                pass
-
-    if not canonical_path.exists():
-        canonical_path.touch()
-
 
 class TmuxClient:
     def __init__(self, tmux_socket_name: str, env: dict[str, str]):
@@ -143,9 +120,6 @@ class AgentSendRuntime:
 
     def session_log_dir_value(self, session_name: str) -> str:
         return self.tmux_env(session_name, "MULTIAGENT_LOG_DIR")
-
-    def session_index_path_value(self, session_name: str) -> str:
-        return self.tmux_env(session_name, "MULTIAGENT_INDEX_PATH")
 
     def session_bin_dir_value(self, session_name: str) -> str:
         return self.tmux_env(session_name, "MULTIAGENT_BIN_DIR")
@@ -249,21 +223,8 @@ class AgentSendRuntime:
         return normalize_sender_payload(sender, payload)
 
     def resolve_session_index_path(self, session_name: str) -> Path:
-        index_path_raw = (self.env.get("MULTIAGENT_INDEX_PATH") or "").strip()
-        if not index_path_raw and session_name:
-            index_path_raw = self.session_index_path_value(session_name).strip()
-        if not index_path_raw and session_name:
-            index_path_raw = str(local_runtime_log_dir(self.repo_root) / session_name / ".agent-index.jsonl")
-
-        if index_path_raw:
-            index_path = Path(index_path_raw)
-            index_path.parent.mkdir(parents=True, exist_ok=True)
-            ensure_session_index_mirror(index_path, Path(), session_name)
-            if not index_path.exists():
-                index_path.touch()
-            return index_path
-
-        default_path = local_runtime_log_dir(self.repo_root) / "default" / ".agent-index.jsonl"
+        target_session = session_name or "default"
+        default_path = local_runtime_log_dir(self.repo_root) / target_session / ".agent-index.jsonl"
         default_path.parent.mkdir(parents=True, exist_ok=True)
         if not default_path.exists():
             default_path.touch()

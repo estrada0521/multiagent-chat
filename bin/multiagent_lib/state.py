@@ -92,6 +92,7 @@ def acquire_topology_lock(
     attempts = 0
     while True:
         try:
+            lock_path.parent.mkdir(parents=True, exist_ok=True)
             lock_path.mkdir()
             (lock_path / "pid").write_text(str(holder_pid), encoding="utf-8")
             return True
