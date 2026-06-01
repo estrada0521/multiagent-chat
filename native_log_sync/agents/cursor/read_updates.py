@@ -4,6 +4,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 import time
 
 from native_log_sync.agents._shared.path_state import (
@@ -16,6 +17,11 @@ from native_log_sync.duplicate import already_synced_message, mark_message_synce
 from native_log_sync.redacted import normalize_cursor_plaintext_for_index
 from native_log_sync.agents.cursor.read_runtime import iter_tool_calls, runtime_tool_events
 from native_log_sync.agents._shared.runtime_push import push_runtime_display
+
+
+_CURSOR_INTERNAL_NOTE_RE = re.compile(
+    r"(?:^|\n{2,})(?:\*\*)?[A-Z][A-Za-z]+ing[^\n]*(?:\*\*)?\s*\n{2,}",
+)
 
 
 def _cursor_assistant_message_has_no_tool_use(entry: dict) -> bool:
@@ -37,6 +43,16 @@ def _cursor_turn_done_from_batch(batch: list[tuple[int, dict]]) -> bool:
     return any(_cursor_assistant_message_has_no_tool_use(entry) for _ls, entry in batch)
 
 
+def _strip_cursor_internal_notes(text: str) -> str:
+    body = str(text or "").strip()
+    if not body:
+        return ""
+    match = _CURSOR_INTERNAL_NOTE_RE.search(body)
+    if not match:
+        return body
+    return body[: match.start()].rstrip()
+
+
 def _extract_cursor_sync_display_text(entry: dict) -> str:
     role = entry.get("role", "")
     if role == "assistant":
@@ -45,12 +61,12 @@ def _extract_cursor_sync_display_text(entry: dict) -> str:
             return ""
         content = msg_obj.get("content", [])
         if isinstance(content, str) and content.strip():
-            return content.strip()
+            return _strip_cursor_internal_notes(content)
         if isinstance(content, list):
             texts: list[str] = []
             for c in content:
                 if isinstance(c, dict) and c.get("type") == "text":
-                    text = str(c.get("text") or "").strip()
+                    text = _strip_cursor_internal_notes(str(c.get("text") or ""))
                     if text:
                         texts.append(text)
             if not texts:
