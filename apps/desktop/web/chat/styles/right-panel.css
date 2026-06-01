@@ -951,7 +951,7 @@
       display: flex;
       align-items: center;
       gap: 6px;
-      min-height: 0;
+      min-height: 36px;
       padding: 6px 6px 6px 30px;
       position: relative;
       box-sizing: border-box;
@@ -1009,15 +1009,12 @@
       font-size: var(--message-text-size, 13px);
     }
     .git-commit-file-row .git-commit-file-actions {
-      display: flex;
-      visibility: hidden;
-      opacity: 0;
+      display: none;
       padding-right: 2px;
     }
     .has-hover .git-commit-file-row:hover .git-commit-file-actions,
     .git-commit-file-row:focus-within .git-commit-file-actions {
-      visibility: visible;
-      opacity: 1;
+      display: flex;
     }
     .git-commit-file-icon {
       position: absolute;
