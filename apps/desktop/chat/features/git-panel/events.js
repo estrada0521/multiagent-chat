@@ -16,6 +16,11 @@
         closeWorktreeSummaryClick: true,
       });
     });
+    dpGitContent?.addEventListener("contextmenu", (event) => {
+      const fileRow = event.target.closest(".git-commit-file-row");
+      const path = String(fileRow?.dataset.path || "").trim();
+      if (path) void dpOpenFileContextMenu(path, event);
+    });
     document.getElementById("gitPinnedSummaryAside")?.addEventListener("click", async (event) => {
       if (event.target.closest(".git-summary-pin")) {
         event.preventDefault();

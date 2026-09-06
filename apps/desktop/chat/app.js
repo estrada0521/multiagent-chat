@@ -500,6 +500,83 @@ __CHAT_INCLUDE:features/git-panel/panel.js__
       dpStopPanelResize({ persist: true });
     });
     const dpNormalizePath = (value) => String(value || "").replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
+    let dpFileContextPath = "";
+    let dpFileContextRequestSeq = 0;
+    let dpWorkspaceRoot = "";
+    const dpShowFileActionStatus = (message, error = false) => {
+      setStatus(message, error);
+      setTimeout(() => setStatus(""), STATUS_TOAST_MS);
+    };
+    const dpOpenFileContextMenu = async (rawPath, event) => {
+      const path = dpNormalizePath(rawPath);
+      if (!path) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const requestSeq = ++dpFileContextRequestSeq;
+      let revealEnabled = false;
+      try {
+        const response = await fetchWithTimeout("/files-exist", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ paths: [path] }),
+        }, 4000);
+        if (!response.ok) throw new Error("Failed to inspect file path.");
+        const result = await response.json();
+        revealEnabled = result?.[path] === true;
+      } catch (err) {
+        dpShowFileActionStatus(err?.message || "Failed to inspect file path.", true);
+      }
+      if (requestSeq !== dpFileContextRequestSeq) return;
+      dpFileContextPath = path;
+      window.parent?.postMessage({
+        type: "show-file-context-menu",
+        payload: {
+          x: Math.round(Number(event.clientX) || 0),
+          y: Math.round(Number(event.clientY) || 0),
+          revealEnabled,
+        },
+      }, "*");
+    };
+    const dpCopyFilePath = async (path, absolute) => {
+      let text = path;
+      if (absolute) {
+        if (!dpWorkspaceRoot) {
+          const response = await fetchWithTimeout("/session-state?projections=base", {}, 4000);
+          if (!response.ok) throw new Error("Failed to read workspace path.");
+          const state = await response.json();
+          dpWorkspaceRoot = String(state?.workspace || "").replace(/\/+$/, "");
+          if (!dpWorkspaceRoot) throw new Error("Workspace path is unavailable.");
+        }
+        text = `${dpWorkspaceRoot}/${path}`;
+      }
+      await doCopyText(text);
+      dpShowFileActionStatus(absolute ? "Copied absolute path" : "Copied relative path");
+    };
+    const dpRevealFileInFinder = async (path) => {
+      const response = await fetchWithTimeout("/reveal-file", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path }),
+      }, 12000);
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data?.error || "Failed to reveal file in Finder.");
+      }
+      dpShowFileActionStatus(`Revealed ${path}`);
+    };
+    function handleDesktopFileContextMenuAction(payload) {
+      const action = String(payload?.action || "");
+      if (!["revealFileInFinder", "copyAbsoluteFilePath", "copyRelativeFilePath"].includes(action)) return false;
+      const path = dpFileContextPath;
+      if (!path) return true;
+      const operation = action === "revealFileInFinder"
+        ? dpRevealFileInFinder(path)
+        : dpCopyFilePath(path, action === "copyAbsoluteFilePath");
+      void operation.catch((err) => {
+        dpShowFileActionStatus(err?.message || "File action failed.", true);
+      });
+      return true;
+    }
     const dpFolderIcon = wrapFileIcon('<path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h5.1a1.5 1.5 0 0 1 1.06.44l1.9 1.9a1.5 1.5 0 0 0 1.06.44H19.5A1.5 1.5 0 0 1 21 9.28V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>');
     const dpChevronIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>';
     const dpBackIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg>';
@@ -560,6 +637,9 @@ __CHAT_INCLUDE:features/git-panel/panel.js__
         btn.addEventListener("click", async (e) => {
           e.preventDefault(); e.stopPropagation();
           await openFileSurface(entry.path, fileExtForPath(entry.path), btn, e);
+        });
+        btn.addEventListener("contextmenu", (e) => {
+          void dpOpenFileContextMenu(entry.path, e);
         });
       }
       return btn;
@@ -713,6 +793,10 @@ __CHAT_INCLUDE:features/git-panel/panel.js__
       }
       if (event.data.type === "desktop-panel-sync-request") {
         notifyParentPanelState();
+        return;
+      }
+      if (event.data.type === "file-context-menu-error") {
+        dpShowFileActionStatus(String(event.data.message || "Failed to open file menu."), true);
         return;
       }
       // Fit Height mode: the hub asks for the uncommitted-file list to build a

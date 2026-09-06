@@ -78,6 +78,7 @@
     };
     const handleTauriNativeMenuAction = async (payload) => {
       const data = payload || {};
+      if (handleDesktopFileContextMenuAction(data)) return;
       if (data.action === "agent") {
         const mode = String(data.mode || "");
         const agent = String(data.agent || "");

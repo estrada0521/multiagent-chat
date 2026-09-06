@@ -25,6 +25,7 @@
     "allow-set-fit-height-min",
     "allow-show-session-switcher-menu",
     "allow-show-git-changes-menu",
+    "allow-show-file-context-menu",
     "core:default",
     "core:window:allow-start-dragging",
     "core:window:allow-close",
