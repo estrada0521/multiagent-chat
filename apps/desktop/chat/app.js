@@ -859,7 +859,7 @@ __CHAT_INCLUDE:features/git-panel/panel.js__
           event.preventDefault();
           window.parent?.postMessage({ type: "text-size-shortcut", reset: true }, "*");
         }
-      });
+      }, true);
     })();
     let workspaceSyncEventSource = null;
     let workspaceSyncLastSeq = 0;
