@@ -843,7 +843,7 @@
       min-height: 0;
       overflow-y: auto;
       overflow-x: hidden;
-      padding: 0 0 28px;
+      padding: 0 0 2.15em;
       scrollbar-width: none;
       -ms-overflow-style: none;
     }
@@ -862,28 +862,28 @@
     }
     .desk-hub-footer-credit {
       position: absolute;
-      left: 26px;
-      bottom: 8px;
+      left: 2.6em;
+      bottom: 0.8em;
       z-index: 1;
       margin: 0;
       padding: 0;
       text-align: left;
-      font-size: 10px;
+      font-size: 0.77em;
       opacity: 0.55;
       color: var(--muted);
       pointer-events: none;
       white-space: nowrap;
       text-shadow:
-        0 0 3px var(--hub-glass),
-        0 0 3px var(--hub-glass),
-        0 0 6px var(--hub-glass),
-        0 0 6px var(--hub-glass);
+        0 0 0.3em var(--hub-glass),
+        0 0 0.3em var(--hub-glass),
+        0 0 0.6em var(--hub-glass),
+        0 0 0.6em var(--hub-glass);
     }
     .desk-hub-message {
       flex: none;
-      padding: 10px 12px 28px;
+      padding: 0.83em 1em 2.33em;
       color: var(--muted);
-      font-size: 12px;
+      font-size: 0.92em;
       line-height: 1.4;
       overflow-wrap: anywhere;
     }
@@ -895,8 +895,8 @@
     }
     .desk-hub-tagline {
       margin: 0;
-      padding: 18px 12px 0;
-      font-size: 22px;
+      padding: 0.82em 0.55em 0;
+      font-size: 1.69em;
       font-weight: 200;
       letter-spacing: -0.04em;
       color: var(--fg);
