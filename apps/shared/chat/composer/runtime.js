@@ -61,6 +61,7 @@
         card.addEventListener("click", () => {
           pendingAttachments = pendingAttachments.filter((a) => a !== attachment);
           card.remove();
+          updateSendBtnVisibility();
           if (!attachPreviewRow.children.length) attachPreviewRow.style.display = "none";
           if (attachment.path) {
             fetch("/delete-upload", {
@@ -183,8 +184,8 @@ __CHAT_INCLUDE:../upload-attached-files.js__
         if (sendBtn) sendBtn.classList.remove("visible");
         return;
       }
-      const hasText = messageInput.value.trim().length > 0;
-      if (sendBtn) sendBtn.classList.toggle("visible", hasText);
+      const hasContent = messageInput.value.trim().length > 0 || pendingAttachments.length > 0;
+      if (sendBtn) sendBtn.classList.toggle("visible", hasContent);
     };
     messageInput.addEventListener("input", updateSendBtnVisibility);
     messageInput.addEventListener("input", saveComposerDraft);

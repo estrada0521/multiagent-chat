@@ -19,6 +19,7 @@
             const attachment = { path: data.path, name: file.name };
             pendingAttachments.push(attachment);
             addCard(file, attachment);
+            updateSendBtnVisibility();
           }));
           return true;
         } catch (err) {

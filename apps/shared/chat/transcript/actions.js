@@ -155,6 +155,7 @@ __CHAT_INCLUDE:../shortcut-commands.js__
               const row = document.getElementById("attachPreviewRow");
               if (row) { row.innerHTML = ""; row.style.display = "none"; }
             }
+            updateSendBtnVisibility();
             closeComposerOverlay();
             setStatus(data.status_message || "done");
             void refresh();
@@ -216,6 +217,7 @@ __CHAT_INCLUDE:../shortcut-commands.js__
           const row = document.getElementById("attachPreviewRow");
           if (row) { row.innerHTML = ""; row.style.display = "none"; }
         }
+        updateSendBtnVisibility();
         closeComposerOverlay();
         setStatus(isNote ? "note saved" : `sent to ${target}`);
         // Mark the target agents running *before* rendering the sent message so
