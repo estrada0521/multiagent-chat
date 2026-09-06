@@ -921,6 +921,11 @@ __CHAT_INCLUDE:features/git-panel/panel.js__
             window.parent?.postMessage({ type: "move-window-shortcut", command: "move_window_top_right" }, "*");
             return;
           }
+          if (event.code === "ArrowDown") {
+            event.preventDefault();
+            window.parent?.postMessage({ type: "move-window-shortcut", command: "move_window_center" }, "*");
+            return;
+          }
         }
         if (event.metaKey && event.code === "Comma") {
           event.preventDefault();

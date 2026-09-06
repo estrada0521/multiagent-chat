@@ -260,7 +260,8 @@
 
     // Pure reposition -- unlike reset/compact above, this touches only the
     // window's position (size untouched, no sidebar/chat-view/height reset).
-    async function moveDeskWindowToEdge(command) {
+    // The command is move_window_top / _top_left / _top_right / _center.
+    async function moveDeskWindowToSpot(command) {
       const invoke = getTauriInvoke();
       if (typeof invoke !== "function") {
         showDeskHubMessage(`${command}: no tauri invoke available`, { error: true });
@@ -373,17 +374,22 @@
         }
         if (event.code === "ArrowUp") {
           event.preventDefault();
-          void moveDeskWindowToEdge("move_window_top");
+          void moveDeskWindowToSpot("move_window_top");
           return;
         }
         if (event.code === "ArrowLeft") {
           event.preventDefault();
-          void moveDeskWindowToEdge("move_window_top_left");
+          void moveDeskWindowToSpot("move_window_top_left");
           return;
         }
         if (event.code === "ArrowRight") {
           event.preventDefault();
-          void moveDeskWindowToEdge("move_window_top_right");
+          void moveDeskWindowToSpot("move_window_top_right");
+          return;
+        }
+        if (event.code === "ArrowDown") {
+          event.preventDefault();
+          void moveDeskWindowToSpot("move_window_center");
           return;
         }
       }
@@ -616,15 +622,19 @@
         return;
       }
       if (detail.action === "moveWindowTop") {
-        void moveDeskWindowToEdge("move_window_top");
+        void moveDeskWindowToSpot("move_window_top");
         return;
       }
       if (detail.action === "moveWindowTopLeft") {
-        void moveDeskWindowToEdge("move_window_top_left");
+        void moveDeskWindowToSpot("move_window_top_left");
         return;
       }
       if (detail.action === "moveWindowTopRight") {
-        void moveDeskWindowToEdge("move_window_top_right");
+        void moveDeskWindowToSpot("move_window_top_right");
+        return;
+      }
+      if (detail.action === "moveWindowCenter") {
+        void moveDeskWindowToSpot("move_window_center");
         return;
       }
       if (detail.action === "toggleHubSidebar") {
@@ -2005,7 +2015,7 @@
         return;
       }
       if (event.data && event.data.type === "move-window-shortcut") {
-        void moveDeskWindowToEdge(String(event.data.command || ""));
+        void moveDeskWindowToSpot(String(event.data.command || ""));
         return;
       }
       if (event.data && event.data.type === "fit-window-height" && event.source === _deskChatFrame?.contentWindow) {

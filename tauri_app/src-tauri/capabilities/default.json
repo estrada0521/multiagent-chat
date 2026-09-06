@@ -20,6 +20,7 @@
     "allow-move-window-top",
     "allow-move-window-top-left",
     "allow-move-window-top-right",
+    "allow-move-window-center",
     "allow-set-always-on-top",
     "allow-set-window-height",
     "allow-set-fit-height-min",

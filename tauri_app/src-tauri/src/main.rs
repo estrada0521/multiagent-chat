@@ -375,6 +375,13 @@ fn show_appearance_menu(
     .accelerator("Cmd+Alt+Right")
     .build(&app)
     .map_err(|err| err.to_string())?;
+    let move_center = MenuItemBuilder::with_id(
+        format!("{}action:moveWindowCenter", NATIVE_MENU_PREFIX),
+        "Move to Center",
+    )
+    .accelerator("Cmd+Alt+Down")
+    .build(&app)
+    .map_err(|err| err.to_string())?;
 
     let toggle_sidebar = MenuItemBuilder::with_id(
         format!("{}action:toggleHubSidebar", NATIVE_MENU_PREFIX),
@@ -443,6 +450,7 @@ fn show_appearance_menu(
         .item(&move_top)
         .item(&move_left)
         .item(&move_right)
+        .item(&move_center)
         .item(&toggle_sidebar)
         .item(&toggle_right_pane)
         .item(&toggle_sidebar_outward)
@@ -803,16 +811,17 @@ fn menu_bar_inset(window: &tauri::WebviewWindow) -> f64 {
 }
 
 #[derive(Clone, Copy)]
-enum ScreenEdge {
+enum WindowSpot {
     Top,
     Left,
     Right,
+    Center,
 }
 
-// Slides the window to one screen edge along a single axis, leaving the other
-// axis (and the size) exactly where they were. Top also tucks it under the
-// menu bar.
-fn move_window_to_edge(window: &tauri::WebviewWindow, edge: ScreenEdge) -> Result<(), String> {
+// Moves the window to a preset spot on the current monitor, keeping its size.
+// Top/Left/Right slide along a single axis, leaving the other axis exactly
+// where it was (Top also tucks under the menu bar); Center recenters on both.
+fn move_window_to_spot(window: &tauri::WebviewWindow, spot: WindowSpot) -> Result<(), String> {
     let scale_factor = window.scale_factor().map_err(|err| err.to_string())?;
     let monitor = window
         .current_monitor()
@@ -828,12 +837,16 @@ fn move_window_to_edge(window: &tauri::WebviewWindow, edge: ScreenEdge) -> Resul
         .outer_size()
         .map_err(|err| err.to_string())?
         .to_logical::<f64>(scale_factor);
-    let (x, y) = match edge {
-        ScreenEdge::Top => (cur_pos.x, monitor_pos.y + menu_bar_inset(window)),
-        ScreenEdge::Left => (monitor_pos.x, cur_pos.y),
-        ScreenEdge::Right => (
+    let (x, y) = match spot {
+        WindowSpot::Top => (cur_pos.x, monitor_pos.y + menu_bar_inset(window)),
+        WindowSpot::Left => (monitor_pos.x, cur_pos.y),
+        WindowSpot::Right => (
             monitor_pos.x + (monitor_size.width - cur_size.width).max(0.0),
             cur_pos.y,
+        ),
+        WindowSpot::Center => (
+            monitor_pos.x + ((monitor_size.width - cur_size.width) / 2.0).max(0.0),
+            monitor_pos.y + ((monitor_size.height - cur_size.height) / 2.0).max(0.0),
         ),
     };
     window
@@ -843,17 +856,22 @@ fn move_window_to_edge(window: &tauri::WebviewWindow, edge: ScreenEdge) -> Resul
 
 #[tauri::command]
 fn move_window_top(window: tauri::WebviewWindow) -> Result<(), String> {
-    move_window_to_edge(&window, ScreenEdge::Top)
+    move_window_to_spot(&window, WindowSpot::Top)
 }
 
 #[tauri::command]
 fn move_window_top_left(window: tauri::WebviewWindow) -> Result<(), String> {
-    move_window_to_edge(&window, ScreenEdge::Left)
+    move_window_to_spot(&window, WindowSpot::Left)
 }
 
 #[tauri::command]
 fn move_window_top_right(window: tauri::WebviewWindow) -> Result<(), String> {
-    move_window_to_edge(&window, ScreenEdge::Right)
+    move_window_to_spot(&window, WindowSpot::Right)
+}
+
+#[tauri::command]
+fn move_window_center(window: tauri::WebviewWindow) -> Result<(), String> {
+    move_window_to_spot(&window, WindowSpot::Center)
 }
 
 fn emit_native_menu_action(app: &tauri::AppHandle, id: &str) {
@@ -1142,6 +1160,7 @@ fn main() {
             move_window_top,
             move_window_top_left,
             move_window_top_right,
+            move_window_center,
             set_always_on_top,
             set_window_height,
             set_fit_height_min,
