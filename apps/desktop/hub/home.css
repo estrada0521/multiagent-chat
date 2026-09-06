@@ -828,6 +828,7 @@
       flex-direction: column;
       overflow: hidden;
       position: relative;
+      font-size: var(--text-size, 13px);
     }
     .desk-sidebar-sessions::-webkit-scrollbar {
       display: none;
@@ -904,11 +905,7 @@
       pointer-events: none;
     }
     .desk-new-session-section {
-      padding: 16px 0 0;
-      /* Pull the list up by roughly what .desk-section-label now adds on top
-         (24px, up from 9px), so New Session -> Active keeps its old gap while
-         Active/Archived still get the headroom. */
-      margin-bottom: -13px;
+      padding: 1.23em 0 0;
       border-bottom: none;
       display: block;
       background: transparent;
@@ -916,7 +913,7 @@
     .desk-new-session-toggle {
       width: 100%;
       margin: 0;
-      padding: 10px 12px 10px;
+      padding: 0.77em 12px;
       border-radius: 0;
       opacity: 1;
       position: relative;
@@ -945,16 +942,20 @@
       background: transparent;
     }
     .desk-section-label {
-      padding: 24px 12px 5px;
-      font-size: calc(var(--text-size, 13px) - 3px);
+      padding: 2.4em 12px 0.5em;
+      font-size: 0.77em;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       color: var(--muted);
       opacity: 1;
     }
+    .desk-session-list > .desk-section-label:first-child {
+      padding-top: 1.1em;
+    }
     .desk-session-row {
       display: block;
-      padding: 10px 12px 10px;
+      padding: 0.77em 12px;
+      font-size: var(--text-size, 13px);
       border-bottom: none;
       border-radius: 0;
       cursor: pointer;
@@ -1180,7 +1181,7 @@
       display: flex;
       flex-direction: row;
       align-items: baseline;
-      gap: 6px;
+      gap: 0.46em;
     }
     .desk-action-session-row .desk-row-stack {
       position: relative;
@@ -1512,6 +1513,7 @@
       max-height: 70vh;
       overflow-y: auto;
       scrollbar-width: none;
+      font-size: var(--text-size, 13px);
     }
     .desk-sidebar-hover-list::-webkit-scrollbar { display: none; }
     .desk-sidebar-hover-list[data-scroll-fade="top"] {
@@ -1527,13 +1529,13 @@
       -webkit-mask-image: linear-gradient(to bottom, transparent 0, black 48px, black calc(100% - 48px), transparent 100%);
     }
     .desk-sidebar-hover-list .desk-section-label {
-      padding: 14px 12px 3px;
-      font-size: calc(var(--text-size, 13px) - 3px);
+      padding: 1.4em 12px 0.3em;
+      font-size: 0.77em;
     }
     .desk-sidebar-hover-list .desk-session-row {
       border-radius: 8px;
       margin: 0;
-      padding: 8px 10px;
+      padding: 0.62em 10px;
     }
     .desk-sidebar-hover-list .desk-session-row:hover .desk-row-stack,
     .desk-sidebar-hover-list .desk-session-row:focus-within .desk-row-stack {

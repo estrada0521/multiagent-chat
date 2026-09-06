@@ -1,4 +1,6 @@
     .md-body {
+      --prose-rhythm: 0.46em;
+      --prose-block-rhythm: 0.77em;
       flex: 1;
       min-width: 0;
       font-family: var(--font-main);
@@ -38,7 +40,7 @@
     }
 
     .md-body p {
-      margin: 0 0 6px;
+      margin: 0 0 var(--prose-rhythm);
     }
 
     .md-body h1,
@@ -51,7 +53,7 @@
     }
 
     .md-body h1 {
-      font-size: 22px;
+      font-size: 1.7em;
     }
 
     .md-body h2 {
@@ -68,12 +70,12 @@
 
     .md-body ul,
     .md-body ol {
-      margin: 0.4em 0 6px;
+      margin: 0.4em 0 var(--prose-rhythm);
       padding-left: 2em;
     }
 
     .md-body li {
-      margin: 0 0 6px;
+      margin: 0 0 var(--prose-rhythm);
     }
 
     .md-body li p {
@@ -161,13 +163,13 @@
 
     .md-body .katex-display {
       display: block;
-      margin-top: 13px;
-      margin-bottom: 6px;
+      margin-top: 1em;
+      margin-bottom: var(--prose-rhythm);
       width: 100%;
       max-width: 100%;
       box-sizing: border-box;
       padding-inline: 16px;
-      padding-bottom: 7px;
+      padding-bottom: 0.54em;
       overflow-x: auto;
       overflow-y: hidden;
       text-align: left;
@@ -239,8 +241,8 @@
       background: var(--code-bg);
       border: none;
       border-radius: 26px;
-      padding: 8px 36px 8px 16px;
-      margin: 0 0 6px;
+      padding: 0.62em 36px 0.62em 16px;
+      margin: 0 0 var(--prose-rhythm);
       overflow-x: auto;
       overflow-y: visible;
       white-space: pre;
@@ -255,14 +257,14 @@
     .md-body .code-block-wrap {
       position: relative;
       display: block;
-      margin: 10px 0;
+      margin: var(--prose-block-rhythm) 0;
       overflow: hidden;
       border-radius: 26px;
     }
 
     .md-body li > * + pre,
     .md-body li > * + .code-block-wrap {
-      margin-top: 6px;
+      margin-top: var(--prose-rhythm);
     }
 
     .md-body .code-block-wrap pre {
@@ -356,7 +358,7 @@
     .md-body td {
       white-space: nowrap;
       border: none;
-      padding: 5px 12px;
+      padding: 0.38em 12px;
       text-align: left;
       font: inherit;
     }
@@ -371,7 +373,7 @@
 
     .md-body th {
       background: transparent;
-      font-size: calc(var(--text-size, 13px) - 2px);
+      font-size: 0.85em;
       font-weight: 600;
       letter-spacing: 0.04em;
       text-transform: uppercase;

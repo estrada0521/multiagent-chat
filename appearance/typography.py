@@ -97,11 +97,10 @@ def body_typography_css() -> str:
 
 def chat_font_style(*, text_size: object = DESKTOP_TEXT_SIZE) -> str:
     size = clamp_text_size(text_size)
-    line_height = text_line_height_px(size)
     return f"""
     :root {{
       --text-size: {size}px;
-      --text-line-height: {line_height:g}px;
+      --text-line-height: {TEXT_LINE_HEIGHT_RATIO:g};
       --message-max-width: {MESSAGE_MAX_WIDTH}px;
       --font-main: {MESSAGE_FONT};
       --font-code: {CODE_FONT};
