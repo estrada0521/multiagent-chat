@@ -168,6 +168,29 @@ def set_session_workspace(session_name: str, workspace: str) -> None:
     write_json_atomically(meta_path, raw, indent=2)
 
 
+def reset_session_agents(session_name: str) -> None:
+    """Drop the recorded agent list and name overrides from a session's .meta.
+
+    Offered for any archived session; a later revive starts without the old
+    agent set. Like set_session_workspace, this touches nothing else.
+    """
+    name = str(session_name or "").strip()
+    if not name:
+        raise SessionMetaError("session name is required")
+    meta_path = agent_window_session_root() / name / ".meta"
+    if not meta_path.is_file():
+        raise SessionMetaError(f"session not found: {name}")
+    try:
+        raw = json.loads(meta_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise SessionMetaError(f"invalid session meta: {meta_path}") from exc
+    if not isinstance(raw, dict):
+        raise SessionMetaError(f"invalid session meta: {meta_path}")
+    raw.pop("agents", None)
+    raw.pop("agent_names", None)
+    write_json_atomically(meta_path, raw, indent=2)
+
+
 def write_session_meta_file(
     session_name: str,
     agents_csv: str,

@@ -624,6 +624,10 @@
         if (_deskContextSessionName) void changeDeskSessionWorkspace(_deskContextSessionName);
         return;
       }
+      if (detail.action === "resetAgents") {
+        if (_deskContextSessionName) void resetDeskSessionAgents(_deskContextSessionName);
+        return;
+      }
       if (detail.action === "textSize") {
         const mode = String(detail.mode || "");
         if (mode === "increase") {
@@ -1365,16 +1369,19 @@
       }
       setDeskReloadShell(false);
       const needsReviveTransition = /^\/revive-session(?:[/?]|$)/.test(String(openHref || ""));
+      const archived = !!findSessionRecord(name)?.archived;
       const closeOnOpen = isPhoneViewport();
       _deskSelectedSessionName = name;
       updateDeskWindowTitle(name);
       persistDeskSelection(name);
       setDeskSelectionInUrl(name);
       renderDesktopSessions(_hubSessionsCache.active, _hubSessionsCache.warnings, _hubSessionsCache.archived);
-      if (needsReviveTransition) setDeskChatLoading(true);
+      setDeskChatLoading(true);
       const openToken = ++_deskOpenToken;
       try {
-        const chatUrl = await resolveSessionChatUrl(openHref, { force: needsReviveTransition });
+        // Only one archived chat server remains alive. Opening another archived
+        // session stops the previous one, so its cached URL cannot be reused.
+        const chatUrl = await resolveSessionChatUrl(openHref, { force: archived || needsReviveTransition });
         if (openToken !== _deskOpenToken) return;
         if (needsReviveTransition) {
           await refreshHubSessions(true, { skipRestore: true });
@@ -1666,6 +1673,25 @@
       // old workspace's port; drop it so the next open re-resolves.
       hubChatUrls.forget(buildSessionOpenHref(sessionName, true));
       showDeskHubMessage(`Workspace updated for ${sessionName}.`);
+    }
+
+    async function resetDeskSessionAgents(sessionName) {
+      if (!sessionName) return;
+      showDeskHubMessage();
+      try {
+        const res = await fetch("/reset-session-agents", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+          body: new URLSearchParams({ session: sessionName }).toString(),
+          cache: "no-store",
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) throw new Error(data.error || "Failed to reset agents.");
+      } catch (err) {
+        showDeskHubMessage(err?.message || "Failed to reset agents.", { error: true });
+        return;
+      }
+      showDeskHubMessage(`Agents reset for ${sessionName}.`);
     }
 
     function beginDeskSessionRename(sessionName) {
@@ -2288,15 +2314,15 @@
         event.preventDefault();
         _deskContextSessionName = sessionName;
         const rec = findSessionRecord(sessionName);
-        // Change Workspace is a plain .meta rewrite, so keep it off the session
-        // currently on screen -- that one has a live chat server on a port
-        // derived from its workspace.
-        const changeWorkspace = !!(rec && rec.archived) && sessionName !== _deskSelectedSessionName;
+        const archived = !!(rec && rec.archived);
         invoke("show_session_context_menu", {
           payload: {
             x: Math.round(event.clientX),
             y: Math.round(event.clientY),
-            changeWorkspace,
+            // Reset Agents just clears a .meta field. Change Workspace also
+            // moves the chat port, so it waits until the session is off screen.
+            resetAgents: archived,
+            changeWorkspace: archived && sessionName !== _deskSelectedSessionName,
           },
         }).catch((err) => {
           showDeskHubMessage(String(err || "Failed to open session menu."), { error: true });

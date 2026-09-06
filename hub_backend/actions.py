@@ -4,7 +4,11 @@ import json
 import time
 from urllib.parse import parse_qs
 
-from backend_core.access.session_meta import SessionMetaError, set_session_workspace
+from backend_core.access.session_meta import (
+    SessionMetaError,
+    reset_session_agents,
+    set_session_workspace,
+)
 from backend_core.access.settings import agent_window_session_root, save_hub_settings
 from hub_backend.chat_supervisor import (
     delete_archived_session,
@@ -217,3 +221,14 @@ def post_change_session_workspace(handler, _parsed, _ctx) -> None:
         handler._send_json(409, {"ok": False, "error": str(exc)})
         return
     handler._send_json(200, {"ok": True, "session": session_name, "workspace": workspace})
+
+
+def post_reset_session_agents(handler, _parsed, _ctx) -> None:
+    data = handler._read_form()
+    session_name = str(data.get("session") or "").strip()
+    try:
+        reset_session_agents(session_name)
+    except SessionMetaError as exc:
+        handler._send_json(409, {"ok": False, "error": str(exc)})
+        return
+    handler._send_json(200, {"ok": True, "session": session_name})

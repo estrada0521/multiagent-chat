@@ -87,6 +87,8 @@ struct SessionContextMenuPayload {
     y: f64,
     #[serde(default)]
     change_workspace: bool,
+    #[serde(default)]
+    reset_agents: bool,
 }
 
 #[tauri::command]
@@ -644,16 +646,24 @@ fn show_session_context_menu(
     )
     .build(&app)
     .map_err(|err| err.to_string())?;
-    // Offered only for an archived session that isn't the one on screen -- see
-    // the hub's contextmenu handler. That keeps it to a plain .meta rewrite:
-    // no chat server derives a port from this session's workspace right now.
+    // Archived-session .meta edits -- see the hub's contextmenu handler for
+    // when each is offered.
     let change_workspace = MenuItemBuilder::with_id(
         format!("{}action:changeWorkspace", NATIVE_MENU_PREFIX),
         "Change Workspace",
     )
     .build(&app)
     .map_err(|err| err.to_string())?;
+    let reset_agents = MenuItemBuilder::with_id(
+        format!("{}action:resetAgents", NATIVE_MENU_PREFIX),
+        "Reset Agents",
+    )
+    .build(&app)
+    .map_err(|err| err.to_string())?;
     let mut builder = MenuBuilder::new(&app).item(&rename);
+    if payload.reset_agents {
+        builder = builder.item(&reset_agents);
+    }
     if payload.change_workspace {
         builder = builder.item(&change_workspace);
     }

@@ -1315,16 +1315,8 @@
       background: transparent;
       overflow: hidden;
     }
-    .desk-chat-shell.loading::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: transparent;
-      z-index: 2;
-      pointer-events: none;
-    }
-    .desk-chat-shell.loading::after {
-      display: none;
+    .desk-chat-shell.loading .desk-chat-frame {
+      visibility: hidden;
     }
     .desk-reload-shell {
       position: absolute;
