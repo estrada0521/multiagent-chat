@@ -11,6 +11,10 @@ class SlashCommandSpec:
     has_arg: bool
     path: str
     desktop_only: bool = False
+    # When set, selecting the command inserts this text into the composer
+    # (like an @-mention) instead of POSTing to a backend route -- for
+    # referencing files @-search can't reach, such as dotfiles.
+    insert: str = ""
 
 
 PANE_CONTROL_COMMANDS = (
@@ -52,6 +56,10 @@ APPLICATION_COMMANDS = (
         id="openpane", slash="/open-pane", desc="選択中エージェントの tmux pane を開く",
         has_arg=False, path="/open-pane", desktop_only=True,
     ),
+    SlashCommandSpec(
+        id="log", slash="/log", desc="`.agent-window/.log.jsonl` を挿入",
+        has_arg=False, path="", insert="`.agent-window/.log.jsonl`",
+    ),
 )
 
 SLASH_COMMANDS = PANE_CONTROL_COMMANDS + APPLICATION_COMMANDS
@@ -71,6 +79,7 @@ def public_slash_command_dicts() -> list[dict[str, str | bool]]:
             "has_arg": c.has_arg,
             "path": c.path,
             "desktop_only": c.desktop_only,
+            "insert": c.insert,
         }
         for c in SLASH_COMMANDS
     ]

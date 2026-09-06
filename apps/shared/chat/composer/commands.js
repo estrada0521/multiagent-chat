@@ -33,6 +33,13 @@
     const selectCmd = (idx) => {
       const item = _lastCmdItemsData[idx];
       if (!item) return;
+      if (item.insert) {
+        messageInput.value = item.insert + " ";
+        autoResizeTextarea();
+        closeCmdDrop();
+        focusMessageInputWithoutScroll(messageInput.value.length);
+        return;
+      }
       if (item.has_arg) {
         messageInput.value = item.slash + " ";
         autoResizeTextarea();
@@ -81,6 +88,7 @@
           desc: c.desc,
           has_arg: !!c.has_arg,
           path: c.path,
+          insert: c.insert || "",
           type: "command",
           label: c.slash,
         }));

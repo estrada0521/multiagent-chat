@@ -113,6 +113,16 @@ __CHAT_INCLUDE:../shortcut-commands.js__
         }
         const parsed = parseSlashCommandInput(rawInput, list);
         if (parsed) {
+          if (parsed.insert) {
+            // Not a backend command: drop the token into the composer (like an
+            // @-mention) and leave it for the user to send.
+            message.value = parsed.insert + " ";
+            updateSendBtnVisibility();
+            autoResizeTextarea();
+            focusMessageInputWithoutScroll(message.value.length);
+            sendLocked = false;
+            return false;
+          }
           const arg = parsed.arg;
           if (closeOverlayOnStart && isComposerOverlayOpen()) {
             blurComposerOnMobile(message);

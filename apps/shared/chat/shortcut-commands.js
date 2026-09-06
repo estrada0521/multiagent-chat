@@ -19,7 +19,7 @@
         const slash = String(c.slash || "");
         if (!slash.startsWith("/")) continue;
         if (normalized === slash) {
-          return { id: c.id, arg: "", path: c.path };
+          return { id: c.id, arg: "", path: c.path, insert: c.insert || "" };
         }
         if (c.has_arg && normalized.startsWith(slash + " ")) {
           return { id: c.id, arg: normalized.slice(slash.length + 1), path: c.path };
