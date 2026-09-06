@@ -283,7 +283,15 @@ def _raise_terminal_window_for_tty(tty: str) -> bool:
     return result.returncode == 0 and (result.stdout or "").strip() == "true"
 
 
-def _open_terminal(handler, ctx, *, agent: str = "", pane_required: bool = False) -> None:
+def _open_terminal(
+    handler, ctx, *, agent: str = "", pane_required: bool = False, success_message: str = ""
+) -> None:
+    def _ok() -> None:
+        payload = {"ok": True}
+        if success_message:
+            payload["status_message"] = success_message
+        handler._send_json(200, payload)
+
     runtime = ctx["runtime"]
     if not runtime.session_is_active:
         handler._send_json(409, {"ok": False, "error": "tmux session is not active"})
@@ -320,7 +328,7 @@ def _open_terminal(handler, ctx, *, agent: str = "", pane_required: bool = False
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
                 )
-                handler._send_json(200, {"ok": True})
+                _ok()
                 return
             clients_res = subprocess.run(
                 [*prefix, "list-clients", "-t", tmux_name, "-F", "#{client_tty}"],
@@ -340,7 +348,7 @@ def _open_terminal(handler, ctx, *, agent: str = "", pane_required: bool = False
                         stdout=subprocess.DEVNULL,
                         stderr=subprocess.DEVNULL,
                     )
-                handler._send_json(200, {"ok": True})
+                _ok()
                 return
     try:
         prefix = tmux_prefix_args(ctx["tmux_socket"])
@@ -388,7 +396,7 @@ def _open_terminal(handler, ctx, *, agent: str = "", pane_required: bool = False
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
-        handler._send_json(200, {"ok": True})
+        _ok()
     except Exception as exc:
         handler._send_json(500, {"ok": False, "error": str(exc)})
 
@@ -416,7 +424,10 @@ def _post_open_pane(handler, _parsed, ctx) -> None:
     if len(agents) != 1:
         handler._send_json(400, {"ok": False, "error": "select exactly one target"})
         return
-    _open_terminal(handler, ctx, agent=agents[0], pane_required=True)
+    _open_terminal(
+        handler, ctx, agent=agents[0], pane_required=True,
+        success_message=f"opened {agents[0]}'s pane",
+    )
 
 
 def _post_open_finder(handler, _parsed, ctx) -> None:
