@@ -105,20 +105,13 @@ Clicking an uncommitted change opens it in git's configured diff viewer (`git di
 
 | Key | Action |
 |---|---|
-| `⌥⌘0` | Restore the default size |
-| `⌥⌘9` | Switch to a compact size |
-| `⌥⌘H` | Keep the window height matched to the latest message |
+| `⌥⌘0` / `⌥⌘9` | Default / compact size |
+| `⌥⌘H` | Match the window height to the latest message |
 | `⌥⌘P` | Keep above other windows |
-| `⌥⌘↑` | Move to the top edge |
-| `⌥⌘←` | Move to the left edge |
-| `⌥⌘→` | Move to the right edge |
-| `⌥⌘↓` | Center on screen |
-| `⌥⌘B` | Toggle the Hub sidebar outward, keeping the chat area in place |
-| `⌥⌘E` | Toggle the right pane outward, keeping the chat area in place |
-| `⌘B` | Toggle the Hub sidebar |
-| `⌘E` | Toggle the right pane (Git / Repo) |
+| `⌥⌘↑` `←` `→` `↓` | Move to that screen edge; `↓` centers |
+| `⌘B` / `⌘E` | Toggle the Hub sidebar / right pane (add `⌥` to grow the window outward instead) |
 
-The first two are window-size presets. With Fit Height (`⌥⌘H`) on, the Hub and the right pane are replaced by native macOS menus, and `⌘B` / `⌘E` do nothing.
+With Fit Height (`⌥⌘H`) on, the Hub and right pane become native macOS menus, so `⌘B` / `⌘E` do nothing.
 
 <p align="center">
   <img src="media/agent-window-fit.gif" width="100%" alt="Fit Height demo">
