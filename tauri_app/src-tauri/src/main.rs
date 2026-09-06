@@ -24,6 +24,8 @@ const MIN_WINDOW_HEIGHT: f64 = 103.0;
 // message really does get a one-line window.
 const FIT_WINDOW_MIN_HEIGHT: f64 = 0.0;
 const COMPACT_WINDOW_WIDTH: f64 = 560.0;
+const MINI_WINDOW_WIDTH: f64 = 384.0;
+const MINI_WINDOW_HEIGHT: f64 = 600.0;
 
 use window_vibrancy::{
     apply_liquid_glass, apply_vibrancy, clear_liquid_glass, clear_vibrancy, NSGlassEffectViewStyle,
@@ -373,6 +375,14 @@ fn show_appearance_menu(
     .build(&app)
     .map_err(|err| err.to_string())?;
 
+    let mini_window = MenuItemBuilder::with_id(
+        format!("{}action:miniWindow", NATIVE_MENU_PREFIX),
+        "Mini Window",
+    )
+    .accelerator("Cmd+Alt+8")
+    .build(&app)
+    .map_err(|err| err.to_string())?;
+
     let move_top = MenuItemBuilder::with_id(
         format!("{}action:moveWindowTop", NATIVE_MENU_PREFIX),
         "Move to Top",
@@ -464,6 +474,7 @@ fn show_appearance_menu(
     )
     .item(&reset_window)
     .item(&compact_window)
+    .item(&mini_window)
     .build()
     .map_err(|err| err.to_string())?;
 
@@ -835,12 +846,13 @@ fn set_window_height(
         .map_err(|err| err.to_string())
 }
 
-#[tauri::command]
-fn compact_window_geometry(window: tauri::WebviewWindow) -> Result<(), String> {
-    // Same centering approach as reset_window_geometry: compute the target
-    // position from the monitor, not the window's (possibly stale) own size.
-    let width = COMPACT_WINDOW_WIDTH;
-    let height = DEFAULT_WINDOW_SIZE;
+// Same centering approach as reset_window_geometry: compute the target
+// position from the monitor, not the window's (possibly stale) own size.
+fn place_centered_window(
+    window: &tauri::WebviewWindow,
+    width: f64,
+    height: f64,
+) -> Result<(), String> {
     let scale_factor = window.scale_factor().map_err(|err| err.to_string())?;
     let monitor = window
         .current_monitor()
@@ -856,6 +868,16 @@ fn compact_window_geometry(window: tauri::WebviewWindow) -> Result<(), String> {
     window
         .set_position(tauri::LogicalPosition::new(x, y))
         .map_err(|err| err.to_string())
+}
+
+#[tauri::command]
+fn compact_window_geometry(window: tauri::WebviewWindow) -> Result<(), String> {
+    place_centered_window(&window, COMPACT_WINDOW_WIDTH, DEFAULT_WINDOW_SIZE)
+}
+
+#[tauri::command]
+fn mini_window_geometry(window: tauri::WebviewWindow) -> Result<(), String> {
+    place_centered_window(&window, MINI_WINDOW_WIDTH, MINI_WINDOW_HEIGHT)
 }
 
 #[tauri::command]
@@ -1254,6 +1276,7 @@ fn main() {
             show_appearance_menu,
             reset_window_geometry,
             compact_window_geometry,
+            mini_window_geometry,
             resize_window_from_edge,
             move_window_top,
             move_window_top_left,

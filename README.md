@@ -117,7 +117,7 @@ Clicking an uncommitted change opens it in git's configured diff viewer (`git di
 
 | Key | Action |
 |---|---|
-| `⌥⌘0` / `⌥⌘9` | Default / compact size |
+| `⌥⌘0` / `⌥⌘9` / `⌥⌘8` | Default / compact / mini size |
 | `⌘B` / `⌘E` | Toggle the Hub sidebar / right pane (add `⌥` to grow the window outward instead) |
 | `⌥⌘↑` `←` `→` `↓` | Move to that screen edge; `↓` centers |
 | `⌥⌘P` | Keep above other windows |

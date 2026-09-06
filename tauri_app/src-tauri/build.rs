@@ -6,6 +6,7 @@ fn main() {
             "show_appearance_menu",
             "reset_window_geometry",
             "compact_window_geometry",
+            "mini_window_geometry",
             "resize_window_from_edge",
             "move_window_top",
             "move_window_top_left",

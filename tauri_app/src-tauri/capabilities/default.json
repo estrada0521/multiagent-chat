@@ -16,6 +16,7 @@
     "allow-show-appearance-menu",
     "allow-reset-window-geometry",
     "allow-compact-window-geometry",
+    "allow-mini-window-geometry",
     "allow-resize-window-from-edge",
     "allow-move-window-top",
     "allow-move-window-top-left",

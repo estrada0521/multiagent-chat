@@ -924,6 +924,11 @@ __CHAT_INCLUDE:features/git-panel/panel.js__
             window.parent?.postMessage({ type: "compact-window-shortcut" }, "*");
             return;
           }
+          if (event.code === "Digit8" || event.key === "8") {
+            event.preventDefault();
+            window.parent?.postMessage({ type: "mini-window-shortcut" }, "*");
+            return;
+          }
           if (event.code === "ArrowUp") {
             event.preventDefault();
             window.parent?.postMessage({ type: "move-window-shortcut", command: "move_window_top" }, "*");

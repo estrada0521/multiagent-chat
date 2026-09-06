@@ -257,19 +257,19 @@
       resetDeskChatView();
     }
 
-    async function compactDeskWindowState() {
+    async function compactDeskWindowState(command = "compact_window_geometry", label = "compact window") {
       setDeskSidebarOpen(false);
       setDeskAutoWindowHeight(false);
       applyDeskAlwaysOnTop(false);
       const invoke = getTauriInvoke();
       if (typeof invoke === "function") {
         try {
-          await invoke("compact_window_geometry");
+          await invoke(command);
         } catch (err) {
-          showDeskHubMessage(`compact window failed: ${err}`, { error: true });
+          showDeskHubMessage(`${label} failed: ${err}`, { error: true });
         }
       } else {
-        showDeskHubMessage("compact window: no tauri invoke available", { error: true });
+        showDeskHubMessage(`${label}: no tauri invoke available`, { error: true });
       }
       resetDeskChatView();
     }
@@ -417,6 +417,11 @@
       if (event.metaKey && event.altKey && (event.code === "Digit9" || event.key === "9")) {
         event.preventDefault();
         void compactDeskWindowState();
+        return;
+      }
+      if (event.metaKey && event.altKey && (event.code === "Digit8" || event.key === "8")) {
+        event.preventDefault();
+        void compactDeskWindowState("mini_window_geometry", "mini window");
         return;
       }
       if (event.metaKey && event.code === "Comma") {
@@ -690,6 +695,10 @@
       }
       if (detail.action === "compactWindow") {
         void compactDeskWindowState();
+        return;
+      }
+      if (detail.action === "miniWindow") {
+        void compactDeskWindowState("mini_window_geometry", "mini window");
         return;
       }
       if (detail.action === "moveWindowTop") {
@@ -2186,6 +2195,10 @@
       }
       if (event.data && event.data.type === "compact-window-shortcut") {
         void compactDeskWindowState();
+        return;
+      }
+      if (event.data && event.data.type === "mini-window-shortcut") {
+        void compactDeskWindowState("mini_window_geometry", "mini window");
         return;
       }
       if (event.data && event.data.type === "always-on-top-shortcut") {
