@@ -73,7 +73,7 @@ Agent Window also recognizes these shortcut commands:
 
 | Command | Action |
 | --- | --- |
-| `/up [count]`, `/down [count]`, `/left [count]`, `/right [count]`, `/enter`, `/esc`, `/ctrlc` | Send the corresponding key to the selected pane. `count` is optional (1–100). |
+| `/up, /down, /left, /right [count]`, `/enter`, `/esc`, `/ctrlc` | Send the corresponding key to the selected pane. |
 | `/restart`, `/resume` | Restart / resume the CLI. |
 | `/open-pane` | Open the selected Agent's tmux pane. Desktop only. |
 | `/nativelog` | Reveal the selected Agent's native log in Finder. Desktop only. |
@@ -116,10 +116,10 @@ Clicking an uncommitted change opens it in git's configured diff viewer (`git di
 | Key | Action |
 |---|---|
 | `⌥⌘0` / `⌥⌘9` | Default / compact size |
-| `⌥⌘H` | Match the window height to the latest message |
-| `⌥⌘P` | Keep above other windows |
-| `⌥⌘↑` `←` `→` `↓` | Move to that screen edge; `↓` centers |
 | `⌘B` / `⌘E` | Toggle the Hub sidebar / right pane (add `⌥` to grow the window outward instead) |
+| `⌥⌘↑` `←` `→` `↓` | Move to that screen edge; `↓` centers |
+| `⌥⌘P` | Keep above other windows |
+| `⌥⌘H` | Match the window height to the latest message |
 
 With Fit Height (`⌥⌘H`) on, the Hub and right pane become native macOS menus, so `⌘B` / `⌘E` do nothing.
 

@@ -75,7 +75,7 @@ Agent Windowは次のshortcut commandも認識します。
 
 | Command | 操作 |
 | --- | --- |
-| `/up [count]`, `/down [count]`, `/left [count]`, `/right [count]`, `/enter`, `/esc`, `/ctrlc` | 対応するkeyを送ります。`count`は省略可能です（1–100）。 |
+| `/up, /down, /left, /right [count]`, `/enter`, `/esc`, `/ctrlc` | 対応するkeyを送ります。 |
 | `/restart`, `/resume` | CLIをrestart/resumeします。 |
 | `/open-pane` | 選択中のAgentのtmux paneを開きます。desktopのみ。 |
 | `/nativelog` | 選択中のAgentのnative logをFinderで表示します。desktopのみ。 |
@@ -118,10 +118,10 @@ uncommitted changeをクリックすると、gitに設定されたdiff viewer (`
 | キー | 動作 |
 |---|---|
 | `⌥⌘0` / `⌥⌘9` | 既定 / コンパクトサイズ |
-| `⌥⌘H` | ウィンドウの高さを最新メッセージに合わせ続ける |
-| `⌥⌘P` | 最前面に固定 |
-| `⌥⌘↑` `←` `→` `↓` | その画面端へ移動。`↓` は中央 |
 | `⌘B` / `⌘E` | Hubサイドバー / 右paneの表示切替（`⌥` 併用でchat領域を保ったまま外側に広げる） |
+| `⌥⌘↑` `←` `→` `↓` | その画面端へ移動。`↓` は中央 |
+| `⌥⌘P` | 最前面に固定 |
+| `⌥⌘H` | ウィンドウの高さを最新メッセージに合わせ続ける |
 
 Fit Height (`⌥⌘H`) を有効にすると、Hubと右paneがOSのnative menuに置き換えられ、`⌘B` / `⌘E` は無効になります。
 
