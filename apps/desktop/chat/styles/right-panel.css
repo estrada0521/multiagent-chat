@@ -287,13 +287,15 @@
       width: 100%;
       height: 100%;
       display: block;
-      stroke-width: 1.9;
+    }
+    .repo-browser-item-icon svg,
+    .git-commit-file-icon svg {
+      stroke-width: 1.45;
     }
     .repo-browser-file .repo-browser-item-icon svg,
     .git-commit-file-icon svg {
       width: var(--right-panel-small-icon-size);
       height: var(--right-panel-small-icon-size);
-      stroke-width: 1.45;
     }
     .repo-browser-item-name {
       flex: 1 1 auto;
