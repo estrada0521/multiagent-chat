@@ -69,6 +69,16 @@ The input field is normally minimized to leave more room for the chat, and expan
 
 Text in the input field is entered directly, via `tmux send-keys`, into the pane running the selected Agent CLI. It is not converted into an Agent Window-specific message format, so **slash commands and other native CLI commands also pass through the same input field.** A failed send is detected as `send_error`, but success is not notified. Minimal controls that CLIs don't offer by default — restarting a pane, interrupting from mobile — are wired in by Agent Window.
 
+Agent Window also recognizes these shortcut commands:
+
+| Command | Action |
+| --- | --- |
+| `/up [count]`, `/down [count]`, `/left [count]`, `/right [count]`, `/enter`, `/esc`, `/ctrlc` | Send the corresponding key to the selected pane. `count` is optional (1–100). |
+| `/restart`, `/resume` | Restart / resume the CLI. |
+| `/open-pane` | Open the selected Agent's tmux pane. Desktop only. |
+| `/nativelog` | Reveal the selected Agent's native log in Finder. Desktop only. |
+| `/log` | Insert `.agent-window/.log.jsonl` into the message. Also works in the middle of text. |
+
 Typing `@` searches files in the workspace. Files can also be attached with the plus button or by drag-and-drop. Attached files are saved to `<workspace>/.agent-window/uploads/`, and their path is passed to the Agent as ordinary text.
 
 ## Read
@@ -87,7 +97,7 @@ It's also reachable from the current workspace via a symlink. It isn't a databas
 
 The unified log isn't each CLI's detailed execution history. It's a projection, reduced to a granularity both humans and Agents can read across.
 
-Tool calls are streamed to the screen while running, for a sense of progress, but are not kept in this timeline.
+Tool calls are streamed to the screen while running, for a sense of progress, but are not kept in this timeline. Clicking the icon opens the corresponding tmux pane.
 
 Each CLI's execution record is watched from outside, and the process/log-path mapping is re-resolved whenever necessary. So the CLI process's lifespan and the unified log's lifespan don't have to match.
 

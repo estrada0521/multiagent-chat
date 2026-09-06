@@ -71,6 +71,16 @@ sessionのArchive、revive、削除、rename、workspaceの変更はHubから行
 
 入力に失敗した場合は `send_error` として検出されますが、成功は通知しません。paneのrestartやmobileからのinterruptなど、CLIの既定コマンドだけでは届かない最小限の制御はAgent Windowが配線します。
 
+Agent Windowは次のshortcut commandも認識します。
+
+| Command | 操作 |
+| --- | --- |
+| `/up [count]`, `/down [count]`, `/left [count]`, `/right [count]`, `/enter`, `/esc`, `/ctrlc` | 対応するkeyを送ります。`count`は省略可能です（1–100）。 |
+| `/restart`, `/resume` | CLIをrestart/resumeします。 |
+| `/open-pane` | 選択中のAgentのtmux paneを開きます。desktopのみ。 |
+| `/nativelog` | 選択中のAgentのnative logをFinderで表示します。desktopのみ。 |
+| `/log` | `.agent-window/.log.jsonl` をmessageへ挿入します。文中でも使用できます。 |
+
 `@` を入力するとworkspace内のfileを検索できます。fileはplus buttonまたはdrag-and-dropでも添付できます。添付されたfileは `<workspace>/.agent-window/uploads/` に保存され、そのpathがAgentへ通常のtextとして渡されます。
 
 ## 読む
@@ -89,7 +99,7 @@ CLIの切り替え、複数Agentの同時実行、processの再起動を跨い�
 
 統一ログは各CLIの詳細な実行履歴そのものではありません。人間とAgentが横断して読める粒度へのprojectionです。
 
-tool callは進行状況を示すため実行中にstreamされますが、この時系列には残りません。
+tool callは進行状況を示すため実行中にstreamされますが、この時系列には残りません。アイコンをクリックすると対応するtmux paneを開きます。
 
 各CLIの実行記録は外側から監視され、processやlog pathが変われば必要に応じて再解決されます。そのためCLI processの寿命と統一ログの寿命は一致しません。
 
