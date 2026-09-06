@@ -387,8 +387,8 @@
     }
 
     .message:not(.user) .message-meta-below .copy-btn svg {
-      width: 1.3em;
-      height: 1.3em;
+      width: 1.31em;
+      height: 1.31em;
     }
 
     .message:not(.user) .message-meta-below .copy-btn svg * {
