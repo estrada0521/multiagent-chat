@@ -89,6 +89,12 @@ struct SessionContextMenuPayload {
     change_workspace_enabled: bool,
     #[serde(default)]
     reset_agents_enabled: bool,
+    #[serde(default)]
+    archive_enabled: bool,
+    #[serde(default)]
+    delete_enabled: bool,
+    #[serde(default)]
+    revive_enabled: bool,
 }
 
 #[tauri::command]
@@ -668,6 +674,27 @@ fn show_session_context_menu(
     .enabled(payload.reset_agents_enabled)
     .build(&app)
     .map_err(|err| err.to_string())?;
+    let archive = MenuItemBuilder::with_id(
+        format!("{}action:archiveSession", NATIVE_MENU_PREFIX),
+        "Archive",
+    )
+    .enabled(payload.archive_enabled)
+    .build(&app)
+    .map_err(|err| err.to_string())?;
+    let delete = MenuItemBuilder::with_id(
+        format!("{}action:deleteSession", NATIVE_MENU_PREFIX),
+        "Delete",
+    )
+    .enabled(payload.delete_enabled)
+    .build(&app)
+    .map_err(|err| err.to_string())?;
+    let revive = MenuItemBuilder::with_id(
+        format!("{}action:reviveSession", NATIVE_MENU_PREFIX),
+        "Revive",
+    )
+    .enabled(payload.revive_enabled)
+    .build(&app)
+    .map_err(|err| err.to_string())?;
     let menu = MenuBuilder::new(&app)
         .item(&rename)
         .separator()
@@ -675,6 +702,10 @@ fn show_session_context_menu(
         .separator()
         .item(&change_workspace)
         .item(&reset_agents)
+        .separator()
+        .item(&archive)
+        .item(&revive)
+        .item(&delete)
         .build()
         .map_err(|err| err.to_string())?;
 

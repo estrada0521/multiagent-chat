@@ -632,6 +632,23 @@
         if (_deskContextSessionName) void resetDeskSessionAgents(_deskContextSessionName);
         return;
       }
+      if (detail.action === "archiveSession") {
+        if (_deskContextSessionName) void runDeskContextAction(_deskContextSessionName, "kill");
+        return;
+      }
+      if (detail.action === "deleteSession") {
+        if (_deskContextSessionName) void runDeskContextAction(_deskContextSessionName, "delete-archived");
+        return;
+      }
+      if (detail.action === "reviveSession") {
+        if (_deskContextSessionName) {
+          openSessionFrame(
+            `/revive-session?session=${encodeURIComponent(_deskContextSessionName)}`,
+            _deskContextSessionName,
+          );
+        }
+        return;
+      }
       if (detail.action === "textSize") {
         const mode = String(detail.mode || "");
         if (mode === "increase") {
@@ -1516,13 +1533,13 @@
       const selectedClass = _deskSelectedSessionName === sessionName ? " is-selected" : "";
       const isSelected = _deskSelectedSessionName === sessionName;
       const unreadClass = !isSelected && _deskUnreadSessions.has(sessionName) ? " is-unread" : "";
-      const showRevive = archived && isSelected;
-      const swipeActionLabel = showRevive ? "Revive" : (archived ? "Delete" : "Archive");
-      const swipeActionRoute = showRevive ? "revive" : (archived ? "delete-archived" : "kill");
+      const showDelete = archived && isSelected;
+      const swipeActionLabel = showDelete ? "Delete" : (archived ? "Revive" : "Archive");
+      const swipeActionRoute = showDelete ? "delete-archived" : (archived ? "revive" : "kill");
       const trashSvg = `<svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"></path><path d="M19 6l-1 14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 6"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
       const killSvg = `<svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>`;
       const reviveSvg = `<svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>`;
-      const actionSvg = showRevive ? reviveSvg : (archived ? trashSvg : killSvg);
+      const actionSvg = showDelete ? trashSvg : (archived ? reviveSvg : killSvg);
       const previewText = String(session.latest_message_preview || "").trim();
       const previewSender = String(session.latest_message_sender || "").trim();
       const previewDisplay = previewSender ? `${previewSender} ${previewText}` : previewText;
@@ -2359,12 +2376,16 @@
         _deskContextSessionName = sessionName;
         const rec = findSessionRecord(sessionName);
         const archived = !!(rec && rec.archived);
+        const selected = sessionName === _deskSelectedSessionName;
         invoke("show_session_context_menu", {
           payload: {
             x: Math.round(event.clientX),
             y: Math.round(event.clientY),
             resetAgentsEnabled: archived && !rec.session.agents_reset,
-            changeWorkspaceEnabled: archived && sessionName !== _deskSelectedSessionName,
+            changeWorkspaceEnabled: archived && !selected,
+            archiveEnabled: !archived,
+            deleteEnabled: archived && selected,
+            reviveEnabled: archived,
           },
         }).catch((err) => {
           showDeskHubMessage(String(err || "Failed to open session menu."), { error: true });
