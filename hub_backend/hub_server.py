@@ -39,6 +39,7 @@ from hub_backend.actions import (
     get_kill_session as _get_kill_session_action,
     get_open_session as _get_open_session_action,
     get_revive_session as _get_revive_session_action,
+    get_session_workspace as _get_session_workspace_action,
     post_change_session_workspace as _post_change_session_workspace_action,
     post_rename_session as _post_rename_session_action,
     post_reset_session_agents as _post_reset_session_agents_action,
@@ -453,6 +454,7 @@ _GET_ROUTE_HANDLERS = {
     "/revive-session": _get_revive_session_action,
     "/kill-session": _get_kill_session_action,
     "/delete-archived-session": _get_delete_archived_session_action,
+    "/session-workspace": _get_session_workspace_action,
     "/": "_get_home",
     "/index.html": "_get_home",
 }
@@ -587,6 +589,7 @@ class Handler(BaseHTTPRequestHandler):
                     "latest_message_sender": record["latest_message_sender"],
                     "latest_message_preview": record["latest_message_preview"],
                     "latest_message_revision": record["latest_message_revision"],
+                    "agents_reset": record["agents_reset"],
                 }
                 for record in archived_session_records(query.non_archived_names).values()
             ]

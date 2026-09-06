@@ -620,6 +620,10 @@
         if (_deskContextSessionName) beginDeskSessionRename(_deskContextSessionName);
         return;
       }
+      if (detail.action === "copyWorkspacePath") {
+        if (_deskContextSessionName) void copyDeskSessionWorkspace(_deskContextSessionName);
+        return;
+      }
       if (detail.action === "changeWorkspace") {
         if (_deskContextSessionName) void changeDeskSessionWorkspace(_deskContextSessionName);
         return;
@@ -778,6 +782,24 @@
           _deskHubMessageTimer = 0;
         }, DESK_HUB_MESSAGE_VISIBLE_MS);
       }
+    }
+
+    async function copyDeskText(text) {
+      if (navigator.clipboard?.writeText) {
+        try {
+          await navigator.clipboard.writeText(text);
+          return;
+        } catch (_) {}
+      }
+      const input = document.createElement("textarea");
+      input.value = text;
+      input.style.cssText = "position:fixed;opacity:0;top:0;left:0";
+      document.body.appendChild(input);
+      input.focus();
+      input.select();
+      const copied = document.execCommand("copy");
+      input.remove();
+      if (!copied) throw new Error("Clipboard is unavailable.");
     }
 
     function openDeskChatHeaderMenu() {
@@ -1675,6 +1697,24 @@
       showDeskHubMessage(`Workspace updated for ${sessionName}.`);
     }
 
+    async function copyDeskSessionWorkspace(sessionName) {
+      if (!sessionName) return;
+      showDeskHubMessage();
+      try {
+        const res = await fetch(`/session-workspace?session=${encodeURIComponent(sessionName)}`, { cache: "no-store" });
+        const data = await res.json().catch(() => ({}));
+        const workspace = String(data.workspace || "").trim();
+        if (!res.ok || !data.ok || !workspace) {
+          throw new Error(data.error || "Workspace path is unavailable.");
+        }
+        await copyDeskText(workspace);
+      } catch (err) {
+        showDeskHubMessage(err?.message || "Failed to copy workspace path.", { error: true });
+        return;
+      }
+      showDeskHubMessage(`Copied workspace path for ${sessionName}.`);
+    }
+
     async function resetDeskSessionAgents(sessionName) {
       if (!sessionName) return;
       showDeskHubMessage();
@@ -1694,6 +1734,7 @@
       if (_deskSelectedSessionName === sessionName) {
         postDeskChatFrameMessage({ type: "refresh-session-state", projections: ["targets"] });
       }
+      await refreshHubSessions(true, { skipRestore: true });
       showDeskHubMessage(`Agents reset for ${sessionName}.`);
     }
 
@@ -2322,10 +2363,8 @@
           payload: {
             x: Math.round(event.clientX),
             y: Math.round(event.clientY),
-            // Reset Agents just clears a .meta field. Change Workspace also
-            // moves the chat port, so it waits until the session is off screen.
-            resetAgents: archived,
-            changeWorkspace: archived && sessionName !== _deskSelectedSessionName,
+            resetAgentsEnabled: archived && !rec.session.agents_reset,
+            changeWorkspaceEnabled: archived && sessionName !== _deskSelectedSessionName,
           },
         }).catch((err) => {
           showDeskHubMessage(String(err || "Failed to open session menu."), { error: true });

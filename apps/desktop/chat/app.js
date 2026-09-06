@@ -642,10 +642,10 @@ __CHAT_INCLUDE:features/git-panel/panel.js__
           e.preventDefault(); e.stopPropagation();
           await openFileSurface(entry.path, fileExtForPath(entry.path), btn, e);
         });
-        btn.addEventListener("contextmenu", (e) => {
-          void dpOpenFileContextMenu(entry.path, e);
-        });
       }
+      btn.addEventListener("contextmenu", (e) => {
+        void dpOpenFileContextMenu(entry.path, e);
+      });
       return btn;
     };
     const dpRepoEntriesStructureSignature = (entries) =>

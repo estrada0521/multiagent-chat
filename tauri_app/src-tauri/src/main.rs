@@ -86,9 +86,9 @@ struct SessionContextMenuPayload {
     x: f64,
     y: f64,
     #[serde(default)]
-    change_workspace: bool,
+    change_workspace_enabled: bool,
     #[serde(default)]
-    reset_agents: bool,
+    reset_agents_enabled: bool,
 }
 
 #[tauri::command]
@@ -646,28 +646,37 @@ fn show_session_context_menu(
     )
     .build(&app)
     .map_err(|err| err.to_string())?;
-    // Archived-session .meta edits -- see the hub's contextmenu handler for
-    // when each is offered.
+    let copy_workspace_path = MenuItemBuilder::with_id(
+        format!("{}action:copyWorkspacePath", NATIVE_MENU_PREFIX),
+        "Copy Workspace Path",
+    )
+    .build(&app)
+    .map_err(|err| err.to_string())?;
+    // Archived-session state operations remain visible so the menu layout is
+    // stable; the hub decides whether each operation is currently enabled.
     let change_workspace = MenuItemBuilder::with_id(
         format!("{}action:changeWorkspace", NATIVE_MENU_PREFIX),
         "Change Workspace",
     )
+    .enabled(payload.change_workspace_enabled)
     .build(&app)
     .map_err(|err| err.to_string())?;
     let reset_agents = MenuItemBuilder::with_id(
         format!("{}action:resetAgents", NATIVE_MENU_PREFIX),
         "Reset Agents",
     )
+    .enabled(payload.reset_agents_enabled)
     .build(&app)
     .map_err(|err| err.to_string())?;
-    let mut builder = MenuBuilder::new(&app).item(&rename);
-    if payload.reset_agents {
-        builder = builder.item(&reset_agents);
-    }
-    if payload.change_workspace {
-        builder = builder.item(&change_workspace);
-    }
-    let menu = builder.build().map_err(|err| err.to_string())?;
+    let menu = MenuBuilder::new(&app)
+        .item(&rename)
+        .separator()
+        .item(&copy_workspace_path)
+        .separator()
+        .item(&change_workspace)
+        .item(&reset_agents)
+        .build()
+        .map_err(|err| err.to_string())?;
 
     window
         .popup_menu_at(&menu, tauri::LogicalPosition::new(payload.x, payload.y))

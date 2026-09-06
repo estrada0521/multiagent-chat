@@ -205,6 +205,12 @@
         void dpPostOpenFile(path);
       });
 
+      expand.addEventListener("contextmenu", (event) => {
+        const file = event.target.closest(".git-pinned-expand-file");
+        const path = String(file?.dataset.path || "").trim();
+        if (path) void dpOpenFileContextMenu(path, event);
+      });
+
       aside.addEventListener("mouseenter", () => { cancelTimers(); openTimer = setTimeout(open, 60); });
       aside.addEventListener("mouseleave", () => { cancelTimers(); closeTimer = setTimeout(close, 60); });
     })();

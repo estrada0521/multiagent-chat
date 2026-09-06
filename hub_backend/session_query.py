@@ -296,6 +296,7 @@ def archived_sessions(excluded_names: set[str] | list[str] | None = None) -> lis
                 log_path=log_path,
             )
             record["agents"] = agents
+            record["agents_reset"] = "agents" not in meta and "agent_names" not in meta
             record["log_dir"] = str(log_path.parent)
             existing = records.get(session_name)
             if existing is None or mtime > existing[0]:

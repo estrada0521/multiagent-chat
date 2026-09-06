@@ -7,6 +7,7 @@ from urllib.parse import parse_qs
 from backend_core.access.session_meta import (
     SessionMetaError,
     reset_session_agents,
+    session_workspace,
     set_session_workspace,
 )
 from backend_core.access.settings import agent_window_session_root, save_hub_settings
@@ -157,6 +158,23 @@ def get_delete_archived_session(handler, parsed, ctx) -> None:
         handler.send_response(302)
         handler.send_header("Location", "/")
         handler.end_headers()
+
+
+def get_session_workspace(handler, parsed, _ctx) -> None:
+    qs = parse_qs(parsed.query)
+    session_name = (qs.get("session", [""])[0] or "").strip()
+    if not session_name:
+        handler._send_json(404, {"ok": False, "error": "Session not found"})
+        return
+    try:
+        workspace = session_workspace(session_name)
+    except SessionMetaError as exc:
+        handler._send_json(409, {"ok": False, "error": str(exc)})
+        return
+    if not workspace:
+        handler._send_json(404, {"ok": False, "error": "Workspace path is unavailable."})
+        return
+    handler._send_json(200, {"ok": True, "session": session_name, "workspace": workspace})
 
 
 def post_restart_hub(handler, _parsed, ctx) -> None:
