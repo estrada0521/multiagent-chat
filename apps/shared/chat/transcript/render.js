@@ -236,6 +236,13 @@
     };
     const setStatus = (text, isError = false) => {
       const node = document.getElementById("statusline");
+      if (!sessionActive) {
+        // Archived session: the statusline is a fixed read-only label. Nothing
+        // transient (toasts, the SSE reconnect blank) gets to overwrite it.
+        node.textContent = "archived session is read-only";
+        node.classList.remove("is-error");
+        return;
+      }
       node.textContent = text;
       node.classList.toggle("is-error", isError);
     };

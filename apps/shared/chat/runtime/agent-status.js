@@ -43,6 +43,8 @@ __CHAT_INCLUDE:../session-state-projections.js__
         sessionActive = data.active;
       }
       document.getElementById("message").disabled = !sessionActive;
+      const _attachBtn = document.getElementById("attachBtn");
+      if (_attachBtn) _attachBtn.disabled = !sessionActive;
       if (typeof data.session === "string" && data.session) {
         restoreComposerDraft();
       }

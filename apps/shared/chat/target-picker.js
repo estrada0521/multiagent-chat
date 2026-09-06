@@ -1,5 +1,6 @@
     const renderTargetPicker = (targets) => {
       const root = document.getElementById("targetPicker");
+      root.classList.toggle("target-picker-readonly", !canComposeInSession());
       const selectedSet = new Set(selectedTargets);
       const targetsSig = JSON.stringify(targets);
       const selectionSig = JSON.stringify([...selectedSet].sort());
@@ -14,6 +15,7 @@
         root.querySelectorAll(".target-chip").forEach((node) => {
           node.addEventListener("mousedown", (e) => e.preventDefault());
           node.addEventListener("click", () => {
+            if (!canComposeInSession()) return;  // archived session: chips show, selection is frozen
             const target = node.dataset.target;
             if (selectedTargets.includes(target)) {
               selectedTargets = selectedTargets.filter((item) => item !== target);

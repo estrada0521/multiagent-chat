@@ -225,6 +225,12 @@
       color: var(--icon-hover);
       background: var(--panel-row-hover-bg);
     }
+
+    .composer-attach-btn:disabled {
+      opacity: 0.3;
+      cursor: default;
+      pointer-events: none;
+    }
     .composer-attach-btn:active,
     .composer-attach-btn.pressing {
       transform: scale(0.92);
@@ -250,6 +256,9 @@
       color: var(--chip-color);
       cursor: pointer;
       transition: none;
+    }
+    .target-picker-readonly .target-chip {
+      pointer-events: none;
     }
     .target-chip .target-icon {
       width: 20px;

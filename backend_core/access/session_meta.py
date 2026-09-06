@@ -127,6 +127,22 @@ def session_workspace(session_name: str) -> str | None:
     return str(meta.get("workspace") or "").strip() or None
 
 
+def session_meta_agents(session_name: str) -> list[str]:
+    """The agent list a session's .meta records. The composer's target row
+    shows these for an archived session so the topology is visible before a
+    revive; an unreadable or missing .meta just yields none.
+    """
+    meta_path = agent_window_session_root() / str(session_name or "").strip() / ".meta"
+    try:
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return []
+    raw = meta.get("agents") if isinstance(meta, dict) else None
+    if not isinstance(raw, list):
+        return []
+    return [str(a).strip() for a in raw if str(a).strip()]
+
+
 def write_session_meta_file(
     session_name: str,
     agents_csv: str,

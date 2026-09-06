@@ -1,4 +1,7 @@
       const uploadAttachedFiles = async (fileList) => {
+        // Archived / read-only session: the attach button is disabled, but a
+        // drop or paste would otherwise still reach here.
+        if (!canComposeInSession()) return false;
         const files = Array.from(fileList || []).filter((f) => f && typeof f.name === "string");
         if (!files.length) return false;
         try {

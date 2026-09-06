@@ -234,10 +234,7 @@ __CHAT_INCLUDE:../shortcut-commands.js__
     };
     document.getElementById("composer").addEventListener("submit", async (event) => {
       event.preventDefault();
-      if (!canComposeInSession()) {
-        setStatus("archived session is read-only", true);
-        return;
-      }
+      if (!canComposeInSession()) return;  // statusline already shows the read-only label
       const submitter = event.submitter;
       const closeOverlayOnStart = !!(submitter && submitter.classList && submitter.classList.contains("send-btn"));
       await submitMessage({ closeOverlayOnStart });

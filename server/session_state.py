@@ -5,6 +5,8 @@ import time
 import os
 from collections import deque
 
+from backend_core.access.session_meta import session_meta_agents
+
 SESSION_STATE_PROJECTIONS = (
     "base",
     "targets",
@@ -134,7 +136,14 @@ def build_session_state_payload(
             }
         )
     if "targets" in selected:
-        payload["targets"] = runtime.active_agents()
+        # Inactive (archived) session: no tmux to ask, but the composer's
+        # target row still shows the session's agents from .meta -- read-only
+        # on the client.
+        payload["targets"] = (
+            runtime.active_agents()
+            if runtime.session_is_active
+            else session_meta_agents(session_name)
+        )
     if "statuses" in selected:
         payload["statuses"] = runtime.agent_statuses()
     if "agent_runtime" in selected:
