@@ -49,13 +49,13 @@
     const _deskTopRightControls = document.querySelector(".desk-top-right-controls");
     const _deskSessionTitleTextEl = document.getElementById("deskSessionTitleText");
     const DESK_SELECTED_KEY = "agent_window_hub_selected_session";
-    const DESK_SIDEBAR_WIDTH_KEY = "agent_window_hub_sidebar_width";
+    const DESK_SIDEBAR_WIDTH_KEY = "agent_window_hub_sidebar_width_at_default_text_size";
     const DESK_SIDEBAR_OPEN_KEY = "agent_window_hub_sidebar_open";
     const DESK_AUTO_HEIGHT_KEY = "agent_window_hub_auto_window_height";
     const HUB_PENDING_ERROR_KEY = "agent_window_hub_pending_error";
-    const DESK_DEFAULT_SIDEBAR_WIDTH = 262;
-    const DESK_MIN_SIDEBAR_WIDTH = 160;
-    const DESK_MAX_SIDEBAR_WIDTH = 420;
+    const DESK_DEFAULT_SIDEBAR_WIDTH_AT_DEFAULT_TEXT_SIZE = 262;
+    const DESK_MIN_SIDEBAR_WIDTH_AT_DEFAULT_TEXT_SIZE = 160;
+    const DESK_MAX_SIDEBAR_WIDTH_AT_DEFAULT_TEXT_SIZE = 420;
     const DESK_SWIPE_ACTION_WIDTH = 92;
     const DESK_SWIPE_OPEN_THRESHOLD = 40;
     const DESK_SIDEBAR_CLOSE_SWIPE_EDGE_PX = 36;
@@ -101,6 +101,7 @@
     }
     function applyDeskTextSizeAndBroadcast(px) {
       const clamped = applyDeskTextSizeLocal(px);
+      applyDeskSidebarWidth();
       try { localStorage.setItem(DESK_TEXT_SIZE_KEY, String(clamped)); } catch (_) {}
       try {
         _deskChatFrame?.contentWindow?.postMessage({ type: "hub-text-size-changed", textSize: clamped }, "*");
@@ -232,7 +233,7 @@
     // final size -- not the pre-preset one, whatever it was.
     async function resetDeskWindowState() {
       showDeskSidebarList({ open: true });
-      setDeskSidebarWidth(DESK_DEFAULT_SIDEBAR_WIDTH);
+      setDeskSidebarWidthAtDefaultTextSize(DESK_DEFAULT_SIDEBAR_WIDTH_AT_DEFAULT_TEXT_SIZE);
       setDeskAutoWindowHeight(false);
       applyDeskAlwaysOnTop(false);
       const invoke = getTauriInvoke();
@@ -314,7 +315,7 @@
     function toggleDeskSidebarOutward() {
       if (_deskAutoWindowHeight) return;
       const opening = !isDeskSidebarOpen();
-      const width = _deskSidebarWidth;
+      const width = currentDeskSidebarWidthPx();
       void resizeDeskWindowAroundPane({
         edge: "left",
         delta: opening ? width : -width,
@@ -750,7 +751,7 @@
     let _deskSelectedSessionName = "";
     let _deskChatFrameLoadedUrl = "";
     let _deskOpenToken = 0;
-    let _deskSidebarWidth = DESK_DEFAULT_SIDEBAR_WIDTH;
+    let _deskSidebarWidthAtDefaultTextSize = DESK_DEFAULT_SIDEBAR_WIDTH_AT_DEFAULT_TEXT_SIZE;
     let _deskOpenSwipeRow = null;
     let _deskContextSessionName = "";
     let _deskSessionRename = null;
@@ -953,31 +954,56 @@
       window.visualViewport.addEventListener("scroll", () => syncAppShellHeight());
     }
 
-    function clampDeskSidebarWidth(value) {
-      return Math.max(DESK_MIN_SIDEBAR_WIDTH, Math.min(DESK_MAX_SIDEBAR_WIDTH, Math.round(Number(value) || DESK_DEFAULT_SIDEBAR_WIDTH)));
+    function roundDeskSidebarWidth(value) {
+      return Math.round(value * 100) / 100;
     }
 
-    function readDeskSidebarWidth() {
+    function clampDeskSidebarWidthAtDefaultTextSize(value) {
+      const numeric = Number(value);
+      const width = Number.isFinite(numeric) ? numeric : DESK_DEFAULT_SIDEBAR_WIDTH_AT_DEFAULT_TEXT_SIZE;
+      return roundDeskSidebarWidth(Math.max(
+        DESK_MIN_SIDEBAR_WIDTH_AT_DEFAULT_TEXT_SIZE,
+        Math.min(DESK_MAX_SIDEBAR_WIDTH_AT_DEFAULT_TEXT_SIZE, width),
+      ));
+    }
+
+    function currentDeskSidebarWidthPx() {
+      return roundDeskSidebarWidth(
+        _deskSidebarWidthAtDefaultTextSize * currentDeskTextSizePx() / DESK_TEXT_SIZE_DEFAULT,
+      );
+    }
+
+    function readDeskSidebarWidthAtDefaultTextSize() {
       try {
-        return clampDeskSidebarWidth(localStorage.getItem(DESK_SIDEBAR_WIDTH_KEY));
+        return clampDeskSidebarWidthAtDefaultTextSize(localStorage.getItem(DESK_SIDEBAR_WIDTH_KEY));
       } catch (_) {
-        return DESK_DEFAULT_SIDEBAR_WIDTH;
+        return DESK_DEFAULT_SIDEBAR_WIDTH_AT_DEFAULT_TEXT_SIZE;
       }
     }
 
-    function setDeskSidebarWidth(nextWidth, { persist = true } = {}) {
-      _deskSidebarWidth = clampDeskSidebarWidth(nextWidth);
+    function applyDeskSidebarWidth() {
       if (_deskWorkbench) {
-        _deskWorkbench.style.setProperty("--desk-sidebar-width", `${_deskSidebarWidth}px`);
+        _deskWorkbench.style.setProperty("--desk-sidebar-width", `${currentDeskSidebarWidthPx()}px`);
       }
+    }
+
+    function setDeskSidebarWidthAtDefaultTextSize(nextWidth, { persist = true } = {}) {
+      _deskSidebarWidthAtDefaultTextSize = clampDeskSidebarWidthAtDefaultTextSize(nextWidth);
+      applyDeskSidebarWidth();
       if (_deskAppSidebarToggle) {
         _deskAppSidebarToggle.classList.toggle("is-active", isDeskSessionSidebarOpen());
       }
       if (persist) {
         try {
-          localStorage.setItem(DESK_SIDEBAR_WIDTH_KEY, String(_deskSidebarWidth));
+          localStorage.setItem(DESK_SIDEBAR_WIDTH_KEY, String(_deskSidebarWidthAtDefaultTextSize));
         } catch (_) {}
       }
+    }
+
+    function setDeskSidebarWidthFromRenderedPx(nextWidth) {
+      const textSize = currentDeskTextSizePx();
+      const widthAtDefaultTextSize = Number(nextWidth) * DESK_TEXT_SIZE_DEFAULT / textSize;
+      setDeskSidebarWidthAtDefaultTextSize(widthAtDefaultTextSize);
     }
 
     const deskDtHasFiles = (dt) => !!(dt && Array.from(dt.types || []).includes("Files"));
@@ -2323,13 +2349,13 @@
     _deskSidebarResizer && _deskSidebarResizer.addEventListener("pointerdown", (event) => {
       if (isPhoneViewport()) return;
       event.preventDefault();
-      const startWidth = _deskSidebarWidth;
+      const startWidth = currentDeskSidebarWidthPx();
       const startX = event.clientX;
       _deskSidebarResizer.setPointerCapture?.(event.pointerId);
       document.body.classList.add("desk-workbench-resizing");
       const onMove = (moveEvent) => {
         const nextWidth = startWidth + (moveEvent.clientX - startX);
-        setDeskSidebarWidth(nextWidth);
+        setDeskSidebarWidthFromRenderedPx(nextWidth);
       };
       const onUp = () => {
         document.body.classList.remove("desk-workbench-resizing");
@@ -2342,7 +2368,7 @@
       window.addEventListener("pointercancel", onUp);
     });
 
-    setDeskSidebarWidth(readDeskSidebarWidth(), { persist: false });
+    setDeskSidebarWidthAtDefaultTextSize(readDeskSidebarWidthAtDefaultTextSize(), { persist: false });
     syncDeskSidebarResizerVisibility();
     try {
       sessionStorage.removeItem("hub_chat_frame");

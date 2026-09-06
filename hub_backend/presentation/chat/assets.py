@@ -137,6 +137,7 @@ def render_chat_html(
         chat_service_worker_html=render_chat_service_worker_html(),
         server_instance=server_instance,
         hub_port=hub_port,
+        text_size_default=DESKTOP_TEXT_SIZE,
         chat_font_settings_inline_style=chat_font_style(text_size=text_size),
         hub_header_css=PAGE_HEADER_CSS,
         chat_document_title=chat_document_title,
