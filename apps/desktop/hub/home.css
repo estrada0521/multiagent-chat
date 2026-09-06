@@ -913,24 +913,6 @@
     .desk-new-session-toggle {
       width: 100%;
       margin: 0;
-      padding: 0.77em 12px;
-      border-radius: 0;
-      opacity: 1;
-      position: relative;
-      isolation: isolate;
-    }
-    .desk-new-session-toggle::before {
-      content: "";
-      position: absolute;
-      inset: 2px 8px;
-      border-radius: 10px;
-      background: var(--session-hover-bg);
-      opacity: 0;
-      z-index: -1;
-      pointer-events: none;
-      transition: opacity 150ms ease;
-    }
-    .desk-new-session-toggle:hover::before {
       opacity: 1;
     }
     .desk-sidebar-sessions,
@@ -942,7 +924,7 @@
       background: transparent;
     }
     .desk-section-label {
-      padding: 2.4em 12px 0.5em;
+      padding: 2.4em 1.2em 0.5em;
       font-size: 0.77em;
       letter-spacing: 0.08em;
       text-transform: uppercase;
@@ -954,7 +936,7 @@
     }
     .desk-session-row {
       display: block;
-      padding: 0.77em 12px;
+      padding: 0.77em 0.92em;
       font-size: var(--text-size, 13px);
       border-bottom: none;
       border-radius: 0;
@@ -967,7 +949,7 @@
     .desk-session-row::before {
       content: "";
       position: absolute;
-      inset: 2px 8px;
+      inset: 2px 0.62em;
       border-radius: 10px;
       background: var(--session-hover-bg);
       opacity: 0;
@@ -1076,7 +1058,7 @@
     }
     .desk-row-hover-action {
       position: absolute;
-      right: 4px;
+      right: calc(1.2em - 12px);
       top: 50%;
       transform: translateY(-50%) scale(0.96);
       width: 24px;
@@ -1280,7 +1262,7 @@
       font-style: italic;
     }
     .desk-empty-list {
-      padding: 1.38em 12px;
+      padding: 1.38em 0.92em;
       color: var(--muted);
       opacity: 1;
       font-size: var(--text-size, 13px);
@@ -1530,20 +1512,17 @@
       -webkit-mask-image: linear-gradient(to bottom, transparent 0, black 48px, black calc(100% - 48px), transparent 100%);
     }
     .desk-sidebar-hover-list .desk-section-label {
-      padding: 1.4em 12px 0.3em;
+      padding: 1.4em 1.2em 0.3em;
       font-size: 0.77em;
     }
     .desk-sidebar-hover-list .desk-session-row {
       border-radius: 8px;
       margin: 0;
-      padding: 0.62em 10px;
+      padding: 0.62em 0.77em;
     }
     .desk-sidebar-hover-list .desk-session-row:hover .desk-row-stack,
     .desk-sidebar-hover-list .desk-session-row:focus-within .desk-row-stack {
       padding-right: 0;
-    }
-    .desk-sidebar-hover-list .desk-session-row::before {
-      inset: 2px 8px;
     }
     .desk-sidebar-hover-list .desk-row-name {
       line-height: 1.3;
