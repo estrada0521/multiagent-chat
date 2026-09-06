@@ -839,7 +839,17 @@ __CHAT_INCLUDE:features/git-panel/panel.js__
         _pollScrollLockTop = null;
         _pollScrollAnchor = null;
         _stickyToBottom = true;
-        scrollConversationToBottom("auto");
+        // The hub sends this only after the window geometry change has landed,
+        // but the webview's own relayout (grid columns, iframe size) still
+        // trails it by a frame or two -- re-assert the bottom across a few
+        // frames so scrollHeight is measured once it has settled.
+        let frames = 6;
+        const settleToBottom = () => {
+          scrollConversationToBottom("auto");
+          _stickyToBottom = true;
+          if (--frames > 0) requestAnimationFrame(settleToBottom);
+        };
+        settleToBottom();
         return;
       }
       if (event.data.type !== "desktop-panel") return;

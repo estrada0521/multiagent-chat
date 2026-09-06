@@ -233,39 +233,42 @@
       });
     }
 
+    // The chat view reset (which scrolls the transcript back to the bottom) is
+    // sent *after* the window geometry lands, so the chat frame measures the
+    // final size -- not the pre-preset one, whatever it was.
     async function resetDeskWindowState() {
       showDeskSidebarList({ open: true });
       setDeskSidebarWidth(DESK_DEFAULT_SIDEBAR_WIDTH);
-      resetDeskChatView();
       setDeskAutoWindowHeight(false);
       applyDeskAlwaysOnTop(false);
       const invoke = getTauriInvoke();
-      if (typeof invoke !== "function") {
+      if (typeof invoke === "function") {
+        try {
+          await invoke("reset_window_geometry");
+        } catch (err) {
+          showDeskHubMessage(`reset window failed: ${err}`, { error: true });
+        }
+      } else {
         showDeskHubMessage("reset window: no tauri invoke available", { error: true });
-        return;
       }
-      try {
-        await invoke("reset_window_geometry");
-      } catch (err) {
-        showDeskHubMessage(`reset window failed: ${err}`, { error: true });
-      }
+      resetDeskChatView();
     }
 
     async function compactDeskWindowState() {
       setDeskSidebarOpen(false);
-      resetDeskChatView();
       setDeskAutoWindowHeight(false);
       applyDeskAlwaysOnTop(false);
       const invoke = getTauriInvoke();
-      if (typeof invoke !== "function") {
+      if (typeof invoke === "function") {
+        try {
+          await invoke("compact_window_geometry");
+        } catch (err) {
+          showDeskHubMessage(`compact window failed: ${err}`, { error: true });
+        }
+      } else {
         showDeskHubMessage("compact window: no tauri invoke available", { error: true });
-        return;
       }
-      try {
-        await invoke("compact_window_geometry");
-      } catch (err) {
-        showDeskHubMessage(`compact window failed: ${err}`, { error: true });
-      }
+      resetDeskChatView();
     }
 
     // Pure reposition -- unlike reset/compact above, this touches only the
