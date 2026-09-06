@@ -561,6 +561,22 @@
       fill: var(--fg);
       stroke: none;
     }
+    /* Always on Top badge: a small dot on the settings button while pinned.
+       Scoped by id -- Reload Hub shares .desk-settings-icon-btn. */
+    html[data-always-on-top="1"] #deskSettingsBtn {
+      position: relative;
+    }
+    html[data-always-on-top="1"] #deskSettingsBtn::after {
+      content: "";
+      position: absolute;
+      top: 3px;
+      right: 3px;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--fg);
+      pointer-events: none;
+    }
     .desk-floating-controls .desk-settings-icon-btn.is-active .desk-settings-outline-icon {
       display: none;
     }

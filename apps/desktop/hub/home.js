@@ -129,6 +129,9 @@
     let _deskAlwaysOnTop = false;
     function applyDeskAlwaysOnTop(on) {
       _deskAlwaysOnTop = !!on;
+      // Marks the settings button (its ⌥⌘P / menu is what toggles this).
+      if (_deskAlwaysOnTop) document.documentElement.dataset.alwaysOnTop = "1";
+      else delete document.documentElement.dataset.alwaysOnTop;
       const invoke = getTauriInvoke();
       if (typeof invoke === "function") {
         invoke("set_always_on_top", { on: _deskAlwaysOnTop }).catch((err) => {
