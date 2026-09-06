@@ -33,6 +33,25 @@
   <script>
     (() => {
       const params = new URLSearchParams(window.location.search || "");
+      const initialTheme = params.get("theme");
+      if (initialTheme === "light" || initialTheme === "dark") {
+        document.documentElement.dataset.theme = initialTheme;
+      }
+      const initialThemeDesktop = params.get("theme_desktop");
+      if (["system", "light", "dark"].includes(initialThemeDesktop)) {
+        document.documentElement.dataset.themeDesktop = initialThemeDesktop;
+      }
+      if (!initialTheme || initialThemeDesktop === "system") {
+        document.documentElement.dataset.theme =
+          window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      }
+      if (!initialThemeDesktop || initialThemeDesktop === "system") {
+        try {
+          window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (event) => {
+            document.documentElement.dataset.theme = event.matches ? "dark" : "light";
+          });
+        } catch (_) {}
+      }
       const inHubShell = params.get("hub_shell") === "1";
       if (inHubShell) {
         document.documentElement.dataset.hubShell = "1";

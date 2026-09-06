@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-import logging
 import json
 import os
 from pathlib import Path
 from html import escape as html_escape
 from urllib.parse import quote as url_quote
 
-from hub_backend.color_constants import (
+from appearance.colors import (
     MOBILE_DARK_ICON_HOVER,
     MOBILE_LIGHT_ICON_HOVER,
     TEXT_DIFF_DELETE_DARK_CHANNELS,
@@ -32,7 +31,12 @@ from hub_backend.presentation.chat.script_assets import (
     KATEX_CDN_JS_SRC,
     MARKED_CDN_SRC,
 )
-from backend_core.access.settings import load_hub_settings
+from appearance.typography import body_typography_css
+from .view_scripts import (
+    build_gutter_scroll_sync_js,
+    build_progressive_loader_js,
+    build_vertical_bias_wheel_js,
+)
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 # Same @font-face declarations the chat UI loads (apps/shared/chat/font-faces.css,
@@ -40,12 +44,6 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 # template pipeline, so it reads the one shared source directly instead of
 # carrying its own copy.
 _FONT_FACES_CSS = (_REPO_ROOT / "apps" / "shared" / "chat" / "font-faces.css").read_text()
-from server.font_style import body_typography_css
-from .view_scripts import (
-    build_gutter_scroll_sync_js,
-    build_progressive_loader_js,
-    build_vertical_bias_wheel_js,
-)
 
 
 def _chat_markdown_preview_css() -> str:
@@ -99,18 +97,12 @@ def render_file_view(
     except (TypeError, ValueError):
         resolved_text_size = 13
     resolved_line_height = round(resolved_text_size * 1.5)
-    theme_palette = None
-    if runtime.repo_root:
-        try:
-            theme_palette = resolve_theme_palette(load_hub_settings())
-        except Exception as exc:
-            logging.error(f"Unexpected error: {exc}", exc_info=True)
     requested_base_theme = str(preview_base_theme or "").strip().lower()
     if requested_base_theme in ("dark", "light"):
-        theme_palette = resolve_theme_palette({"theme": requested_base_theme})
-    if theme_palette is None:
-        theme_palette = resolve_theme_palette({"theme": "dark"})
-    dark_theme_palette = resolve_theme_palette({"theme": "dark"})
+        theme_palette = resolve_theme_palette(requested_base_theme)
+    else:
+        theme_palette = resolve_theme_palette("dark")
+    dark_theme_palette = resolve_theme_palette("dark")
     pane_bg = str(theme_palette["dark_bg"])
     embed_bg = "transparent" if embed else pane_bg
     pane_fg = str(theme_palette["light_fg"])

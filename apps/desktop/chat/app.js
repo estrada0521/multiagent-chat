@@ -348,7 +348,6 @@ __CHAT_INCLUDE:../../shared/chat/runtime/agent-status.js__
       void refreshSessionState(event.data.projections);
     });
 __CHAT_INCLUDE:../../shared/chat/pointer-capability.js__
-__CHAT_INCLUDE:../../shared/chat/runtime/settings-sync.js__
     const desktopRightPanel = document.getElementById("desktopRightPanel");
     const desktopRightPanelResizer = document.getElementById("desktopRightPanelResizer");
     const dpSplitPanel = document.getElementById("dpSplitPanel");
@@ -805,11 +804,24 @@ __CHAT_INCLUDE:features/git-panel/panel.js__
         } else {
           delete document.documentElement.dataset.themeDesktop;
         }
+        try {
+          const url = new URL(window.location.href);
+          url.searchParams.set("theme", document.documentElement.dataset.theme);
+          if (themeDesktop) url.searchParams.set("theme_desktop", themeDesktop);
+          history.replaceState(history.state, "", url.toString());
+        } catch (_) {}
         return;
       }
       if (event.data.type === "hub-text-size-changed") {
         const px = Number(event.data.textSize);
-        if (Number.isFinite(px)) document.documentElement.style.setProperty("--text-size", `${px}px`);
+        if (Number.isFinite(px)) {
+          document.documentElement.style.setProperty("--text-size", `${px}px`);
+          try {
+            const url = new URL(window.location.href);
+            url.searchParams.set("text_size", String(px));
+            history.replaceState(history.state, "", url.toString());
+          } catch (_) {}
+        }
         return;
       }
       if (event.data.type === "hub-auto-window-height") {
@@ -986,7 +998,7 @@ __CHAT_INCLUDE:features/git-panel/panel.js__
         }
         if (event.metaKey && event.code === "Comma") {
           event.preventDefault();
-          window.parent?.postMessage({ type: "desktop-menu-shortcut", action: "openSettingsFile" }, "*");
+          window.parent?.postMessage({ type: "desktop-menu-shortcut", action: "openAppearanceMenu" }, "*");
           return;
         }
         // In-app view toggles: plain ⌘ (like ⌘, and the text-size chords),
@@ -1055,7 +1067,6 @@ __CHAT_INCLUDE:features/git-panel/panel.js__
     let workspaceSyncLastSeq = 0;
     let workspaceSyncLastGitVersion = 0;
     let workspaceSyncLastFileVersion = 0;
-    let workspaceSyncLastHubSettingsVersion = -1;
     const handleWorkspaceSyncUpdate = (payload = {}) => {
       const nextSeq = Math.max(0, parseInt(payload?.seq) || 0);
       if (nextSeq && nextSeq <= workspaceSyncLastSeq) return;
@@ -1076,11 +1087,6 @@ __CHAT_INCLUDE:features/git-panel/panel.js__
         } else {
           void dpRefreshGitOverview();
         }
-      }
-      const nextHubSettingsVersion = parseInt(payload?.hub_settings_version) || 0;
-      if (nextHubSettingsVersion > workspaceSyncLastHubSettingsVersion) {
-        workspaceSyncLastHubSettingsVersion = nextHubSettingsVersion;
-        void syncChatSettingsDefaults();
       }
     };
     __CHAT_INCLUDE:../../shared/chat/workspace-sync-events.js__

@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import json
+from urllib.parse import parse_qs
 
+from appearance.colors import resolve_theme_palette
+from appearance.theme import resolve_server_theme
+from appearance.typography import DESKTOP_TEXT_SIZE, MOBILE_TEXT_SIZE, clamp_text_size
 from hub_backend.branding import APP_DISPLAY_NAME
-from backend_core.access.settings import settings_for_chat_render
-from hub_backend.color_constants import resolve_theme_palette
 from hub_backend.transport.request_base_path import request_base_path
 from hub_backend.transport.request_view import request_view_variant
 from .read import _send_bytes
@@ -12,8 +14,7 @@ from .read import _send_bytes
 
 def _get_app_manifest(handler, _parsed, ctx) -> None:
     base_path = request_base_path(headers=handler.headers, query_string=_parsed.query)
-    settings = settings_for_chat_render(ctx["load_chat_settings_fn"](), variant="desktop")
-    palette = resolve_theme_palette(settings)
+    palette = resolve_theme_palette()
     bg = str(palette["dark_bg"])
     body = json.dumps(
         {
@@ -75,7 +76,15 @@ def _get_font_asset(handler, parsed, ctx) -> None:
 
 def _get_chat_index(handler, parsed, ctx) -> None:
     variant = request_view_variant(headers=handler.headers, query_string=parsed.query)
-    chat_settings = settings_for_chat_render(ctx["load_chat_settings_fn"](), variant=variant)
+    query = parse_qs(parsed.query)
+    try:
+        theme = "dark" if variant == "mobile" else resolve_server_theme(query.get("theme", [""])[0])
+        text_size = MOBILE_TEXT_SIZE if variant == "mobile" else clamp_text_size(
+            query.get("text_size", [DESKTOP_TEXT_SIZE])[0]
+        )
+    except (TypeError, ValueError) as exc:
+        handler.send_error(400, str(exc))
+        return
     request_host = (handler.headers.get("Host", "") or "").strip()
     request_host_only = request_host.split(":", 1)[0].rstrip(".").lower()
     forwarded_public_host = (handler.headers.get("X-Forwarded-Public-Host", "") or "").strip()
@@ -91,12 +100,12 @@ def _get_chat_index(handler, parsed, ctx) -> None:
         icon_data_uris=ctx["asset_runtime"].icon_data_uris,
         server_instance=ctx["server_instance"],
         hub_port=effective_hub_port,
-        chat_settings=chat_settings,
-        chat_font_settings_inline_style=ctx["chat_font_settings_inline_style_fn"],
         chat_base_path=request_base_path(headers=handler.headers, query_string=parsed.query),
         eager_optional_vendors=False,
         variant=variant,
         session_name=ctx["session_name"],
+        theme=theme,
+        text_size=text_size,
     ).encode("utf-8")
     _send_bytes(handler, 200, body, content_type="text/html; charset=utf-8")
 

@@ -1,149 +1,18 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import os
 import re
 import socket
 from pathlib import Path
 
-from backend_core.access.atomic_json import write_json_atomically
-
 SESSION_LOG_FILENAME = ".log.jsonl"
 NATIVE_LOG_STATE_FILENAME = ".native-log-sync-state.json"
-THEME_CHOICES = frozenset({"system", "light", "dark"})
 SESSION_NAME_MAX_LENGTH = 64
 
 
 def sanitize_session_name(raw: str) -> str:
     return re.sub(r"[^a-zA-Z0-9_.\-]", "-", str(raw or "")).strip(".-")[:SESSION_NAME_MAX_LENGTH]
-
-
-def normalize_theme_choice(value: object) -> str:
-    theme = str(value or "").strip().lower()
-    return theme if theme in THEME_CHOICES else "dark"
-
-
-def resolve_theme(settings: dict, *, variant: str) -> str:
-    view = str(variant or "desktop").strip().lower()
-    if view == "mobile":
-        mobile = normalize_theme_choice(settings.get("theme_mobile", "system"))
-        if mobile in ("light", "dark"):
-            return mobile
-        # "system": the server has no access to the client's OS preference,
-        # so client-side code upgrades this fallback after load.
-        return "dark"
-    desktop = normalize_theme_choice(settings.get("theme_desktop", "dark"))
-    if desktop == "system":
-        return "dark"
-    return desktop
-
-
-def canonicalize_message_font(value: object) -> str:
-    """`value` is either already a full CSS font-family value (the normal
-    case: whatever's in settings.json, verbatim) or a "system:<family>"
-    selector naming one system font, quoted for CSS. There is no built-in
-    default to fall back to here -- an empty/absent setting means no
-    message-font override is applied at all, letting the surrounding CSS's
-    own inherited/generic font stand."""
-    text = " ".join(str(value or "").split())
-    if not text:
-        return ""
-    if text.startswith("system:"):
-        family = text.split(":", 1)[1].strip()
-        return f'"{family}"' if family else ""
-    return text
-
-
-def _with_derived_font_fields(settings: dict) -> dict:
-    settings["message_font"] = canonicalize_message_font(settings.get("message_font"))
-    settings["code_font"] = str(settings.get("code_font") or "").strip()
-    return settings
-
-
-def apply_font_tokens(text: str, settings: dict | None = None) -> str:
-    import html
-
-    settings = settings or {}
-    message_font_css = canonicalize_message_font(settings.get("message_font"))
-    code_font_css = str(settings.get("code_font") or "").strip()
-    # The bare family name (no quotes, no fallback chain) is all an
-    # @font-face declaration's own font-family needs; settings.json is the
-    # only place either name is spelled out, so an unconfigured font means
-    # an inert (empty) @font-face rather than a value guessed here.
-    message_font_family = message_font_css.split(",", 1)[0].strip().strip('"')
-    code_font_family = code_font_css.split(",", 1)[0].strip().strip('"')
-    replacements = (
-        ("__MESSAGE_FONT_CSS__", message_font_css),
-        ("__CODE_FONT_CSS__", code_font_css),
-        ("__MESSAGE_FONT__", html.escape(message_font_css)),
-        ("__CODE_FONT__", html.escape(code_font_css)),
-        ("__MESSAGE_FONT_FAMILY__", html.escape(message_font_family)),
-        ("__CODE_FONT_FAMILY__", html.escape(code_font_family)),
-    )
-    resolved = text
-    for old, new in replacements:
-        resolved = resolved.replace(old, new)
-    return resolved
-
-
-def settings_for_hub_render(settings: dict, *, variant: str) -> dict:
-    view = str(variant or "desktop").strip().lower()
-    rendered = dict(settings, theme=resolve_theme(settings, variant=view))
-    if view == "mobile":
-        rendered.update(MOBILE_CHAT_TEXT_SIZE)
-    return _with_derived_font_fields(rendered)
-
-
-def settings_for_chat_render(settings: dict, *, variant: str) -> dict:
-    view = str(variant or "desktop").strip().lower()
-    rendered = dict(settings, theme=resolve_theme(settings, variant=view))
-    if view == "mobile":
-        rendered.update(MOBILE_CHAT_TEXT_SIZE)
-    return _with_derived_font_fields(rendered)
-
-
-def _apply_hub_settings(raw: dict, settings: dict) -> dict:
-    if not isinstance(raw, dict):
-        return settings
-
-    if raw.get("theme_desktop") is not None:
-        settings["theme_desktop"] = normalize_theme_choice(raw.get("theme_desktop"))
-
-    if raw.get("theme_mobile") is not None:
-        settings["theme_mobile"] = normalize_theme_choice(raw.get("theme_mobile"))
-
-    if "message_font" in raw:
-        message_font = canonicalize_message_font(raw.get("message_font"))
-    else:
-        message_font = canonicalize_message_font(settings.get("message_font"))
-    settings["message_font"] = message_font
-
-    if "code_font" in raw:
-        settings["code_font"] = str(raw.get("code_font") or "").strip()
-    elif "code_font" not in settings:
-        settings["code_font"] = ""
-
-    try:
-        text_size = int(raw.get("text_size", settings.get("text_size") or 13))
-    except (TypeError, ValueError) as exc:
-        raise ValueError(f"invalid text_size: {raw.get('text_size')!r}") from exc
-    settings["text_size"] = text_size
-
-    return settings
-
-
-HUB_SETTINGS_DEFAULTS = {
-    "theme_desktop": "dark",
-    "theme_mobile": "system",
-    "message_font": "",
-    "code_font": "",
-    "text_size": 13,
-}
-
-MOBILE_CHAT_TEXT_SIZE = {
-    "text_size": 13,
-}
 
 
 def agent_window_root() -> Path:
@@ -256,29 +125,3 @@ def port_is_bindable(port: int) -> bool:
         return False
     finally:
         sock.close()
-
-
-
-def hub_settings_path() -> Path:
-    local_path = agent_window_state_dir() / ".hub-settings.json"
-    local_path.parent.mkdir(parents=True, exist_ok=True)
-    return local_path
-
-
-def load_hub_settings() -> dict:
-    settings = dict(HUB_SETTINGS_DEFAULTS)
-    path = hub_settings_path()
-    if path.is_file():
-        raw = json.loads(path.read_text(encoding="utf-8"))
-        if not isinstance(raw, dict):
-            raise ValueError(f"invalid hub settings: {path}")
-        settings = _apply_hub_settings(raw, settings)
-    return settings
-
-
-def save_hub_settings(raw: dict) -> dict:
-    settings = load_hub_settings()
-    settings = _apply_hub_settings(raw, settings)
-    path = hub_settings_path()
-    write_json_atomically(path, settings, indent=2)
-    return settings

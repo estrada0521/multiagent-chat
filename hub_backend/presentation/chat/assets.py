@@ -13,9 +13,10 @@ from .script_assets import (
 )
 from .render import apply_chat_template_replacements, build_chat_template_replacements
 from .template_loader import load_chat_template
-from backend_core.access.settings import apply_font_tokens
+from appearance.colors import apply_color_tokens
+from appearance.theme import MOBILE_THEME_SETTING
+from appearance.typography import DESKTOP_TEXT_SIZE, apply_font_tokens, chat_font_style
 from hub_backend.branding import APP_DISPLAY_NAME
-from hub_backend.color_constants import apply_color_tokens
 from ..hub.header_assets import PAGE_HEADER_CSS, render_page_header
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -94,7 +95,18 @@ def _chat_html(variant: str = "desktop") -> str:
     return CHAT_MOBILE_HTML if _normalized_chat_variant(variant) == "mobile" else CHAT_DESKTOP_HTML
 
 
-def render_chat_html(*, icon_data_uris, server_instance, hub_port, chat_settings, chat_font_settings_inline_style, chat_base_path="", eager_optional_vendors=True, variant="desktop", session_name=""):
+def render_chat_html(
+    *,
+    icon_data_uris,
+    server_instance,
+    hub_port,
+    chat_base_path="",
+    eager_optional_vendors=True,
+    variant="desktop",
+    session_name="",
+    theme="dark",
+    text_size=DESKTOP_TEXT_SIZE,
+):
     normalized_variant = _normalized_chat_variant(variant)
     base_path = chat_base_path.rstrip("/")
     normalized_session_name = str(session_name or "").strip()
@@ -126,12 +138,15 @@ def render_chat_html(*, icon_data_uris, server_instance, hub_port, chat_settings
         chat_service_worker_html=render_chat_service_worker_html(),
         server_instance=server_instance,
         hub_port=hub_port,
-        chat_settings=chat_settings,
-        chat_font_settings_inline_style=chat_font_settings_inline_style(chat_settings),
+        chat_font_settings_inline_style=chat_font_style(text_size=text_size),
         hub_header_css=PAGE_HEADER_CSS,
         chat_document_title=chat_document_title,
     )
     html = apply_chat_template_replacements(html, replacements)
-    html = apply_font_tokens(html, settings=chat_settings)
-    html = apply_color_tokens(html, settings=chat_settings)
+    html = apply_font_tokens(html)
+    html = apply_color_tokens(
+        html,
+        theme=theme,
+        mobile_theme_setting=MOBILE_THEME_SETTING,
+    )
     return html

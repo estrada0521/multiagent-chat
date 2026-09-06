@@ -11,12 +11,13 @@ from pathlib import Path
 from urllib.parse import parse_qs, quote as url_quote, urlparse
 
 from hub_backend.runtime import HubRuntime
+from appearance.colors import apply_color_tokens, resolve_theme_palette
+from appearance.theme import DESKTOP_THEME_DEFAULT, MOBILE_THEME_SETTING
+from appearance.typography import DESKTOP_TEXT_SIZE, TEXT_SIZE_MAX, TEXT_SIZE_MIN, apply_font_tokens
 from backend_core.access.pwa import pwa_icon_entries as _pwa_icon_entries_impl
-from backend_core.access.settings import apply_font_tokens, load_hub_settings, workspace_chat_port
+from backend_core.access.settings import workspace_chat_port
 from hub_backend.chat_supervisor import stop_inactive_chat_servers
 from hub_backend.presentation.hub.header_assets import (
-    DEFAULT_HUB_HEADER_ACTIONS,
-    DEFAULT_HUB_HEADER_PANELS,
     PAGE_HEADER_CSS,
     PAGE_HEADER_JS,
     MOBILE_HUB_HEADER_ACTIONS,
@@ -29,7 +30,6 @@ from hub_backend.session_query import (
 )
 
 from hub_backend.branding import APP_DISPLAY_NAME
-from hub_backend.color_constants import apply_color_tokens, resolve_theme_palette
 from hub_backend.new_session.handlers import (
     post_pick_workspace as _post_pick_workspace_action,
     post_start_session_draft as _post_start_session_draft_action,
@@ -44,13 +44,11 @@ from hub_backend.actions import (
     post_rename_session as _post_rename_session_action,
     post_reset_session_agents as _post_reset_session_agents_action,
     post_restart_hub as _post_restart_hub_action,
-    post_settings as _post_settings_action,
 )
 from hub_backend.server_helpers import (
     build_hub_html_pages as _build_hub_html_pages_impl,
     clean_env as _clean_env_impl,
     error_page as _error_page_impl,
-    _expand_hub_template_includes,
     format_external_url as _format_external_url_impl,
     format_session_chat_url as _format_session_chat_url_impl,
     launch_hub_restart as _launch_hub_restart_impl,
@@ -239,10 +237,26 @@ HUB_LAUNCH_SHELL_HTML = f"""<!doctype html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <script>
+    (() => {{
+      if (document.documentElement.dataset.view === "mobile") return;
+      try {{
+        const stored = String(localStorage.getItem("agent_window_theme_desktop") || "").trim().toLowerCase();
+        if (["system", "light", "dark"].includes(stored)) {{
+          document.documentElement.dataset.themeDesktop = stored;
+        }}
+      }} catch (_) {{}}
+    }})();
+  </script>
   <meta name="theme-color" content="__DARK_BG__">
   <title>{APP_DISPLAY_NAME}</title>
   <style>
     :root {{ color-scheme: __COLOR_SCHEME__; --bg: __DARK_BG__; --fg: __LIGHT_FG__; }}
+    html[data-view="desktop"][data-theme-desktop="light"] {{
+      color-scheme: light;
+      --bg: __DESKTOP_HUB_LIGHT_BG__;
+      --fg: __SYSTEM_LIGHT_FG__;
+    }}
     html[data-theme-desktop="dark"] {{ --launch-shell-title-fg: rgb(255,255,255); }}
     html, body {{
       margin: 0;
@@ -257,6 +271,7 @@ HUB_LAUNCH_SHELL_HTML = f"""<!doctype html>
     @media (prefers-color-scheme: light) {{
       html[data-theme-desktop="system"] {{
         color-scheme: light;
+        --bg: __DESKTOP_HUB_LIGHT_BG__;
         --fg: __SYSTEM_LIGHT_FG__;
       }}
       html[data-view="mobile"][data-theme-mobile="system"] {{ --bg: __MOBILE_HUB_LIGHT_BG__; }}
@@ -464,7 +479,6 @@ _POST_ROUTE_HANDLERS = {
     "/rename-session": _post_rename_session_action,
     "/change-session-workspace": _post_change_session_workspace_action,
     "/reset-session-agents": _post_reset_session_agents_action,
-    "/settings": _post_settings_action,
     "/pick-workspace": _post_pick_workspace_action,
     "/start-session-draft": _post_start_session_draft_action,
     "/session-messages-changed": "_post_session_messages_changed",
@@ -523,8 +537,7 @@ class Handler(BaseHTTPRequestHandler):
         return True
 
     def _get_hub_manifest(self, _parsed):
-        settings = load_hub_settings()
-        palette = resolve_theme_palette(settings)
+        palette = resolve_theme_palette()
         bg = str(palette["dark_bg"])
         body = json.dumps({
             "name": APP_DISPLAY_NAME,
@@ -544,25 +557,19 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _get_hub_launch_shell(self, _parsed):
-        settings = load_hub_settings()
-        from backend_core.access.settings import normalize_theme_choice, settings_for_hub_render
-
         variant = request_view_variant(headers=self.headers, query_string=_parsed.query)
-        theme_desktop = normalize_theme_choice(settings.get("theme_desktop", "dark"))
-        theme_mobile = normalize_theme_choice(settings.get("theme_mobile", "system"))
         page = (
             HUB_LAUNCH_SHELL_HTML
-            .replace("__THEME_DESKTOP__", theme_desktop)
-            .replace("__THEME_MOBILE__", theme_mobile)
+            .replace("__THEME_DESKTOP__", DESKTOP_THEME_DEFAULT)
+            .replace("__THEME_MOBILE__", MOBILE_THEME_SETTING)
             .replace("__VIEW_VARIANT__", variant)
         )
         page = page.replace(
             "__SYSTEM_LIGHT_FG__",
-            str(resolve_theme_palette({"theme": "light"})["light_fg"]),
+            str(resolve_theme_palette("light")["light_fg"]),
         )
-        render_settings = settings_for_hub_render(settings, variant="desktop")
-        page = apply_font_tokens(page, settings=render_settings)
-        self._send_html(200, apply_color_tokens(page, settings=render_settings))
+        page = apply_font_tokens(page)
+        self._send_html(200, apply_color_tokens(page))
 
     def _get_sessions(self, _parsed):
         query = active_session_records_query(hub)
@@ -635,17 +642,18 @@ class Handler(BaseHTTPRequestHandler):
 
     def _get_home(self, _parsed):
         variant = request_view_variant(headers=self.headers, query_string=_parsed.query)
-        settings = load_hub_settings()
-        from backend_core.access.settings import normalize_theme_choice, settings_for_hub_render
-
         page = HUB_HOME_MOBILE_HTML if variant == "mobile" else HUB_HOME_DESKTOP_HTML
         if variant == "desktop":
-            theme_desktop = normalize_theme_choice(settings.get("theme_desktop", "dark"))
-            page = page.replace("__THEME_DESKTOP__", theme_desktop)
-            page = page.replace("__TEXT_SIZE_PX__", f'{int(settings["text_size"])}px')
-        render_settings = settings_for_hub_render(settings, variant=variant)
-        page = apply_font_tokens(page, settings=render_settings)
-        self._send_html(200, apply_color_tokens(page, settings=render_settings))
+            page = page.replace("__THEME_DESKTOP__", DESKTOP_THEME_DEFAULT)
+            page = page.replace("__TEXT_SIZE_PX__", f"{DESKTOP_TEXT_SIZE}px")
+            page = page.replace("__TEXT_SIZE_DEFAULT__", str(DESKTOP_TEXT_SIZE))
+            page = page.replace("__TEXT_SIZE_MIN__", str(TEXT_SIZE_MIN))
+            page = page.replace("__TEXT_SIZE_MAX__", str(TEXT_SIZE_MAX))
+        page = apply_font_tokens(page)
+        self._send_html(
+            200,
+            apply_color_tokens(page, mobile_theme_setting=MOBILE_THEME_SETTING),
+        )
 
 
 

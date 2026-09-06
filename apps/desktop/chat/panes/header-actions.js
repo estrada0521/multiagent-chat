@@ -194,23 +194,6 @@
         }
         return;
       }
-      if (action === "openSettingsFile") {
-        try {
-          const res = await fetch("/open-settings-file", { method: "POST" });
-          if (res.ok) {
-            setStatus("opened settings file");
-            setTimeout(() => setStatus(""), STATUS_TOAST_MS);
-          } else {
-            const data = await res.json().catch(() => ({}));
-            setStatus(data.error || "settings file open failed", true);
-            setTimeout(() => setStatus(""), STATUS_TOAST_MS);
-          }
-        } catch (err) {
-          setStatus(`settings file open error: ${err.message}`, true);
-          setTimeout(() => setStatus(""), STATUS_TOAST_MS);
-        }
-        return;
-      }
       if (action === "addAgent") {
         if (!sessionActive) {
           setStatus("archived session is read-only", true);

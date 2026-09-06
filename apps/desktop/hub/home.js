@@ -84,20 +84,12 @@
       }
     };
 
-    function persistHubSettings(partial) {
-      try {
-        fetch("/settings", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-          body: new URLSearchParams(partial).toString(),
-          cache: "no-store",
-        }).catch(() => {});
-      } catch (_) {}
-    }
-
-    const DESK_TEXT_SIZE_MIN = 8;
-    const DESK_TEXT_SIZE_MAX = 16;
-    const DESK_TEXT_SIZE_DEFAULT = 13;
+    const _deskAppearance = window.__agentWindowAppearance;
+    const DESK_THEME_KEY = _deskAppearance.themeKey;
+    const DESK_TEXT_SIZE_KEY = _deskAppearance.textSizeKey;
+    const DESK_TEXT_SIZE_MIN = _deskAppearance.textSizeMin;
+    const DESK_TEXT_SIZE_MAX = _deskAppearance.textSizeMax;
+    const DESK_TEXT_SIZE_DEFAULT = _deskAppearance.textSizeDefault;
     function currentDeskTextSizePx() {
       const raw = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--text-size"));
       return Number.isFinite(raw) ? raw : DESK_TEXT_SIZE_DEFAULT;
@@ -109,7 +101,7 @@
     }
     function applyDeskTextSizeAndBroadcast(px) {
       const clamped = applyDeskTextSizeLocal(px);
-      persistHubSettings({ text_size: String(clamped) });
+      try { localStorage.setItem(DESK_TEXT_SIZE_KEY, String(clamped)); } catch (_) {}
       try {
         _deskChatFrame?.contentWindow?.postMessage({ type: "hub-text-size-changed", textSize: clamped }, "*");
       } catch (_) {}
@@ -125,7 +117,7 @@
       } catch (_) {}
     }
     // Always on Top and Fit Height to Message are per-session toggles: both
-    // start off on every launch and are never written back to hub settings.
+    // start off on every launch and are never persisted.
     let _deskAlwaysOnTop = false;
     function applyDeskAlwaysOnTop(on) {
       _deskAlwaysOnTop = !!on;
@@ -425,7 +417,7 @@
       }
       if (event.metaKey && event.code === "Comma") {
         event.preventDefault();
-        dispatchDeskNativeMenuAction({ action: "openSettingsFile" });
+        void openAppearanceMenu();
         return;
       }
       // In-app view toggles: plain ⌘ (like ⌘, and the text-size chords), not
@@ -744,7 +736,7 @@
         const theme = String(detail.theme || "").trim().toLowerCase();
         if (theme !== "system" && theme !== "light" && theme !== "dark") return;
         applyIncomingThemeDesktop(theme);
-        persistHubSettings({ theme_desktop: theme });
+        try { localStorage.setItem(DESK_THEME_KEY, theme); } catch (_) {}
         return;
       }
       dispatchDeskNativeMenuAction(detail);
@@ -1140,6 +1132,10 @@
       try {
         const parsed = new URL(raw, window.location.href);
         parsed.searchParams.set("hub_shell", "1");
+        const themeDesktop = document.documentElement.dataset.themeDesktop || _deskAppearance.themeDefault;
+        parsed.searchParams.set("theme", deskChatThemeFromDesktop(themeDesktop));
+        parsed.searchParams.set("theme_desktop", themeDesktop);
+        parsed.searchParams.set("text_size", String(currentDeskTextSizePx()));
         if (isTauri) parsed.searchParams.set("tauri", "1");
         if (parsed.origin === window.location.origin) {
           return `${parsed.pathname}${parsed.search}${parsed.hash}`;
@@ -2172,7 +2168,8 @@
         return;
       }
       if (event.data && event.data.type === "desktop-menu-shortcut") {
-        dispatchDeskNativeMenuAction({ action: String(event.data.action || "") });
+        if (event.data.action === "openAppearanceMenu") void openAppearanceMenu();
+        else dispatchDeskNativeMenuAction({ action: String(event.data.action || "") });
         return;
       }
       if (event.data && event.data.type === "reload-shortcut") {
@@ -2254,6 +2251,12 @@
       setDeskChatLoading(false);
       syncDeskChatShellState();
       applyDeskChatTheme();
+      try {
+        _deskChatFrame.contentWindow?.postMessage(
+          { type: "hub-text-size-changed", textSize: currentDeskTextSizePx() },
+          "*",
+        );
+      } catch (_) {}
       pushDeskAutoWindowHeight();
       try {
         _deskChatFrame.contentWindow?.postMessage({ type: "desktop-panel-sync-request" }, "*");

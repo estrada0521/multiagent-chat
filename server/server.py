@@ -28,7 +28,6 @@ from hub_backend.server_helpers import (
 )
 from backend_core.access.chat_server import read_chat_server_state
 from backend_core.access.settings import (
-    hub_settings_path,
     local_bind_host,
     local_bind_scheme,
     pwa_https_enabled,
@@ -63,47 +62,12 @@ _repo_root = Path()
 runtime = None
 _PWA_STATIC_DIR = Path()
 server_instance = ""
-load_chat_settings = _not_initialized
-chat_font_settings_inline_style = _not_initialized
 payload = _not_initialized
 send_message = _not_initialized
 workspace_sync_api = None
 asset_runtime = None
 send_queue = None
 send_queue_thread = None
-
-
-def _hub_settings_watcher() -> None:
-    settings_file = hub_settings_path()
-    if not settings_file.exists():
-        return
-    try:
-        kq = select.kqueue()
-        fd = os.open(str(settings_file), os.O_RDONLY)
-        ev = select.kevent(
-            fd,
-            filter=select.KQ_FILTER_VNODE,
-            flags=select.KQ_EV_ADD | select.KQ_EV_CLEAR,
-            fflags=select.KQ_NOTE_WRITE | select.KQ_NOTE_EXTEND,
-        )
-        kq.control([ev], 0)
-    except OSError as exc:
-        logging.error("hub settings watcher init failed: %s", exc)
-        return
-    while True:
-        try:
-            events = kq.control(None, 4, None)
-            for event in events:
-                if event.fflags & (select.KQ_NOTE_WRITE | select.KQ_NOTE_EXTEND):
-                    try:
-                        if workspace_sync_api is not None:
-                            workspace_sync_api.invalidate_hub_settings()
-                            workspace_sync_api.publish_sync_event()
-                    except Exception as exc:
-                        logging.error("hub settings invalidation error: %s", exc)
-        except Exception as exc:
-            logging.error("hub settings watcher error: %s", exc)
-            time.sleep(1.0)
 
 
 def _message_index_watcher() -> None:
@@ -217,7 +181,7 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
     global _initialized
     global port, workspace, tmux_socket, hub_port
     global PUBLIC_HOST, PUBLIC_HUB_PORT, _repo_root, runtime
-    global _PWA_STATIC_DIR, server_instance, load_chat_settings, chat_font_settings_inline_style
+    global _PWA_STATIC_DIR, server_instance
     global payload
     global send_message, asset_runtime
     global send_queue, send_queue_thread, workspace_sync_api
@@ -257,8 +221,6 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
 
     _PWA_STATIC_DIR = _repo_root / "apps" / "shared" / "pwa"
     server_instance = runtime.server_instance
-    load_chat_settings = runtime.load_chat_settings
-    chat_font_settings_inline_style = runtime.chat_font_settings_inline_style
     payload = runtime.payload
     send_message = _send_or_enqueue_message
     workspace_sync_api = WorkspaceSyncApi(
@@ -275,11 +237,6 @@ def initialize_from_argv(argv: list[str] | None = None) -> None:
         runtime.ensure_commit_announcements()
     except Exception as exc:
         logging.error("commit announcement startup refresh failed: %s", exc)
-    threading.Thread(
-        target=_hub_settings_watcher,
-        daemon=True,
-        name="hub-settings-watch",
-    ).start()
     threading.Thread(
         target=_message_index_watcher,
         daemon=True,
@@ -407,8 +364,6 @@ def _route_context() -> dict:
         "send_message_fn": send_message,
         "workspace_sync_api": workspace_sync_api,
         "asset_runtime": asset_runtime,
-        "load_chat_settings_fn": load_chat_settings,
-        "chat_font_settings_inline_style_fn": chat_font_settings_inline_style,
         "pwa_asset_url_fn": _pwa_asset_url,
         "pwa_icon_entries_fn": _pwa_icon_entries,
         "serve_pwa_static_fn": _serve_pwa_static,

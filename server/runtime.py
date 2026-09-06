@@ -26,7 +26,6 @@ from .entry_write import (
     append_user_entry as _append_user_entry_impl,
 )
 from .index_cache import MATCHED_ENTRY_TAIL, message_entry_window
-from .font_style import chat_font_settings_inline_style as _chat_font_settings_inline_style_impl
 from workspace_sync.commit import (
     ensure_commit_announcements as _ensure_commit_announcements_impl,
 )
@@ -52,9 +51,6 @@ from pane_trace import trace_content as _trace_content_impl
 from backend_core.tmux.instances import resolve_target_agents as resolve_target_agent_names
 from backend_core.tmux.window import tmux_prefix_args
 from backend_core.access.files import append_jsonl_entry
-from backend_core.access.settings import (
-    load_hub_settings as load_shared_hub_settings,
-)
 from .session_binding import WorkspaceSessionBinding
 
 
@@ -128,9 +124,6 @@ class ChatRuntime:
     def session_binding_snapshot(self) -> tuple[str, Path]:
         return self._session_binding.snapshot()
 
-    def load_chat_settings(self) -> dict:
-        return load_shared_hub_settings()
-
     def refresh_native_log_bindings(self, agents: list[str] | None = None) -> list[dict]:
         replace_all = agents is None
         target_agents = list(agents) if agents is not None else self.active_agents()
@@ -163,11 +156,6 @@ class ChatRuntime:
 
     def on_agent_pane_added(self, agent: str) -> None:
         self._native_log.on_pane_add(agent)
-
-    @staticmethod
-    def chat_font_settings_inline_style(settings: dict) -> str:
-        return _chat_font_settings_inline_style_impl(settings)
-
 
     def append_user_entry(self, message: str, *, targets: list[str], client: str | None = None) -> dict:
         return _append_user_entry_impl(

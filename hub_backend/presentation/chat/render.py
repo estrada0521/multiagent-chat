@@ -15,7 +15,6 @@ def build_chat_template_replacements(
     chat_service_worker_html: str,
     server_instance: str,
     hub_port: int,
-    chat_settings: dict,
     chat_font_settings_inline_style: str,
     hub_header_css: str,
     chat_document_title: str = APP_DISPLAY_NAME,

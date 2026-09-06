@@ -459,14 +459,6 @@ fn show_appearance_menu(
     .build(&app)
     .map_err(|err| err.to_string())?;
 
-    let open_settings_file = MenuItemBuilder::with_id(
-        format!("{}action:openSettingsFile", NATIVE_MENU_PREFIX),
-        "Open Settings File",
-    )
-    .accelerator("Cmd+,")
-    .build(&app)
-    .map_err(|err| err.to_string())?;
-
     let window_presets_submenu = SubmenuBuilder::with_id(
         &app,
         format!("{}submenu:windowPresets", NATIVE_MENU_PREFIX),
@@ -514,8 +506,6 @@ fn show_appearance_menu(
         .item(&side_panels_submenu)
         .item(&always_on_top)
         .item(&auto_window_height)
-        .separator()
-        .item(&open_settings_file)
         .build()
         .map_err(|err| err.to_string())?;
 

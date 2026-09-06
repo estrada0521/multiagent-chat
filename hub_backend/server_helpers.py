@@ -9,7 +9,7 @@ import threading
 from pathlib import Path
 
 from hub_backend.branding import APP_DISPLAY_NAME
-from hub_backend.color_constants import DARK_BG
+from appearance.colors import DARK_BG
 
 _HUB_INCLUDE_RE = re.compile(r"__HUB_INCLUDE:([A-Za-z0-9_./-]+)__")
 

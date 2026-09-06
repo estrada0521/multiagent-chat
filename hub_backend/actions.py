@@ -10,7 +10,7 @@ from backend_core.access.session_meta import (
     session_workspace,
     set_session_workspace,
 )
-from backend_core.access.settings import agent_window_session_root, save_hub_settings
+from backend_core.access.settings import agent_window_session_root
 from hub_backend.chat_supervisor import (
     delete_archived_session,
     ensure_chat_server,
@@ -197,12 +197,6 @@ def post_restart_hub(handler, _parsed, ctx) -> None:
         # once the response above has actually gone out.
         if owns_restart:
             ctx["release_restart_hold_fn"]()
-
-
-def post_settings(handler, _parsed, ctx) -> None:
-    data = handler._read_form()
-    save_hub_settings(data)
-    handler._send_json(200, {"ok": True})
 
 
 def post_rename_session(handler, _parsed, _ctx) -> None:
