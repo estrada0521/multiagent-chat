@@ -288,6 +288,14 @@
       }
     }
 
+    function toggleDeskSidebar() {
+      if (!_deskAutoWindowHeight) setDeskSidebarOpen(!isDeskSidebarOpen());
+    }
+
+    function toggleDeskRightPanel() {
+      if (!_deskAutoWindowHeight) sendDeskPanelCommand("");
+    }
+
     function toggleDeskSidebarOutward() {
       if (_deskAutoWindowHeight) return;
       const opening = !isDeskSidebarOpen();
@@ -392,12 +400,12 @@
       // where both panels are native menus.
       if (event.metaKey && !event.altKey && event.code === "KeyB") {
         event.preventDefault();
-        if (!_deskAutoWindowHeight) setDeskSidebarOpen(!isDeskSidebarOpen());
+        toggleDeskSidebar();
         return;
       }
       if (event.metaKey && !event.altKey && event.code === "KeyE") {
         event.preventDefault();
-        if (!_deskAutoWindowHeight) sendDeskPanelCommand("");
+        toggleDeskRightPanel();
         return;
       }
       if (!(event.metaKey || event.ctrlKey)) return;
@@ -606,6 +614,22 @@
       }
       if (detail.action === "moveWindowTopRight") {
         void moveDeskWindowToEdge("move_window_top_right");
+        return;
+      }
+      if (detail.action === "toggleHubSidebar") {
+        toggleDeskSidebar();
+        return;
+      }
+      if (detail.action === "toggleRightPane") {
+        toggleDeskRightPanel();
+        return;
+      }
+      if (detail.action === "toggleHubSidebarOutward") {
+        toggleDeskSidebarOutward();
+        return;
+      }
+      if (detail.action === "toggleRightPaneOutward") {
+        toggleDeskRightPanelOutward();
         return;
       }
       if (detail.action === "toggleAlwaysOnTop") {
@@ -1800,7 +1824,7 @@
         return;
       }
       if (event.data && event.data.type === "toggle-hub-sidebar") {
-        setDeskSidebarOpen(!isDeskSidebarOpen());
+        toggleDeskSidebar();
         return;
       }
       if (event.data && event.data.type === "toggle-hub-sidebar-outward" && event.source === _deskChatFrame?.contentWindow) {

@@ -361,6 +361,35 @@ fn show_appearance_menu(
     .build(&app)
     .map_err(|err| err.to_string())?;
 
+    let toggle_sidebar = MenuItemBuilder::with_id(
+        format!("{}action:toggleHubSidebar", NATIVE_MENU_PREFIX),
+        "Toggle Hub Sidebar",
+    )
+    .accelerator("Cmd+B")
+    .build(&app)
+    .map_err(|err| err.to_string())?;
+    let toggle_right_pane = MenuItemBuilder::with_id(
+        format!("{}action:toggleRightPane", NATIVE_MENU_PREFIX),
+        "Toggle Right Pane",
+    )
+    .accelerator("Cmd+E")
+    .build(&app)
+    .map_err(|err| err.to_string())?;
+    let toggle_sidebar_outward = MenuItemBuilder::with_id(
+        format!("{}action:toggleHubSidebarOutward", NATIVE_MENU_PREFIX),
+        "Toggle Hub Sidebar Outward",
+    )
+    .accelerator("Cmd+Alt+B")
+    .build(&app)
+    .map_err(|err| err.to_string())?;
+    let toggle_right_pane_outward = MenuItemBuilder::with_id(
+        format!("{}action:toggleRightPaneOutward", NATIVE_MENU_PREFIX),
+        "Toggle Right Pane Outward",
+    )
+    .accelerator("Cmd+Alt+E")
+    .build(&app)
+    .map_err(|err| err.to_string())?;
+
     let always_on_top = CheckMenuItemBuilder::with_id(
         format!("{}action:toggleAlwaysOnTop", NATIVE_MENU_PREFIX),
         "Always on Top",
@@ -399,6 +428,10 @@ fn show_appearance_menu(
         .item(&move_top)
         .item(&move_top_left)
         .item(&move_top_right)
+        .item(&toggle_sidebar)
+        .item(&toggle_right_pane)
+        .item(&toggle_sidebar_outward)
+        .item(&toggle_right_pane_outward)
         .item(&always_on_top)
         .item(&auto_window_height)
         .separator()
