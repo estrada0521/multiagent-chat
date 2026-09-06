@@ -122,7 +122,20 @@
         }
       }
     };
+    const messageStepTopGap = () => {
+      const value = parseFloat(getComputedStyle(timeline).getPropertyValue("--message-step-top-gap"));
+      return Number.isFinite(value) ? Math.max(0, value) : 0;
+    };
+    const positionConversationRowAtStepTop = (row, behavior) => {
+      const timelineTop = timeline.getBoundingClientRect().top;
+      const top = timeline.scrollTop + row.getBoundingClientRect().top - timelineTop - messageStepTopGap();
+      timeline.scrollTo({ top, behavior });
+    };
     const jumpConversationToBottom = () => {
+      if (document.documentElement.dataset.autoWindowHeight === "1" && typeof fitStepToLatest === "function") {
+        fitStepToLatest();
+        return;
+      }
       _pollScrollLockTop = null;
       _pollScrollAnchor = null;
       _stickyToBottom = true;
@@ -152,27 +165,30 @@
     });
     // ⌥↓ / ⌥↑ step to the top of the next / previous message.
     const stepConversationByMessage = (down) => {
+      if (document.documentElement.dataset.autoWindowHeight === "1") {
+        if (typeof fitStepToMessage === "function") fitStepToMessage(down);
+        return;
+      }
       const rows = timeline.querySelectorAll("article.message-row");
       if (!rows.length) return;
       const tTop = timeline.getBoundingClientRect().top;
+      const stepTop = tTop + messageStepTopGap();
       let target = null;
       if (down) {
         for (const row of rows) {
-          if (row.getBoundingClientRect().top - tTop > 2) { target = row; break; }
+          if (row.getBoundingClientRect().top - stepTop > 2) { target = row; break; }
         }
       } else {
         for (const row of rows) {
-          if (row.getBoundingClientRect().top - tTop < -2) target = row; else break;
+          if (row.getBoundingClientRect().top - stepTop < -2) target = row; else break;
         }
       }
       _pollScrollLockTop = null;
       _pollScrollAnchor = null;
       if (!down) _stickyToBottom = false;
       _programmaticScroll = true;
-      const top = target
-        ? timeline.scrollTop + (target.getBoundingClientRect().top - tTop)
-        : (down ? timeline.scrollHeight : 0);
-      timeline.scrollTo({ top, behavior: "smooth" });
+      if (target) positionConversationRowAtStepTop(target, "smooth");
+      else timeline.scrollTo({ top: down ? timeline.scrollHeight : 0, behavior: "smooth" });
       requestAnimationFrame(() => { _programmaticScroll = false; });
     };
     document.addEventListener("keydown", (event) => {

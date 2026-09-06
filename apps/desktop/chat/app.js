@@ -3,6 +3,7 @@ __CHAT_INCLUDE:../../shared/chat/base.js__
     const launchShellMode = _pageParams.get("launch_shell") === "1";
     const DESKTOP_FILE_PANE_MIN_VIEWPORT_PX = 961;
     let _scrollbarLayoutSyncFrame = 0;
+    let _fitTargetRow = null;
     const syncChatScrollbarLayoutWidth = () => {
       const mainEl = document.querySelector("main");
       if (!mainEl || document.documentElement.dataset.mobile === "1") return;
@@ -46,9 +47,11 @@ __CHAT_INCLUDE:../../shared/chat/base.js__
     window.addEventListener("resize", () => {
       syncAppShellHeight();
       scheduleChatScrollbarLayoutWidthSync();
-      // "Fit Height to Message": the window just resized to the last message --
-      // pin the transcript to the bottom so that message is what's shown.
+      // A stepped-to message is positioned before its one resize request. Do
+      // not add a second scroll when that resize lands.
       if (document.documentElement.dataset.autoWindowHeight === "1") {
+        if (_fitTargetRow?.isConnected) return;
+        _fitTargetRow = null;
         _stickyToBottom = true;
         requestAnimationFrame(() => scrollConversationToBottom("auto"));
       }
@@ -156,11 +159,9 @@ __CHAT_INCLUDE:../../shared/chat/launch-shell-gate.js__
       requestHubParentLayout();
     }
 
-    // "Fit Height to Message": after a message settles, report the transcript's
-    // rendered content extent so the hub can size the window to it. Measured as
-    // (last row bottom - first row top) in viewport px -- scroll-position
-    // independent, and it ignores main::before / main::after (the 50vh scroll
-    // spacers, which is why scrollHeight is useless here). Debounced for bursts.
+    // "Fit Height to Message": after a message settles, report the target row's
+    // rendered extent so the hub can size the window to it. Bounding-rect height
+    // is scroll-position independent and ignores the transcript spacers.
     let _fitHeightTimer = 0;
     let _closeRefitTimer = 0;
     // Breathing room above the composer field when the window is sized to it.
@@ -176,12 +177,17 @@ __CHAT_INCLUDE:../../shared/chat/launch-shell-gate.js__
         ? scroller.querySelectorAll(":scope > article.message-row, :scope > .sysmsg-row")
         : null;
       if (!rows || !rows.length) return;
-      // The last message row, plus the running/thinking indicator below it when
-      // one is up (so sending doesn't push the message off the top).
+      const fitTarget = _fitTargetRow?.isConnected && _fitTargetRow.parentElement === scroller
+        ? _fitTargetRow
+        : null;
+      if (_fitTargetRow && !fitTarget) _fitTargetRow = null;
+      // Normally use the last row plus its running/thinking indicator. While
+      // stepping, measure only the selected message.
       const lastRow = rows[rows.length - 1];
-      const thinkEl = scroller.querySelector(":scope > .message-thinking-container");
-      const topPx = lastRow.getBoundingClientRect().top;
-      const bottomPx = (thinkEl || lastRow).getBoundingClientRect().bottom;
+      const targetRow = fitTarget || lastRow;
+      const thinkEl = fitTarget ? null : scroller.querySelector(":scope > .message-thinking-container");
+      const topPx = targetRow.getBoundingClientRect().top;
+      const bottomPx = (thinkEl || targetRow).getBoundingClientRect().bottom;
       let contentHeight = Math.ceil(bottomPx - topPx);
       // While the composer overlay is open, always size the window for a
       // fully-grown composer (field at its max-height) -- even if the window is
@@ -199,8 +205,14 @@ __CHAT_INCLUDE:../../shared/chat/launch-shell-gate.js__
           contentHeight = Math.ceil(box.offsetHeight + (COMPOSER_MAX_FIELD - FIELD_BASE)) + COMPOSER_FIT_SLACK;
         }
       }
+      contentHeight += messageStepTopGap();
       if (contentHeight > 0) {
-        if (!fromComposer) {
+        if (!fromComposer && fitTarget) {
+          _stickyToBottom = false;
+          _programmaticScroll = true;
+          positionConversationRowAtStepTop(fitTarget, "auto");
+          requestAnimationFrame(() => { _programmaticScroll = false; });
+        } else if (!fromComposer) {
           _stickyToBottom = true;
           scrollConversationToBottom("auto");
         }
@@ -208,6 +220,27 @@ __CHAT_INCLUDE:../../shared/chat/launch-shell-gate.js__
           window.parent.postMessage({ type: "fit-window-height", contentHeight }, "*");
         } catch (_) {}
       }
+    };
+    const fitMessageRows = () => [...timeline.querySelectorAll(":scope > article.message-row")];
+    const fitStepToMessage = (down) => {
+      const rows = fitMessageRows();
+      if (!rows.length) return;
+      const current = rows.includes(_fitTargetRow) ? _fitTargetRow : rows[rows.length - 1];
+      const index = rows.indexOf(current);
+      const next = rows[down ? Math.min(rows.length - 1, index + 1) : Math.max(0, index - 1)];
+      if (next === current) return;
+      _fitTargetRow = next;
+      _pollScrollLockTop = null;
+      _pollScrollAnchor = null;
+      _stickyToBottom = false;
+      reportFitHeight();
+    };
+    const fitStepToLatest = () => {
+      _fitTargetRow = null;
+      _pollScrollLockTop = null;
+      _pollScrollAnchor = null;
+      _stickyToBottom = true;
+      reportFitHeight();
     };
     const scheduleFitHeight = () => {
       // Fire immediately (message just entered the DOM -> resize in step), then
@@ -780,6 +813,7 @@ __CHAT_INCLUDE:features/git-panel/panel.js__
         return;
       }
       if (event.data.type === "hub-auto-window-height") {
+        _fitTargetRow = null;
         document.documentElement.dataset.autoWindowHeight = event.data.on ? "1" : "0";
         syncMainAfterHeight();
         if (event.data.on) {

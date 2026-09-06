@@ -146,7 +146,6 @@
     // "Fit Height to Message" mode: on each agent-message stream completion the
     // chat frame reports the height it needs, and we resize the window to it
     // (width and x untouched). Between messages the user is free to resize.
-    const DESK_FIT_BOTTOM_BUFFER = 16;
     // Mirrors DEFAULT_WINDOW_SIZE in tauri_app/src-tauri/src/main.rs -- the
     // height Fit Height restores on exit.
     const DESK_DEFAULT_WINDOW_HEIGHT = 896;
@@ -222,7 +221,7 @@
       // Chrome around the chat frame (hub header + window insets). Clamped so a
       // transient bad iframe measurement can't blow the target up to full screen.
       const overhead = Math.min(240, Math.max(0, window.innerHeight - iframeH));
-      const target = Math.round(content + overhead + DESK_FIT_BOTTOM_BUFFER);
+      const target = Math.round(content + overhead);
       // On the first fit after entering the mode, pull the window to the
       // compact width in the same resize (see toggleDeskAutoWindowHeight).
       const snapWidth = _deskFitWidthSnapPending;
