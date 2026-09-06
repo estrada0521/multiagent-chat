@@ -445,6 +445,11 @@
         else sendDeskChatAction("reloadChat");
         return;
       }
+      if (event.metaKey && !event.altKey && !event.ctrlKey && !event.shiftKey && event.code === "KeyN") {
+        event.preventDefault();
+        void startDeskNewSessionFlow();
+        return;
+      }
       if (!(event.metaKey || event.ctrlKey)) return;
       // event.code (physical key) instead of event.key: with metaKey held,
       // some WebViews don't reliably report the shift-modified character for
@@ -1336,10 +1341,10 @@
         }
         openChatInDesk(data.chat_url, data.session || "");
         showDeskHubMessage(data.notice || "", { error: !!data.notice });
+        // Leave the sidebar however it was -- New Session is reachable with it
+        // closed (⌘N). Phone still dismisses its overlay so the new chat shows.
         if (isPhoneViewport()) {
           setDeskSidebarOpen(false);
-        } else {
-          showDeskSidebarList({ open: true });
         }
         void refreshHubSessions(true, { skipRestore: true });
       } catch (err) {
@@ -2144,6 +2149,10 @@
       if (event.data && event.data.type === "reload-shortcut") {
         if (event.data.scope === "hub") triggerDeskHubReload();
         else sendDeskChatAction("reloadChat");
+        return;
+      }
+      if (event.data && event.data.type === "new-session-shortcut") {
+        void startDeskNewSessionFlow();
         return;
       }
       if (event.data && event.data.type === "reset-window-shortcut") {

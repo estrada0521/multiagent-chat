@@ -43,7 +43,7 @@ Tauri Appをbuildして起動します。HubはTauri Appから起動され、既
 
 ## sessionを始める
 
-Hubの `New Session` からworkspaceを選択します。
+Hubの `New Session`（`⌘N`）からworkspaceを選択します。
 
 一つの統一ログは、session名、workspace、参加Agentが変わっても続きます。`New Session` は別のlogを始める操作であり、いつそうするかは人間が決めます。
 

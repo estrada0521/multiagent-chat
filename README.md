@@ -43,7 +43,7 @@ This builds and launches the Tauri App. The Hub is started by the Tauri App and 
 
 ## Start a session
 
-Choose a workspace from `New Session` in the Hub.
+Choose a workspace from `New Session` (`⌘N`) in the Hub.
 
 A unified log continues across changes in session name, workspace, and participating Agents. `New Session` starts another log; when to do that is up to the human.
 
