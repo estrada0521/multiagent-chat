@@ -258,9 +258,17 @@ fn show_chat_header_menu(
     let remove_submenu = remove_builder.build().map_err(|err| err.to_string())?;
 
     let icons = system_app_icons()?;
+    let shell_item = IconMenuItemBuilder::with_id(
+        format!("{}action:openShell", NATIVE_MENU_PREFIX),
+        "Terminal",
+    )
+    .icon(icons.terminal.clone())
+    .accelerator("Cmd+T")
+    .build(&app)
+    .map_err(|err| err.to_string())?;
     let terminal_item = IconMenuItemBuilder::with_id(
         format!("{}action:openTerminal", NATIVE_MENU_PREFIX),
-        "Terminal",
+        "tmux window",
     )
     .icon(icons.terminal.clone())
     .accelerator("Alt+Cmd+T")
@@ -274,6 +282,7 @@ fn show_chat_header_menu(
             .map_err(|err| err.to_string())?;
 
     let menu = MenuBuilder::new(&app)
+        .item(&shell_item)
         .item(&terminal_item)
         .item(&finder_item)
         .separator()

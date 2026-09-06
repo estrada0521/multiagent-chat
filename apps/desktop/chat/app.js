@@ -950,6 +950,11 @@ __CHAT_INCLUDE:features/git-panel/panel.js__
           toggleDesktopRightPanel();
           return;
         }
+        if (event.metaKey && !event.altKey && !event.shiftKey && !event.ctrlKey && event.code === "KeyT") {
+          event.preventDefault();
+          window.parent?.postMessage({ type: "desktop-menu-shortcut", action: "openShell" }, "*");
+          return;
+        }
         if (!(event.metaKey || event.ctrlKey)) return;
         // event.code (physical key) instead of event.key: with metaKey held,
         // some WebViews don't reliably report the shift-modified character

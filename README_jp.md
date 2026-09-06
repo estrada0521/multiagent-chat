@@ -53,7 +53,8 @@ HubからsessionのArchive、revive、削除を行えます。
 
 右上の `Add / Remove Agent` からAgentを追加・削除できます。同種のCLI Agentを複数起動した場合は `Claude-2` のようなinstance名になります。
 
-* `Terminal` — compactなpane切り替え式のtmux terminalを直接開きます(tmux socket名は `agent-window` で固定です)
+* `Terminal` — workspace rootで素のシェルを開きます
+* `tmux window` — compactなpane切り替え式のtmux terminalを直接開きます(tmux socket名は `agent-window` で固定です)
 * `Finder` — 現在のworkspaceをFinderで開きます
 
 隣のreload buttonはGUI serverをhard reloadします。source codeを変更している場合は、動作中のserverを新しい実装へ置き換えます。

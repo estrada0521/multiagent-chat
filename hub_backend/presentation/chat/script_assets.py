@@ -20,7 +20,8 @@ CHAT_HEADER_ACTIONS_HTML_MOBILE = CHAT_HEADER_MENU_BUTTON_HTML
 CHAT_HEADER_ACTIONS_HTML = CHAT_HEADER_MENU_BUTTON_HTML + """
 <select id="pageNativeMenuBridge" style="position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0.001;pointer-events:auto;appearance:none;-webkit-appearance:none;border:none;outline:none;background:transparent;font-size:13px;z-index:220;cursor:pointer;-webkit-tap-highlight-color:transparent;" aria-hidden="true">
   <option value="" disabled selected>Menu</option>
-  <option value="openTerminal">Terminal</option>
+  <option value="openShell">Terminal</option>
+  <option value="openTerminal">tmux window</option>
   <option value="openFinder">Finder</option>
   <option value="addAgent">Add Agent</option>
   <option value="removeAgent">Remove Agent</option>

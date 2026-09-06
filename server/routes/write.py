@@ -439,6 +439,32 @@ def _post_open_finder(handler, _parsed, ctx) -> None:
         handler._send_json(500, {"ok": False, "error": str(exc)})
 
 
+def _post_open_shell(handler, _parsed, ctx) -> None:
+    workspace = str(ctx["workspace"] or "").strip()
+    if not workspace:
+        handler._send_json(400, {"ok": False, "error": "workspace unavailable"})
+        return
+    try:
+        target = Path(workspace).resolve()
+        if not target.exists():
+            handler._send_json(404, {"ok": False, "error": "workspace not found"})
+            return
+        apple_script = (
+            f'tell application "Terminal"\n'
+            f'  do script "cd " & quoted form of {json.dumps(str(target))}\n'
+            f"  activate\n"
+            f"end tell"
+        )
+        subprocess.Popen(
+            ["osascript", "-e", apple_script],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        handler._send_json(200, {"ok": True, "path": str(target)})
+    except Exception as exc:
+        handler._send_json(500, {"ok": False, "error": str(exc)})
+
+
 def _post_open_settings_file(handler, _parsed, ctx) -> None:
     try:
         target = hub_settings_path()
@@ -652,6 +678,7 @@ _POST_ROUTES = {
     "/open-terminal": _post_open_terminal,
     "/open-pane": _post_open_pane,
     "/open-finder": _post_open_finder,
+    "/open-shell": _post_open_shell,
     "/open-settings-file": _post_open_settings_file,
     "/files-exist": _post_files_exist,
     "/files-resolve": _post_files_resolve,

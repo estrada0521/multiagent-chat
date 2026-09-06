@@ -53,7 +53,8 @@ Archive, revive, and delete sessions from the Hub.
 
 `Add / Remove Agent` in the top right adds or removes Agents from the session. Running more than one instance of the same CLI Agent produces instance names such as `Claude-2`.
 
-* `Terminal` — opens a compact, pane-switching tmux terminal directly (the tmux socket name is fixed as `agent-window`)
+* `Terminal` — opens a plain shell at the workspace root
+* `tmux window` — opens a compact, pane-switching tmux terminal directly (the tmux socket name is fixed as `agent-window`)
 * `Finder` — opens the current workspace in Finder
 
 The separate reload button beside it hard-reloads the GUI server. If the source code has changed, the running server is replaced with the new implementation.
