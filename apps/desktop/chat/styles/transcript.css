@@ -2,7 +2,7 @@
     .sysmsg-row {
       box-sizing: border-box;
       padding-top: 0;
-      padding-bottom: 12px;
+      padding-bottom: 0.92em;
       margin-top: 0;
       margin-bottom: 0;
       overflow-anchor: none;
@@ -11,8 +11,9 @@
     .message-row {
       display: flex;
       align-items: flex-start;
-      --message-vertical-rhythm: 4px;
-      --message-hidden-meta-lift: 12px;
+      --message-vertical-rhythm: 0.31em;
+      --message-hidden-meta-lift: 0.92em;
+      font-size: var(--text-size, 13px);
       gap: 12px;
       width: min(100%, var(--message-max-width, 600px));
       max-width: var(--message-max-width, 600px);
@@ -183,7 +184,7 @@
       min-width: 0;
       max-width: 100%;
       border-radius: 20px;
-      padding: 12px 16px 16px;
+      padding: 0.92em 16px 1.23em;
       border: 1px solid transparent;
       background: transparent;
       display: flex;
@@ -204,7 +205,7 @@
       display: block;
       width: 100%;
       max-width: 100%;
-      padding: 0 0 3px 0;
+      padding: 0 0 0.23em;
       border-radius: 0;
       background: transparent;
       color: var(--fg);
@@ -302,9 +303,9 @@
     .message-meta-below {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 0.46em;
       flex-wrap: wrap;
-      margin-top: 4px;
+      margin-top: var(--message-vertical-rhythm);
       color: var(--muted);
       font-size: var(--text-size, 13px);
       line-height: 1.2;
@@ -313,23 +314,23 @@
     .message-meta-below .meta-agent {
       display: inline-flex;
       align-items: center;
-      gap: 5px;
+      gap: 0.38em;
       color: inherit;
       white-space: nowrap;
-      height: 20px;
+      height: 1.54em;
     }
 
     .message-meta-below .arrow {
       display: inline-flex;
       align-items: center;
-      height: 20px;
+      height: 1.54em;
     }
 
     .message-meta-below .targets {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      height: 20px;
+      gap: 0.46em;
+      height: 1.54em;
     }
 
     .message-meta-below .meta-agent-fallback {
@@ -359,12 +360,12 @@
 
     .message-meta-below .meta-agent-sep {
       color: inherit;
-      margin: 0 2px 0 1px;
+      margin: 0 0.15em 0 0.08em;
     }
 
     .message-meta-below .copy-btn {
       margin-top: 0;
-      margin-right: 2px;
+      margin-right: 0.15em;
     }
 
     .message-meta-below .sender,
@@ -377,7 +378,7 @@
     .message:not(.user) .message-meta-below {
       margin-top: 0px;
       margin-bottom: var(--message-vertical-rhythm);
-      gap: 6px;
+      gap: 0.46em;
       font-size: var(--text-size, 13px);
     }
 
@@ -386,8 +387,8 @@
     }
 
     .message:not(.user) .message-meta-below .copy-btn svg {
-      width: 17px;
-      height: 17px;
+      width: 1.3em;
+      height: 1.3em;
     }
 
     .message:not(.user) .message-meta-below .copy-btn svg * {
@@ -403,7 +404,7 @@
       margin-left: 0;
       margin-right: auto;
       padding-top: 0;
-      gap: 6px;
+      gap: 0.46em;
       font-size: var(--text-size, 13px);
       justify-content: flex-start;
       background: transparent;
@@ -438,7 +439,7 @@
       align-items: flex-start;
       margin-right: auto;
       margin-left: 0;
-      gap: 4px;
+      gap: var(--message-vertical-rhythm);
       width: 100%;
       max-width: 100%;
       min-width: 0;
@@ -498,7 +499,7 @@
       position: absolute;
       left: -16px;
       top: 0;
-      bottom: 8px;
+      bottom: 0.62em;
       width: 1px;
       border-radius: 1px;
       background: var(--fg);
@@ -519,7 +520,7 @@
 
     __AGENT_ROW_MESSAGE_SELECTORS__ {
       width: 100%;
-      padding: 0 0 8px;
+      padding: 0 0 0.62em;
       border: none;
       border-radius: 0;
       background: transparent;
@@ -529,7 +530,7 @@
     }
 
     __AGENT_ROW_META_SELECTORS__ {
-      margin-bottom: 4px;
+      margin-bottom: var(--message-vertical-rhythm);
     }
 
     .sysmsg-row {
@@ -538,7 +539,7 @@
       justify-content: center;
       gap: 10px;
       width: min(100%, var(--message-max-width, 600px));
-      padding-bottom: 8px;
+      padding-bottom: 0.62em;
       color: var(--muted);
       font-family: var(--font-main);
       font-size: var(--text-size, 13px);
@@ -585,12 +586,12 @@
       width: min(100%, var(--message-max-width, 600px));
       max-width: var(--message-max-width, 600px);
       margin-top: 0;
-      margin-bottom: 12px;
+      margin-bottom: 0.92em;
       margin-left: auto;
       margin-right: auto;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 0.31em;
       box-sizing: border-box;
       font-family: var(--font-main);
       font-size: var(--text-size, 13px);
@@ -607,7 +608,7 @@
       display: flex;
       align-items: flex-start;
       gap: 10px;
-      padding: 6px 20px 6px 0px;
+      padding: 0.46em 20px 0.46em 0;
       color: var(--muted);
       font-size: inherit;
       line-height: inherit;
@@ -876,12 +877,12 @@
 
     .meta {
       display: flex;
-      gap: 8px;
+      gap: 0.62em;
       align-items: center;
       flex-wrap: wrap;
       color: var(--muted);
       font-size: var(--text-size, 13px);
-      margin-bottom: 8px;
+      margin-bottom: 0.62em;
     }
 
     .message-row.user .meta {
@@ -889,7 +890,7 @@
     }
 
     .sender {
-      padding: 2px 0;
+      padding: 0.15em 0;
       color: var(--muted);
       font-weight: inherit;
       text-transform: capitalize;

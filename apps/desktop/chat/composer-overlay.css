@@ -404,19 +404,19 @@
     }
     .agent-icon-slot--meta {
       display: inline-grid;
-      grid-template-columns: 17px auto;
-      column-gap: 2px;
+      grid-template-columns: 1.3em auto;
+      column-gap: 0.15em;
       align-items: end;
       justify-content: start;
       width: auto;
-      height: 17px;
+      height: 1.3em;
       flex: 0 0 auto;
-      --agent-icon-sub-font-size: 11px;
+      --agent-icon-sub-font-size: 0.85em;
     }
     .agent-icon-slot--meta .meta-agent-icon {
       position: static;
-      width: 17px;
-      height: 17px;
+      width: 1.3em;
+      height: 1.3em;
     }
     .agent-icon-slot--meta .agent-icon-instance-sub {
       position: static;
