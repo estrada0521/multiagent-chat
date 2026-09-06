@@ -321,6 +321,7 @@ __CHAT_INCLUDE:../../shared/chat/runtime/settings-sync.js__
     const DP_PANEL_DEFAULT_WIDTH = 220;
     const DP_PANEL_MIN_WIDTH = 220;
     const DP_PANEL_MAX_WIDTH = 560;
+    const DP_CHAT_MIN_WIDTH = 360;
     const DP_PANEL_WIDTH_KEY = "agent_window_desktop_right_panel_width_px";
     const DP_PANEL_GAP = 0;
     const hasDesktopRightPanelOverlay = () => (
@@ -339,7 +340,7 @@ __CHAT_INCLUDE:../../shared/chat/runtime/settings-sync.js__
     const dpClampPanelWidthPx = (value) => {
       const viewportWidth = Math.max(0, window.innerWidth || 0);
       const availableWidth = viewportWidth;
-      const maxWidth = Math.max(DP_PANEL_MIN_WIDTH, Math.min(DP_PANEL_MAX_WIDTH, availableWidth - 360));
+      const maxWidth = Math.max(DP_PANEL_MIN_WIDTH, Math.min(DP_PANEL_MAX_WIDTH, availableWidth - DP_CHAT_MIN_WIDTH));
       const numeric = Number(value);
       if (!Number.isFinite(numeric)) {
         return Math.max(DP_PANEL_MIN_WIDTH, Math.min(DP_PANEL_DEFAULT_WIDTH, maxWidth));
@@ -352,6 +353,14 @@ __CHAT_INCLUDE:../../shared/chat/runtime/settings-sync.js__
         dpPanelWidthPx = storedPanelWidth;
       }
     } catch (_) {}
+    const dpOutwardPanelWidthPx = () => {
+      if (dpPanelOpen) return dpCurrentPanelWidthPx();
+      const viewportWidth = Math.max(0, window.innerWidth || 0);
+      if (viewportWidth < DP_CHAT_MIN_WIDTH) return DP_PANEL_MIN_WIDTH;
+      const numeric = Number(dpPanelWidthPx);
+      if (!Number.isFinite(numeric)) return DP_PANEL_DEFAULT_WIDTH;
+      return Math.max(DP_PANEL_MIN_WIDTH, Math.min(DP_PANEL_MAX_WIDTH, Math.round(numeric)));
+    };
     const dpPersistPanelWidthPx = () => {
       try {
         if (dpPanelWidthPx > 0) {
@@ -374,7 +383,7 @@ __CHAT_INCLUDE:features/git-panel/panel.js__
             type: "desktop-panel-state",
             mode: dpPanelOpen ? "open" : "",
             view: dpActivePanelView,
-            width: dpPanelOpen ? dpCurrentPanelWidthPx() : 0,
+            width: dpOutwardPanelWidthPx(),
           }, "*");
         }
       } catch (_) {}
@@ -773,6 +782,16 @@ __CHAT_INCLUDE:features/git-panel/panel.js__
       // setting is exactly what caused the size to end up wrong on disk.
       window.addEventListener("keydown", (event) => {
         if (event.metaKey && event.altKey) {
+          if (event.code === "KeyB") {
+            event.preventDefault();
+            window.parent?.postMessage({ type: "toggle-hub-sidebar-outward" }, "*");
+            return;
+          }
+          if (event.code === "KeyE") {
+            event.preventDefault();
+            window.parent?.postMessage({ type: "toggle-desktop-panel-outward" }, "*");
+            return;
+          }
           if (event.code === "KeyT") {
             event.preventDefault();
             window.parent?.postMessage({ type: "desktop-menu-shortcut", action: "openTerminal" }, "*");

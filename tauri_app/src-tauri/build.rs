@@ -6,6 +6,7 @@ fn main() {
             "show_appearance_menu",
             "reset_window_geometry",
             "compact_window_geometry",
+            "resize_window_from_edge",
             "set_always_on_top",
             "set_window_height",
             "set_fit_height_min",

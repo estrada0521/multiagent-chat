@@ -135,6 +135,7 @@
       if (dpPanelOpen) {
         dpApplyPanelWidth();
       }
+      notifyParentPanelState();
     });
     document.addEventListener("click", (event) => {
 
@@ -215,4 +216,3 @@
       }
       throw new Error(`unknown menu action: ${action}`);
     }
-

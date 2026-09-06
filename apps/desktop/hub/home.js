@@ -70,6 +70,7 @@
     });
     let _deskPanelActiveMode = "";
     let _deskPanelWidth = 0;
+    let _deskOutwardResizeInFlight = false;
     const _phoneViewportQuery = window.matchMedia(`(max-width: ${PHONE_VIEWPORT_MAX_PX}px)`);
     const esc = (value) => String(value || "").replace(/[&<>"']/g, (char) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
     const cssEsc = (value) => {
@@ -265,8 +266,76 @@
       }
     }
 
+    async function resizeDeskWindowAroundPane({ edge, delta, apply, rollback, label }) {
+      if (_deskOutwardResizeInFlight || _deskAutoWindowHeight) return;
+      const invoke = getTauriInvoke();
+      if (typeof invoke !== "function") {
+        showDeskHubMessage(`${label}: no tauri invoke available`, { error: true });
+        return;
+      }
+      _deskOutwardResizeInFlight = true;
+      let applied = false;
+      try {
+        const resizing = invoke("resize_window_from_edge", { edge, delta });
+        apply();
+        applied = true;
+        await resizing;
+      } catch (err) {
+        if (applied) rollback();
+        showDeskHubMessage(`${label} failed: ${err}`, { error: true });
+      } finally {
+        _deskOutwardResizeInFlight = false;
+      }
+    }
+
+    function toggleDeskSidebarOutward() {
+      if (_deskAutoWindowHeight) return;
+      const opening = !isDeskSidebarOpen();
+      const width = _deskSidebarWidth;
+      void resizeDeskWindowAroundPane({
+        edge: "left",
+        delta: opening ? width : -width,
+        apply: () => setDeskSidebarOpen(opening),
+        rollback: () => setDeskSidebarOpen(!opening),
+        label: "toggle Hub sidebar outward",
+      });
+    }
+
+    function toggleDeskRightPanelOutward() {
+      if (_deskAutoWindowHeight) return;
+      const width = _deskPanelWidth;
+      if (!(width > 0)) {
+        showDeskHubMessage("toggle right pane outward: pane width unavailable", { error: true });
+        return;
+      }
+      const opening = !_deskPanelActiveMode;
+      void resizeDeskWindowAroundPane({
+        edge: "right",
+        delta: opening ? width : -width,
+        apply: () => {
+          updateDeskPanelButtonState(opening ? "open" : "", width);
+          sendDeskPanelCommand("");
+        },
+        rollback: () => {
+          updateDeskPanelButtonState(opening ? "" : "open", width);
+          sendDeskPanelCommand("");
+        },
+        label: "toggle right pane outward",
+      });
+    }
+
     window.addEventListener("keydown", (event) => {
       if (event.metaKey && event.altKey) {
+        if (event.code === "KeyB") {
+          event.preventDefault();
+          toggleDeskSidebarOutward();
+          return;
+        }
+        if (event.code === "KeyE") {
+          event.preventDefault();
+          toggleDeskRightPanelOutward();
+          return;
+        }
         if (event.code === "KeyT") {
           event.preventDefault();
           dispatchDeskNativeMenuAction({ action: "openTerminal" });
@@ -583,7 +652,8 @@
     }
     function updateDeskPanelButtonState(mode = "", width = _deskPanelWidth) {
       _deskPanelActiveMode = mode ? "open" : "";
-      _deskPanelWidth = Math.max(0, Number(width) || 0);
+      const nextWidth = Math.max(0, Number(width) || 0);
+      if (nextWidth > 0) _deskPanelWidth = nextWidth;
       if (_deskPanelToggle) {
         _deskPanelToggle.classList.toggle("active", !!_deskPanelActiveMode);
         _deskPanelToggle.setAttribute("aria-pressed", _deskPanelActiveMode ? "true" : "false");
@@ -1731,6 +1801,14 @@
       }
       if (event.data && event.data.type === "toggle-hub-sidebar") {
         setDeskSidebarOpen(!isDeskSidebarOpen());
+        return;
+      }
+      if (event.data && event.data.type === "toggle-hub-sidebar-outward" && event.source === _deskChatFrame?.contentWindow) {
+        toggleDeskSidebarOutward();
+        return;
+      }
+      if (event.data && event.data.type === "toggle-desktop-panel-outward" && event.source === _deskChatFrame?.contentWindow) {
+        toggleDeskRightPanelOutward();
         return;
       }
       if (event.data && event.data.type === "hub-open-chat-session") {

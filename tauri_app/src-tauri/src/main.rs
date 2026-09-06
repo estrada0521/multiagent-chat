@@ -630,6 +630,36 @@ fn compact_window_geometry(window: tauri::WebviewWindow) -> Result<(), String> {
         .map_err(|err| err.to_string())
 }
 
+#[tauri::command]
+fn resize_window_from_edge(
+    window: tauri::WebviewWindow,
+    edge: String,
+    delta: f64,
+) -> Result<(), String> {
+    if !delta.is_finite() || delta == 0.0 {
+        return Err("window width delta must be a non-zero finite number".to_string());
+    }
+    let handle = window.ns_window().map_err(|err| err.to_string())?;
+    unsafe {
+        let ns_window: &NSWindow = &*(handle as *const NSWindow);
+        let mut frame = ns_window.frame();
+        let next_width = frame.size.width + delta;
+        if next_width < MIN_WINDOW_WIDTH {
+            return Err(format!(
+                "window width would fall below the minimum ({MIN_WINDOW_WIDTH})"
+            ));
+        }
+        match edge.as_str() {
+            "left" => frame.origin.x -= delta,
+            "right" => {}
+            _ => return Err(format!("unsupported window edge: {edge}")),
+        }
+        frame.size.width = next_width;
+        ns_window.setFrame_display(frame, true);
+    }
+    Ok(())
+}
+
 // How tall the menu bar (and, on a notched Mac, the extra strip beside it)
 // actually is varies by machine and can't be hardcoded -- NSScreen's own
 // frame vs visibleFrame is the only reliable source. Cocoa reports both in
@@ -981,6 +1011,7 @@ fn main() {
             show_appearance_menu,
             reset_window_geometry,
             compact_window_geometry,
+            resize_window_from_edge,
             move_window_top,
             move_window_top_left,
             move_window_top_right,
