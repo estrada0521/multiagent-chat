@@ -620,6 +620,10 @@
         if (_deskContextSessionName) beginDeskSessionRename(_deskContextSessionName);
         return;
       }
+      if (detail.action === "changeWorkspace") {
+        if (_deskContextSessionName) void changeDeskSessionWorkspace(_deskContextSessionName);
+        return;
+      }
       if (detail.action === "textSize") {
         const mode = String(detail.mode || "");
         if (mode === "increase") {
@@ -1627,6 +1631,43 @@
       }
     }
 
+    async function changeDeskSessionWorkspace(sessionName) {
+      if (!sessionName) return;
+      showDeskHubMessage();
+      let picked;
+      try {
+        const res = await fetch("/pick-workspace", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: "{}",
+          cache: "no-store",
+        });
+        picked = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(picked.error || "Workspace picker failed.");
+      } catch (err) {
+        showDeskHubMessage(err?.message || "Workspace picker failed.", { error: true });
+        return;
+      }
+      if (picked.canceled || !picked.path) return;
+      try {
+        const res = await fetch("/change-session-workspace", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+          body: new URLSearchParams({ session: sessionName, workspace: picked.path }).toString(),
+          cache: "no-store",
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) throw new Error(data.error || "Failed to change workspace.");
+      } catch (err) {
+        showDeskHubMessage(err?.message || "Failed to change workspace.", { error: true });
+        return;
+      }
+      // A chat URL cached for this archived session was resolved against the
+      // old workspace's port; drop it so the next open re-resolves.
+      hubChatUrls.forget(buildSessionOpenHref(sessionName, true));
+      showDeskHubMessage(`Workspace updated for ${sessionName}.`);
+    }
+
     function beginDeskSessionRename(sessionName) {
       if (_deskSessionRename) _deskSessionRename.cancel();
       const row = Array.from(_deskSessionList?.querySelectorAll(".desk-action-session-row") || [])
@@ -2246,10 +2287,16 @@
         if (!sessionName || typeof invoke !== "function") return;
         event.preventDefault();
         _deskContextSessionName = sessionName;
+        const rec = findSessionRecord(sessionName);
+        // Change Workspace is a plain .meta rewrite, so keep it off the session
+        // currently on screen -- that one has a live chat server on a port
+        // derived from its workspace.
+        const changeWorkspace = !!(rec && rec.archived) && sessionName !== _deskSelectedSessionName;
         invoke("show_session_context_menu", {
           payload: {
             x: Math.round(event.clientX),
             y: Math.round(event.clientY),
+            changeWorkspace,
           },
         }).catch((err) => {
           showDeskHubMessage(String(err || "Failed to open session menu."), { error: true });

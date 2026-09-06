@@ -85,6 +85,8 @@ struct FileContextMenuPayload {
 struct SessionContextMenuPayload {
     x: f64,
     y: f64,
+    #[serde(default)]
+    change_workspace: bool,
 }
 
 #[tauri::command]
@@ -642,10 +644,20 @@ fn show_session_context_menu(
     )
     .build(&app)
     .map_err(|err| err.to_string())?;
-    let menu = MenuBuilder::new(&app)
-        .item(&rename)
-        .build()
-        .map_err(|err| err.to_string())?;
+    // Offered only for an archived session that isn't the one on screen -- see
+    // the hub's contextmenu handler. That keeps it to a plain .meta rewrite:
+    // no chat server derives a port from this session's workspace right now.
+    let change_workspace = MenuItemBuilder::with_id(
+        format!("{}action:changeWorkspace", NATIVE_MENU_PREFIX),
+        "Change Workspace",
+    )
+    .build(&app)
+    .map_err(|err| err.to_string())?;
+    let mut builder = MenuBuilder::new(&app).item(&rename);
+    if payload.change_workspace {
+        builder = builder.item(&change_workspace);
+    }
+    let menu = builder.build().map_err(|err| err.to_string())?;
 
     window
         .popup_menu_at(&menu, tauri::LogicalPosition::new(payload.x, payload.y))

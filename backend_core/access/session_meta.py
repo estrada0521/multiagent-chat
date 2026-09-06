@@ -143,6 +143,31 @@ def session_meta_agents(session_name: str) -> list[str]:
     return [str(a).strip() for a in raw if str(a).strip()]
 
 
+def set_session_workspace(session_name: str, workspace: str) -> None:
+    """Overwrite just the workspace path in a session's .meta.
+
+    Nothing else: the port a viewer derives from the workspace only matters
+    for a session that's currently open, and Change Workspace is offered only
+    for an archived session that isn't. A resulting workspace collision is the
+    existing open-time warning's job, not this call's.
+    """
+    name = str(session_name or "").strip()
+    ws = str(workspace or "").strip()
+    if not name or not ws:
+        raise SessionMetaError("session name and workspace are required")
+    meta_path = agent_window_session_root() / name / ".meta"
+    if not meta_path.is_file():
+        raise SessionMetaError(f"session not found: {name}")
+    try:
+        raw = json.loads(meta_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise SessionMetaError(f"invalid session meta: {meta_path}") from exc
+    if not isinstance(raw, dict):
+        raise SessionMetaError(f"invalid session meta: {meta_path}")
+    raw["workspace"] = ws
+    write_json_atomically(meta_path, raw, indent=2)
+
+
 def write_session_meta_file(
     session_name: str,
     agents_csv: str,
