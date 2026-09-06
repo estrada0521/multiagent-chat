@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime
 from pathlib import Path
 
 from backend_core.access.atomic_json import write_json_atomically
@@ -146,16 +145,13 @@ def write_session_meta_file(
             raise ValueError(f"invalid session meta: {meta_path}")
         meta = raw
 
-    created_at = (
-        str(meta.get("created_at") or "").strip()
-        or datetime.now().strftime("%Y-%m-%d %H:%M")
-    )
-
     parsed_agents = _parse_agents_csv(agents_csv)
     _reconcile_agent_names(meta, parsed_agents)
+    # Timestamps lived here once; .log.jsonl is the real record of when a
+    # session started and last moved, so a copy in .meta only went stale.
     meta.pop("session", None)
+    meta.pop("created_at", None)
     meta.pop("updated_at", None)
     meta["workspace"] = workspace
     meta["agents"] = parsed_agents
-    meta["created_at"] = created_at
     write_json_atomically(meta_path, meta, indent=2)

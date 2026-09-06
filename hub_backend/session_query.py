@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import datetime as dt
 import json
 import logging
 import re
@@ -27,17 +26,6 @@ class SessionQueryResult:
     @property
     def non_archived_names(self) -> set[str]:
         return set(self.records) | set(self.warnings)
-
-
-def parse_saved_time(value: str) -> float:
-    if not value:
-        return 0
-    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"):
-        try:
-            return dt.datetime.strptime(value, fmt).timestamp()
-        except ValueError:
-            pass
-    return 0
 
 
 def _compact_message_preview(entry: dict[str, Any]) -> dict[str, str]:
@@ -283,7 +271,16 @@ def archived_sessions(excluded_names: set[str] | list[str] | None = None) -> lis
                 if not isinstance(meta, dict):
                     raise ValueError(f"invalid session meta: {meta_path}")
             workspace = str(meta.get("workspace") or "").strip()
-            created_epoch = parse_saved_time(str(meta.get("created_at", "")))
+            # Recency for dedupe/sort comes from the log itself, not a stored
+            # timestamp: whichever copy of a same-named session has the
+            # freshest .log.jsonl wins, else the .meta's own mtime.
+            try:
+                mtime = log_path.stat().st_mtime
+            except OSError:
+                try:
+                    mtime = meta_path.stat().st_mtime
+                except OSError:
+                    mtime = 0.0
             agents: list[str] = []
             seen_agents: set[str] = set()
             meta_agents = meta.get("agents")
@@ -301,10 +298,10 @@ def archived_sessions(excluded_names: set[str] | list[str] | None = None) -> lis
             record["agents"] = agents
             record["log_dir"] = str(log_path.parent)
             existing = records.get(session_name)
-            if existing is None or created_epoch > existing[0]:
-                records[session_name] = (created_epoch, record)
+            if existing is None or mtime > existing[0]:
+                records[session_name] = (mtime, record)
     sessions = sorted(records.values(), key=lambda item: item[0], reverse=True)
-    return [record for _created_epoch, record in sessions]
+    return [record for _mtime, record in sessions]
 
 
 def archived_session_records(

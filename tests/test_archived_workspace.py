@@ -86,7 +86,6 @@ class ArchivedWorkspaceTests(unittest.TestCase):
                     {
                         "session": "Even-Parity",
                         "agents": ["codex"],
-                        "created_at": "2026-05-29 16:54",
                     }
                 )
                 + "\n",
@@ -125,7 +124,6 @@ class ArchivedWorkspaceTests(unittest.TestCase):
                     {
                         "workspace": str(workspace),
                         "agents": ["codex"],
-                        "created_at": "2026-04-22 23:43",
                     }
                 )
                 + "\n",
