@@ -992,10 +992,10 @@
     }
     .desk-session-row.is-selected .desk-row-bullet i,
     .desk-session-row.is-unread .desk-row-bullet i {
-      width: 6px;
-      height: 6px;
+      width: 0.46em;
+      height: 0.46em;
       background: var(--icon-fg);
-      box-shadow: 0 0 5px color-mix(in srgb, var(--icon-fg) 68%, transparent);
+      box-shadow: 0 0 0.38em color-mix(in srgb, var(--icon-fg) 68%, transparent);
     }
     .desk-session-row.archived {
       opacity: 1;
@@ -1072,7 +1072,7 @@
       min-width: 0;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 0.62em;
     }
     .desk-row-hover-action {
       position: absolute;
@@ -1089,6 +1089,7 @@
       border-radius: 6px;
       background: transparent;
       color: var(--fg);
+      font: inherit;
       cursor: pointer;
       opacity: 0;
       overflow: hidden;
@@ -1098,8 +1099,8 @@
       -webkit-tap-highlight-color: transparent;
     }
     .desk-row-hover-action svg {
-      width: 15px;
-      height: 15px;
+      width: 1.15em;
+      height: 1.15em;
       stroke: currentColor;
       stroke-width: 2.2;
       fill: none;
@@ -1145,22 +1146,22 @@
     }
     .desk-row-bullet {
       flex: 0 0 auto;
-      width: 10px;
-      height: 12px;
+      width: 0.77em;
+      height: 0.92em;
       display: flex;
       align-items: center;
       justify-content: center;
     }
     .desk-row-bullet i {
       display: block;
-      width: 4px;
-      height: 4px;
+      width: 0.31em;
+      height: 0.31em;
       border-radius: 50%;
       background: var(--icon-muted);
     }
     .desk-row-leading-icon {
-      width: 12px;
-      height: 12px;
+      width: 0.92em;
+      height: 0.92em;
       align-self: center;
       flex: 0 0 auto;
       color: var(--icon-fg);
@@ -1185,7 +1186,7 @@
     }
     .desk-action-session-row .desk-row-stack {
       position: relative;
-      top: 1px;
+      top: 0.08em;
     }
     .desk-row-name {
       font-size: var(--text-size, 13px);
@@ -1232,7 +1233,7 @@
       flex: 1;
       min-width: 0;
       position: relative;
-      top: 1px;
+      top: 0.08em;
     }
     .desk-new-session-toggle .desk-row-name {
       text-align: left;
@@ -1241,15 +1242,15 @@
       opacity: 1;
     }
     .desk-new-session-toggle .desk-row-leading-icon {
-      width: 13px;
-      height: 13px;
+      width: 1em;
+      height: 1em;
       opacity: 1;
     }
     .desk-new-session-toggle .desk-row-kbd {
       margin-left: auto;
-      margin-right: 6px;
+      margin-right: 0.54em;
       flex: none;
-      font-size: 11px;
+      font-size: 0.85em;
       color: var(--muted);
       opacity: 0;
       pointer-events: none;
@@ -1279,10 +1280,10 @@
       font-style: italic;
     }
     .desk-empty-list {
-      padding: 18px 12px;
+      padding: 1.38em 12px;
       color: var(--muted);
       opacity: 1;
-      font-size: 13px;
+      font-size: var(--text-size, 13px);
       line-height: 1.55;
     }
     .desk-session-list-loading {
