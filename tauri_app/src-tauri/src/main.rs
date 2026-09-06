@@ -340,7 +340,7 @@ fn show_appearance_menu(
 
     let reset_window = MenuItemBuilder::with_id(
         format!("{}action:resetWindow", NATIVE_MENU_PREFIX),
-        "Reset Window",
+        "Default Window",
     )
     .accelerator("Cmd+Alt+0")
     .build(&app)
@@ -438,6 +438,40 @@ fn show_appearance_menu(
     .build(&app)
     .map_err(|err| err.to_string())?;
 
+    let window_presets_submenu = SubmenuBuilder::with_id(
+        &app,
+        format!("{}submenu:windowPresets", NATIVE_MENU_PREFIX),
+        "Window Presets",
+    )
+    .item(&reset_window)
+    .item(&compact_window)
+    .build()
+    .map_err(|err| err.to_string())?;
+
+    let move_window_submenu = SubmenuBuilder::with_id(
+        &app,
+        format!("{}submenu:moveWindow", NATIVE_MENU_PREFIX),
+        "Move Window",
+    )
+    .item(&move_top)
+    .item(&move_left)
+    .item(&move_right)
+    .item(&move_center)
+    .build()
+    .map_err(|err| err.to_string())?;
+
+    let side_panels_submenu = SubmenuBuilder::with_id(
+        &app,
+        format!("{}submenu:sidePanels", NATIVE_MENU_PREFIX),
+        "Side Panels",
+    )
+    .item(&toggle_sidebar)
+    .item(&toggle_right_pane)
+    .item(&toggle_sidebar_outward)
+    .item(&toggle_right_pane_outward)
+    .build()
+    .map_err(|err| err.to_string())?;
+
     let menu = MenuBuilder::new(&app)
         .item(&theme_submenu)
         .separator()
@@ -445,16 +479,9 @@ fn show_appearance_menu(
         .item(&zoom_in)
         .item(&zoom_out)
         .separator()
-        .item(&reset_window)
-        .item(&compact_window)
-        .item(&move_top)
-        .item(&move_left)
-        .item(&move_right)
-        .item(&move_center)
-        .item(&toggle_sidebar)
-        .item(&toggle_right_pane)
-        .item(&toggle_sidebar_outward)
-        .item(&toggle_right_pane_outward)
+        .item(&window_presets_submenu)
+        .item(&move_window_submenu)
+        .item(&side_panels_submenu)
         .item(&always_on_top)
         .item(&auto_window_height)
         .separator()
