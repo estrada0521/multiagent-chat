@@ -310,6 +310,10 @@ __CHAT_INCLUDE:../../shared/chat/attachments/file-runtime.js__
 __CHAT_INCLUDE:../../shared/chat/composer/commands.js__
 __CHAT_INCLUDE:../../shared/chat/thinking.js__
 __CHAT_INCLUDE:../../shared/chat/runtime/agent-status.js__
+    window.addEventListener("message", (event) => {
+      if (event.source !== window.parent || event.data?.type !== "refresh-session-state") return;
+      void refreshSessionState(event.data.projections);
+    });
 __CHAT_INCLUDE:../../shared/chat/pointer-capability.js__
 __CHAT_INCLUDE:../../shared/chat/runtime/settings-sync.js__
     const desktopRightPanel = document.getElementById("desktopRightPanel");

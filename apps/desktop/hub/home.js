@@ -1691,6 +1691,9 @@
         showDeskHubMessage(err?.message || "Failed to reset agents.", { error: true });
         return;
       }
+      if (_deskSelectedSessionName === sessionName) {
+        postDeskChatFrameMessage({ type: "refresh-session-state", projections: ["targets"] });
+      }
       showDeskHubMessage(`Agents reset for ${sessionName}.`);
     }
 
