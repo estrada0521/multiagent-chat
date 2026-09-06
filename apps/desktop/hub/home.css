@@ -1450,6 +1450,9 @@
       padding-left: 4px;
     }
     .desk-session-title-text:empty { display: none; }
+    .desk-floating-controls.is-port-hidden .desk-session-title-port {
+      display: none;
+    }
     .desk-floating-controls.is-title-hidden .desk-session-title-text {
       display: none;
     }

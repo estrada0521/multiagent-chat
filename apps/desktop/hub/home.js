@@ -736,11 +736,18 @@
     function updateDeskWindowTitle(name) {
       const textEl = _deskSessionTitleTextEl;
       if (!textEl) return;
-      if (!name) {
-        textEl.textContent = "";
-      } else {
+      textEl.textContent = "";
+      if (name) {
         const port = findSessionRecord(name)?.session?.chat_port;
-        textEl.textContent = port ? `${name} (${port})` : name;
+        // Two spans so updateDeskChromeOverflow can drop just the "(port)"
+        // suffix a step before hiding the whole label.
+        const nameEl = document.createElement("span");
+        nameEl.className = "desk-session-title-name";
+        nameEl.textContent = name;
+        const portEl = document.createElement("span");
+        portEl.className = "desk-session-title-port";
+        portEl.textContent = port ? ` (${port})` : "";
+        textEl.append(nameEl, portEl);
       }
       updateDeskChromeOverflow();
     }
@@ -1936,7 +1943,7 @@
     const DESK_TRAFFIC_LIGHTS_WIDTH = 56;
     function updateDeskChromeOverflow() {
       if (!_deskFloatingControls || !_deskTopRightControls) return;
-      _deskFloatingControls.classList.remove("is-title-hidden", "is-buttons-hidden");
+      _deskFloatingControls.classList.remove("is-port-hidden", "is-title-hidden", "is-buttons-hidden");
       _deskTopRightControls.classList.remove("is-buttons-hidden");
       // Left and right groups are mirror-symmetric (same buttons, same
       // --desk-chrome-edge inset), and the traffic lights are centered, so
@@ -1944,6 +1951,9 @@
       // enough -- the right side collides at the same threshold.
       const trafficLeft = window.innerWidth / 2 - (DESK_TRAFFIC_LIGHTS_WIDTH / 2);
       const collides = () => _deskFloatingControls.getBoundingClientRect().right + DESK_CHROME_GROUP_GAP > trafficLeft;
+      if (!collides()) return;
+      // Drop the "(port)" suffix first -- the session name alone often still fits.
+      _deskFloatingControls.classList.add("is-port-hidden");
       if (!collides()) return;
       _deskFloatingControls.classList.add("is-title-hidden");
       if (!collides()) return;
