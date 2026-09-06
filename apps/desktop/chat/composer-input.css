@@ -241,13 +241,15 @@
     main {
       --chat-scrollbar-width: 2px;
       --chat-scrollbar-layout-width: 2px;
+      --message-side-padding: 1.54em;
       --message-step-top-gap: 16px;
+      font-size: var(--text-size, 13px);
       position: absolute;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
-      padding: 0 calc(20px - var(--chat-scrollbar-layout-width)) 0 20px;
+      padding: 0 max(0px, calc(var(--message-side-padding) - var(--chat-scrollbar-layout-width))) 0 var(--message-side-padding);
       display: flex;
       flex-direction: column;
       gap: 0;
@@ -278,7 +280,7 @@
       min-height: 0;
     }
     html[data-mobile="1"] main {
-      padding-right: 20px;
+      padding-right: var(--message-side-padding);
     }
     main { scrollbar-width: thin; scrollbar-color: transparent transparent; }
     main.is-scrolling { scrollbar-color: var(--scrollbar-thumb) transparent; }
