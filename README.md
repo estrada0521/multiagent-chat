@@ -111,8 +111,10 @@ Clicking an uncommitted change opens it in git's configured diff viewer (`git di
 | `⌥⌘↑` | Move to the top, centered |
 | `⌥⌘←` | Move to the top left |
 | `⌥⌘→` | Move to the top right |
+| `⌘B` | Toggle the Hub sidebar |
+| `⌘E` | Toggle the right pane (Git / Repo) |
 
-The first two are window-size presets. With Fit Height (`⌥⌘H`) on, the Hub and the right pane are replaced by native macOS menus.
+The first two are window-size presets. With Fit Height (`⌥⌘H`) on, the Hub and the right pane are replaced by native macOS menus, and `⌘B` / `⌘E` do nothing.
 
 <p align="center">
   <img src="media/agent-window-fit.gif" width="100%" alt="Fit Height demo">

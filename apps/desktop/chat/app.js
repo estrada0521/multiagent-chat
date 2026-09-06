@@ -824,6 +824,24 @@ __CHAT_INCLUDE:features/git-panel/panel.js__
           window.parent?.postMessage({ type: "desktop-menu-shortcut", action: "openSettingsFile" }, "*");
           return;
         }
+        // In-app view toggles: plain ⌘ (like ⌘, and the text-size chords),
+        // not the ⌥⌘ family that resizes/moves the window.
+        if (event.metaKey && !event.altKey && event.code === "KeyB") {
+          event.preventDefault();
+          // Nothing to toggle while Fit Height has the sidebar collapsed to
+          // native menus.
+          if (document.documentElement.dataset.autoWindowHeight !== "1") {
+            window.parent?.postMessage({ type: "toggle-hub-sidebar" }, "*");
+          }
+          return;
+        }
+        if (event.metaKey && !event.altKey && event.code === "KeyE") {
+          event.preventDefault();
+          // toggleDesktopRightPanel no-ops when the overlay is unavailable
+          // (Fit Height).
+          toggleDesktopRightPanel();
+          return;
+        }
         if (!(event.metaKey || event.ctrlKey)) return;
         // event.code (physical key) instead of event.key: with metaKey held,
         // some WebViews don't reliably report the shift-modified character

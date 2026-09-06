@@ -318,6 +318,19 @@
         dispatchDeskNativeMenuAction({ action: "openSettingsFile" });
         return;
       }
+      // In-app view toggles: plain ⌘ (like ⌘, and the text-size chords), not
+      // the ⌥⌘ family that resizes/moves the window. No-ops in Fit Height,
+      // where both panels are native menus.
+      if (event.metaKey && !event.altKey && event.code === "KeyB") {
+        event.preventDefault();
+        if (!_deskAutoWindowHeight) setDeskSidebarOpen(!isDeskSidebarOpen());
+        return;
+      }
+      if (event.metaKey && !event.altKey && event.code === "KeyE") {
+        event.preventDefault();
+        if (!_deskAutoWindowHeight) sendDeskPanelCommand("");
+        return;
+      }
       if (!(event.metaKey || event.ctrlKey)) return;
       // event.code (physical key) instead of event.key: with metaKey held,
       // some WebViews don't reliably report the shift-modified character for
