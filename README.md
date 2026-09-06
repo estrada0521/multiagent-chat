@@ -57,7 +57,7 @@ Archive, revive, delete, rename, and change a session's workspace from the Hub (
 * `tmux window` — opens a compact, pane-switching tmux terminal directly (the tmux socket name is fixed as `agent-window`)
 * `Finder` — opens the current workspace in Finder
 
-The separate reload button beside it hard-reloads the GUI server. If the source code has changed, the running server is replaced with the new implementation.
+The separate reload button beside it hard-reloads the GUI server. If the source code has changed, the running server is replaced with the new implementation. `⌘R` does this for the chat server, `⇧⌘R` for the Hub server.
 
 <p align="center">
   <img src="media/agent-window-menu.png" width="500" alt="Menu">

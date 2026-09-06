@@ -57,7 +57,7 @@ sessionのArchive、revive、削除、rename、workspaceの変更はHubから行
 * `tmux window` — compactなpane切り替え式のtmux terminalを直接開きます(tmux socket名は `agent-window` で固定です)
 * `Finder` — 現在のworkspaceをFinderで開きます
 
-隣のreload buttonはGUI serverをhard reloadします。source codeを変更している場合は、動作中のserverを新しい実装へ置き換えます。
+隣のreload buttonはGUI serverをhard reloadします。source codeを変更している場合は、動作中のserverを新しい実装へ置き換えます。`⌘R` でchat server、`⇧⌘R` でHub serverを同様に。
 
 <p align="center">
   <img src="media/agent-window-menu.png" width="500" alt="Menu">

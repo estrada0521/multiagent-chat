@@ -439,6 +439,12 @@
         dispatchDeskNativeMenuAction({ action: "openShell" });
         return;
       }
+      if (event.metaKey && !event.altKey && !event.ctrlKey && event.code === "KeyR") {
+        event.preventDefault();
+        if (event.shiftKey) triggerDeskHubReload();
+        else sendDeskChatAction("reloadChat");
+        return;
+      }
       if (!(event.metaKey || event.ctrlKey)) return;
       // event.code (physical key) instead of event.key: with metaKey held,
       // some WebViews don't reliably report the shift-modified character for
@@ -775,6 +781,11 @@
       }
       _deskReloadShell.hidden = !active;
       _deskReloadShell.classList.toggle("visible", !!active);
+    }
+    function triggerDeskHubReload() {
+      if (!_deskReloadBtn || _deskReloadBtn.classList.contains("restarting")) return;
+      setDeskReloadShell(true);
+      beginHubRestart(_deskReloadBtn);
     }
     function failDeskOpen(message) {
       const card = _deskReloadShell?.querySelector(".desk-reload-shell-card");
@@ -2130,6 +2141,11 @@
         dispatchDeskNativeMenuAction({ action: String(event.data.action || "") });
         return;
       }
+      if (event.data && event.data.type === "reload-shortcut") {
+        if (event.data.scope === "hub") triggerDeskHubReload();
+        else sendDeskChatAction("reloadChat");
+        return;
+      }
       if (event.data && event.data.type === "reset-window-shortcut") {
         void resetDeskWindowState();
         return;
@@ -2343,11 +2359,7 @@
       });
     })();
     _deskSettingsBtn && _deskSettingsBtn.addEventListener("click", () => { void openAppearanceMenu(); });
-    _deskReloadBtn && _deskReloadBtn.addEventListener("click", () => {
-      if (_deskReloadBtn.classList.contains("restarting")) return;
-      setDeskReloadShell(true);
-      beginHubRestart(_deskReloadBtn);
-    });
+    _deskReloadBtn && _deskReloadBtn.addEventListener("click", triggerDeskHubReload);
     window.addEventListener("resize", updateDeskChromeOverflow, { passive: true });
     updateDeskChromeOverflow();
     if (_deskSessionList) {

@@ -969,6 +969,11 @@ __CHAT_INCLUDE:features/git-panel/panel.js__
           window.parent?.postMessage({ type: "desktop-menu-shortcut", action: "openShell" }, "*");
           return;
         }
+        if (event.metaKey && !event.altKey && !event.ctrlKey && event.code === "KeyR") {
+          event.preventDefault();
+          window.parent?.postMessage({ type: "reload-shortcut", scope: event.shiftKey ? "hub" : "chat" }, "*");
+          return;
+        }
         if (!(event.metaKey || event.ctrlKey)) return;
         // event.code (physical key) instead of event.key: with metaKey held,
         // some WebViews don't reliably report the shift-modified character
