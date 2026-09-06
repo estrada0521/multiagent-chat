@@ -150,6 +150,39 @@
       event.preventDefault();
       (event.key === "ArrowDown" ? jumpConversationToBottom : jumpConversationToTop)();
     });
+    // ⌥↓ / ⌥↑ step to the top of the next / previous message.
+    const stepConversationByMessage = (down) => {
+      const rows = timeline.querySelectorAll("article.message-row");
+      if (!rows.length) return;
+      const tTop = timeline.getBoundingClientRect().top;
+      let target = null;
+      if (down) {
+        for (const row of rows) {
+          if (row.getBoundingClientRect().top - tTop > 2) { target = row; break; }
+        }
+      } else {
+        for (const row of rows) {
+          if (row.getBoundingClientRect().top - tTop < -2) target = row; else break;
+        }
+      }
+      _pollScrollLockTop = null;
+      _pollScrollAnchor = null;
+      if (!down) _stickyToBottom = false;
+      _programmaticScroll = true;
+      const top = target
+        ? timeline.scrollTop + (target.getBoundingClientRect().top - tTop)
+        : (down ? timeline.scrollHeight : 0);
+      timeline.scrollTo({ top, behavior: "smooth" });
+      requestAnimationFrame(() => { _programmaticScroll = false; });
+    };
+    document.addEventListener("keydown", (event) => {
+      if (!event.altKey || event.metaKey || event.ctrlKey || event.shiftKey) return;
+      if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+      const active = document.activeElement;
+      if (active && active.matches && active.matches("input, textarea, [contenteditable='true']")) return;
+      event.preventDefault();
+      stepConversationByMessage(event.key === "ArrowDown");
+    });
     composerFabBtn?.addEventListener("click", () => {
       openComposerOverlay({ immediateFocus: canComposeInSession() });
     });
