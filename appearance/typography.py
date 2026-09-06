@@ -18,13 +18,16 @@ DESKTOP_LIGHT_BODY_WEIGHT = 400
 DESKTOP_LIGHT_CODE_WEIGHT = 400
 MOBILE_LIGHT_BODY_WEIGHT = 430
 MOBILE_LIGHT_CODE_WEIGHT = 500
-MESSAGE_LINE_HEIGHT_OFFSET = 8
-ROOT_LINE_HEIGHT_OFFSET = 9
+TEXT_LINE_HEIGHT_RATIO = 1.6
 
 
 def clamp_text_size(value: object) -> int:
     size = int(value)
     return max(TEXT_SIZE_MIN, min(TEXT_SIZE_MAX, size))
+
+
+def text_line_height_px(text_size: object) -> float:
+    return float(text_size) * TEXT_LINE_HEIGHT_RATIO
 
 
 def apply_font_tokens(text: str) -> str:
@@ -64,7 +67,7 @@ def body_typography_css() -> str:
       --body-weight: {MOBILE_LIGHT_BODY_WEIGHT};
       --code-weight: {MOBILE_LIGHT_CODE_WEIGHT};
     }}"""
-    typography_override = f"""
+    typography_override = """
     .message.user .md-body,
     .message.user .md-body p,
     .message.user .md-body li,
@@ -79,7 +82,7 @@ def body_typography_css() -> str:
     .md-body li,
     .md-body li p,
     .md-body blockquote,
-    .md-body blockquote p {{
+    .md-body blockquote p {
       font-family: var(--font-main);
       font-weight: var(--body-weight);
       font-optical-sizing: auto;
@@ -87,32 +90,18 @@ def body_typography_css() -> str:
       font-synthesis: none;
       -webkit-font-smoothing: antialiased;
       text-rendering: optimizeLegibility;
-    }}
-    .message.user .md-body,
-    .message.user .md-body p,
-    .message.user .md-body li,
-    .message.user .md-body li p,
-    .message:not(.user):not(.system) .md-body,
-    .message:not(.user):not(.system) .md-body p,
-    .message:not(.user):not(.system) .md-body li,
-    .message:not(.user):not(.system) .md-body li p,
-    .md-body,
-    .md-body p,
-    .md-body li,
-    .md-body li p,
-    .md-body blockquote,
-    .md-body blockquote p {{
-      line-height: calc(var(--text-size, 16px) + {MESSAGE_LINE_HEIGHT_OFFSET}px);
-    }}"""
+    }
+    """
     return body_weight_tokens + typography_override
 
 
 def chat_font_style(*, text_size: object = DESKTOP_TEXT_SIZE) -> str:
     size = clamp_text_size(text_size)
+    line_height = text_line_height_px(size)
     return f"""
     :root {{
       --text-size: {size}px;
-      --text-line-height: {size + ROOT_LINE_HEIGHT_OFFSET}px;
+      --text-line-height: {line_height:g}px;
       --message-max-width: {MESSAGE_MAX_WIDTH}px;
       --font-main: {MESSAGE_FONT};
       --font-code: {CODE_FONT};

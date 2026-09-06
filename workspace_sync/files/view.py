@@ -31,7 +31,7 @@ from hub_backend.presentation.chat.script_assets import (
     KATEX_CDN_JS_SRC,
     MARKED_CDN_SRC,
 )
-from appearance.typography import body_typography_css
+from appearance.typography import TEXT_LINE_HEIGHT_RATIO, body_typography_css, text_line_height_px
 from .view_scripts import (
     build_gutter_scroll_sync_js,
     build_progressive_loader_js,
@@ -56,7 +56,6 @@ def _chat_markdown_preview_css() -> str:
     markdown_css = f"{shared_body_css}\n{variant_body_css}"
     replacements = {
         "__AGENT_SEL_MD_BODY__": ".md-body",
-        "__AGENT_SEL_MD_BODY_LI__": ".md-body li",
         "__AGENT_SEL_MD_HEADING__": ".md-body h1, .md-body h2, .md-body h3, .md-body h4",
     }
     for placeholder, value in replacements.items():
@@ -96,7 +95,7 @@ def render_file_view(
         resolved_text_size = int(agent_text_size or 13)
     except (TypeError, ValueError):
         resolved_text_size = 13
-    resolved_line_height = round(resolved_text_size * 1.5)
+    resolved_line_height = text_line_height_px(resolved_text_size)
     requested_base_theme = str(preview_base_theme or "").strip().lower()
     if requested_base_theme in ("dark", "light"):
         theme_palette = resolve_theme_palette(requested_base_theme)
@@ -122,7 +121,7 @@ def render_file_view(
         'const d=e?.data;if(d?.type!=="agent-preview-text-size")return;'
         'const s=Number(d.size);if(!Number.isFinite(s)||s<8)return;'
         'document.documentElement.style.setProperty("--text-size",s+"px");'
-        'document.documentElement.style.setProperty("--text-line-height",Math.round(s*1.5)+"px");'
+        f'document.documentElement.style.setProperty("--text-line-height",(s*{TEXT_LINE_HEIGHT_RATIO})+"px");'
         '});'
     )
     font_base = prefix or ""
@@ -255,7 +254,7 @@ def render_file_view(
             'window.addEventListener("message",(event)=>{'
             'const data=event.data||{};'
             'if(data.type==="agent-index-file-preview-mode"){setMode(data.mode);return;}'
-            'if(data.type==="agent-preview-text-size"){const sz=Number(data.size);if(Number.isFinite(sz)&&sz>=8){document.documentElement.style.setProperty("--text-size",sz+"px");document.documentElement.style.setProperty("--text-line-height",Math.round(sz*1.5)+"px");}}'
+            f'if(data.type==="agent-preview-text-size"){{const sz=Number(data.size);if(Number.isFinite(sz)&&sz>=8){{document.documentElement.style.setProperty("--text-size",sz+"px");document.documentElement.style.setProperty("--text-line-height",(sz*{TEXT_LINE_HEIGHT_RATIO})+"px");}}}}'
             '});'
             'const bindButtons=()=>{'
             'buttons.forEach((button)=>button.addEventListener("click",()=>setMode(button.dataset.previewMode||"text")));'
@@ -718,7 +717,7 @@ window.addEventListener("message", (event) => {{
   const sz = Number(data.size);
   if (!Number.isFinite(sz) || sz < 8) return;
   document.documentElement.style.setProperty("--text-size", sz + "px");
-  document.documentElement.style.setProperty("--text-line-height", Math.round(sz * 1.5) + "px");
+  document.documentElement.style.setProperty("--text-line-height", (sz * {TEXT_LINE_HEIGHT_RATIO}) + "px");
 }});
 const out = document.getElementById("out");
 out.innerHTML = renderMarkdown(__mdText);

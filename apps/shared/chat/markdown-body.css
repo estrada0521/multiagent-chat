@@ -18,10 +18,6 @@
       color: var(--fg);
     }
 
-    __AGENT_SEL_MD_BODY_LI__ {
-      line-height: calc(var(--text-line-height, 22px) + 2px);
-    }
-
     .md-body>*:first-child {
       margin-top: 0;
     }

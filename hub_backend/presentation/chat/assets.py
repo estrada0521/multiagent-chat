@@ -81,7 +81,6 @@ def _agent_css_selectors() -> dict[str, str]:
         "__AGENT_SEL_MD_BODY__": _sel(" .md-body"),
         "__AGENT_SEL_MD_HEADING__": _cross(["h1", "h2", "h3", "h4"]),
         "__AGENT_SEL_MD_BODY_TEXT__": _cross(["p", "li", "blockquote"]),
-        "__AGENT_SEL_MD_BODY_LI__": _sel(" .md-body li"),
         "__AGENT_ICON_NAMES_JS_SET__": agent_names_js_set(),
         "__ALL_BASE_AGENTS_JS_ARRAY__": agent_names_js_array(),
     }
