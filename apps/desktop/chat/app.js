@@ -705,7 +705,6 @@ __CHAT_INCLUDE:features/git-panel/panel.js__
         void dpLoadRepoDir(parts.join("/"));
       });
       pathRow.addEventListener("keydown", (e) => {
-        if (e.target?.closest?.(".repo-path-nav-btn:not(.repo-path-back-icon-slot)")) return;
         if (!path || (e.key !== "Enter" && e.key !== " ")) return;
         e.preventDefault(); e.stopPropagation();
         const parts = path.split("/").filter(Boolean);
@@ -713,7 +712,7 @@ __CHAT_INCLUDE:features/git-panel/panel.js__
         void dpLoadRepoDir(parts.join("/"));
       });
       const backIcon = document.createElement("span");
-      backIcon.className = "repo-path-nav-btn repo-path-back-icon-slot";
+      backIcon.className = "repo-path-back-icon-slot";
       backIcon.innerHTML = dpBackIcon;
       const pathText = document.createElement("span");
       pathText.className = "repo-path-label";
