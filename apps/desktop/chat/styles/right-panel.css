@@ -289,6 +289,12 @@
       display: block;
       stroke-width: 1.9;
     }
+    .repo-browser-file .repo-browser-item-icon svg,
+    .git-commit-file-icon svg {
+      width: var(--right-panel-small-icon-size);
+      height: var(--right-panel-small-icon-size);
+      stroke-width: 1.45;
+    }
     .repo-browser-item-name {
       flex: 1 1 auto;
       min-width: 0;
@@ -1045,12 +1051,6 @@
       pointer-events: none;
       transition: color 120ms ease;
     }
-    .git-commit-file-icon svg {
-      width: var(--right-panel-small-icon-size);
-      height: var(--right-panel-small-icon-size);
-      stroke-width: 1.45;
-    }
-
     .git-commit-file-empty {
       padding: 1.85em 0.62em;
       text-align: center;
