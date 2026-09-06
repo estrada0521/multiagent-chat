@@ -979,6 +979,11 @@ __CHAT_INCLUDE:features/git-panel/panel.js__
           window.parent?.postMessage({ type: "new-session-shortcut" }, "*");
           return;
         }
+        if (event.metaKey && !event.altKey && !event.ctrlKey && !event.shiftKey && /^Digit[1-9]$/.test(event.code || "")) {
+          event.preventDefault();
+          window.parent?.postMessage({ type: "switch-session-shortcut", index: Number(event.code.slice(5)) - 1 }, "*");
+          return;
+        }
         if (!(event.metaKey || event.ctrlKey)) return;
         // event.code (physical key) instead of event.key: with metaKey held,
         // some WebViews don't reliably report the shift-modified character

@@ -49,6 +49,8 @@ A unified log continues across changes in session name, workspace, and participa
 
 Archive, revive, delete, rename, and change a session's workspace from the Hub (right-click a session in the sidebar). Renaming does not restart the chat server or change the URL.
 
+`⌘1`–`⌘9` switch to the 1st–9th active session.
+
 ## Add an Agent
 
 `Add / Remove Agent` in the top right adds or removes Agents from the session. Running more than one instance of the same CLI Agent produces instance names such as `Claude-2`.

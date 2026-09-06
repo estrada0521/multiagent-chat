@@ -450,6 +450,11 @@
         void startDeskNewSessionFlow();
         return;
       }
+      if (event.metaKey && !event.altKey && !event.ctrlKey && !event.shiftKey && /^Digit[1-9]$/.test(event.code || "")) {
+        event.preventDefault();
+        switchToDeskActiveSession(Number(event.code.slice(5)) - 1);
+        return;
+      }
       if (!(event.metaKey || event.ctrlKey)) return;
       // event.code (physical key) instead of event.key: with metaKey held,
       // some WebViews don't reliably report the shift-modified character for
@@ -1045,6 +1050,14 @@
 
     function buildSessionOpenHref(sessionName, _archived) {
       return `/open-session?session=${encodeURIComponent(sessionName)}`;
+    }
+
+    // ⌘1..⌘9 -> the 1st..9th active session (sidebar order). Capped at 9;
+    // archived / warning sessions are not addressable this way.
+    function switchToDeskActiveSession(index) {
+      const target = (_hubSessionsCache.active || [])[index];
+      if (!target || !target.name || target.name === _deskSelectedSessionName) return;
+      openSessionFrame(buildSessionOpenHref(target.name, false), target.name);
     }
 
     function systemPrefersDark() {
@@ -2153,6 +2166,10 @@
       }
       if (event.data && event.data.type === "new-session-shortcut") {
         void startDeskNewSessionFlow();
+        return;
+      }
+      if (event.data && event.data.type === "switch-session-shortcut") {
+        switchToDeskActiveSession(Number(event.data.index));
         return;
       }
       if (event.data && event.data.type === "reset-window-shortcut") {

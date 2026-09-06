@@ -49,6 +49,8 @@ Hubの `New Session`（`⌘N`）からworkspaceを選択します。
 
 sessionのArchive、revive、削除、rename、workspaceの変更はHubから行えます（サイドバーのsessionを右クリック）。renameしてもchat serverは再起動せず、URLも変わりません。
 
+`⌘1`–`⌘9` で1〜9番目のactive sessionへ切り替えます。
+
 ## Agentを足す
 
 右上の `Add / Remove Agent` からAgentを追加・削除できます。同種のCLI Agentを複数起動した場合は `Claude-2` のようなinstance名になります。
