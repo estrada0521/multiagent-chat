@@ -139,7 +139,6 @@ def write_session_meta_file(
         raise ValueError("AGENT_WINDOW_WORKSPACE is required to write session meta")
 
     meta_path = agent_window_session_root() / str(session_name or "").strip() / ".meta"
-    updated_at = datetime.now().strftime("%Y-%m-%d %H:%M")
     meta: dict[str, object] = {}
     if meta_path.is_file():
         raw = json.loads(meta_path.read_text(encoding="utf-8"))
@@ -147,13 +146,16 @@ def write_session_meta_file(
             raise ValueError(f"invalid session meta: {meta_path}")
         meta = raw
 
-    created_at = str(meta.get("created_at") or "").strip() or updated_at
+    created_at = (
+        str(meta.get("created_at") or "").strip()
+        or datetime.now().strftime("%Y-%m-%d %H:%M")
+    )
 
     parsed_agents = _parse_agents_csv(agents_csv)
     _reconcile_agent_names(meta, parsed_agents)
     meta.pop("session", None)
+    meta.pop("updated_at", None)
     meta["workspace"] = workspace
     meta["agents"] = parsed_agents
     meta["created_at"] = created_at
-    meta["updated_at"] = updated_at
     write_json_atomically(meta_path, meta, indent=2)

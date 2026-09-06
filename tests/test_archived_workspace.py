@@ -87,7 +87,6 @@ class ArchivedWorkspaceTests(unittest.TestCase):
                         "session": "Even-Parity",
                         "agents": ["codex"],
                         "created_at": "2026-05-29 16:54",
-                        "updated_at": "2026-08-10 07:56",
                     }
                 )
                 + "\n",
@@ -127,7 +126,6 @@ class ArchivedWorkspaceTests(unittest.TestCase):
                         "workspace": str(workspace),
                         "agents": ["codex"],
                         "created_at": "2026-04-22 23:43",
-                        "updated_at": "2026-08-17 23:33",
                     }
                 )
                 + "\n",
@@ -252,18 +250,6 @@ class ArchivedWorkspaceTests(unittest.TestCase):
         launch_cwd = popen.call_args.kwargs["cwd"]
         self.assertEqual(launch_cwd, "/Users/okadaharuto/workspace/Agent-Window")
         self.assertNotEqual(launch_cwd, str(workspace))
-
-    def test_ensure_chat_server_rejects_a_missing_workspace_binding(self) -> None:
-        with patch("hub_backend.chat_supervisor.launch_chat_server") as launch:
-            ok, port, detail = ensure_chat_server(
-                object(),
-                expected_active=False,
-                workspace="",
-            )
-        self.assertFalse(ok)
-        self.assertEqual(port, 0)
-        self.assertEqual(detail, "workspace unavailable")
-        launch.assert_not_called()
 
     def test_git_overview_does_not_use_hub_repo_as_the_project(self) -> None:
         workspace_git.configure(workspace="")

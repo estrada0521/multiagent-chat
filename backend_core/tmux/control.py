@@ -369,7 +369,6 @@ def describe_session(session_name: str, *, tmux_socket: str = "") -> dict:
         "session": name,
         "workspace": workspace or None,
         "created_at": str(meta.get("created_at") or ""),
-        "updated_at": str(meta.get("updated_at") or ""),
         "agents": [str(a).strip() for a in meta_agents if str(a).strip()] if isinstance(meta_agents, list) else [],
         "active": False,
     }

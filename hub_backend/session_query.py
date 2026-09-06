@@ -284,11 +284,6 @@ def archived_sessions(excluded_names: set[str] | list[str] | None = None) -> lis
                     raise ValueError(f"invalid session meta: {meta_path}")
             workspace = str(meta.get("workspace") or "").strip()
             created_epoch = parse_saved_time(str(meta.get("created_at", "")))
-            updated_epoch = parse_saved_time(str(meta.get("updated_at", "")))
-            if not updated_epoch:
-                updated_epoch = created_epoch
-            if not created_epoch:
-                created_epoch = updated_epoch
             agents: list[str] = []
             seen_agents: set[str] = set()
             meta_agents = meta.get("agents")
@@ -306,10 +301,10 @@ def archived_sessions(excluded_names: set[str] | list[str] | None = None) -> lis
             record["agents"] = agents
             record["log_dir"] = str(log_path.parent)
             existing = records.get(session_name)
-            if existing is None or updated_epoch > existing[0]:
-                records[session_name] = (updated_epoch, record)
+            if existing is None or created_epoch > existing[0]:
+                records[session_name] = (created_epoch, record)
     sessions = sorted(records.values(), key=lambda item: item[0], reverse=True)
-    return [record for _updated_epoch, record in sessions]
+    return [record for _created_epoch, record in sessions]
 
 
 def archived_session_records(
