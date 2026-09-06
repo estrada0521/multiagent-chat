@@ -34,10 +34,21 @@
       const item = _lastCmdItemsData[idx];
       if (!item) return;
       if (item.insert) {
-        messageInput.value = item.insert + " ";
+        const start = Number(item.replaceStart);
+        const end = Number(item.replaceEnd);
+        if (
+          !Number.isInteger(start) ||
+          !Number.isInteger(end) ||
+          messageInput.value.slice(start, end).toLowerCase() !== item.query
+        ) {
+          closeCmdDrop();
+          return;
+        }
+        messageInput.value = messageInput.value.slice(0, start) + item.insert + messageInput.value.slice(end);
+        const newPos = start + item.insert.length;
         autoResizeTextarea();
         closeCmdDrop();
-        focusMessageInputWithoutScroll(messageInput.value.length);
+        focusMessageInputWithoutScroll(newPos);
         return;
       }
       if (item.has_arg) {
@@ -58,12 +69,18 @@
       const pos = messageInput.selectionEnd;
       const val = messageInput.value;
       const before = val.slice(0, pos);
-      if (!before.match(/^\/[\w-]*$/)) {
+      const match = before.match(/(^|[^A-Za-z0-9._\/-])(\/[\w-]*)$/);
+      if (!match) {
+        _lastCmdQuery = "";
         closeCmdDrop();
         return;
       }
-      const query = before.toLowerCase();
-      _lastCmdQuery = query;
+      const token = match[2];
+      const tokenStart = pos - token.length;
+      const atInputStart = tokenStart === 0;
+      const query = token.toLowerCase();
+      const contextKey = `${pos}:${before}`;
+      _lastCmdQuery = contextKey;
       void (async () => {
         let list;
         try {
@@ -73,10 +90,10 @@
           setStatus(err?.message || "shortcut commands unavailable", true);
           return;
         }
-        if (_lastCmdQuery !== query) return;
+        if (_lastCmdQuery !== contextKey) return;
         const matches = list.filter((c) => {
           const slash = String(c.slash || "").toLowerCase();
-          return !query || query === "/" || slash.startsWith(query);
+          return (atInputStart || c.insert) && (!query || query === "/" || slash.startsWith(query));
         });
         if (!matches.length) {
           closeCmdDrop();
@@ -89,6 +106,9 @@
           has_arg: !!c.has_arg,
           path: c.path,
           insert: c.insert || "",
+          replaceStart: tokenStart,
+          replaceEnd: pos,
+          query,
           type: "command",
           label: c.slash,
         }));
