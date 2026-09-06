@@ -52,13 +52,30 @@ TEXT_DIFF_DELETE_DARK_CHANNELS = "248, 113, 113"
 TEXT_ERROR_LIGHT_CHANNELS = TEXT_EXTERNAL_LINK_LIGHT_CHANNELS
 TEXT_ERROR_DARK_CHANNELS = TEXT_EXTERNAL_LINK_DARK_CHANNELS
 
-
-# Icon-hover is icon scope, not text scope -- left as-is, untouched by the
-# text-color-role cleanup above.
+# --- Icon hover (icon scope, not text) ---
 DESKTOP_LIGHT_ICON_HOVER = "rgb(35, 35, 35)"
 DESKTOP_DARK_ICON_HOVER = "rgb(190, 190, 190)"
 MOBILE_LIGHT_ICON_HOVER = "rgb(35, 35, 35)"
 MOBILE_DARK_ICON_HOVER = "rgb(190, 190, 190)"
+
+# --- Page backgrounds ---
+# One RGB per (surface, theme), fixed so the runtime [data-theme] toggle
+# doesn't inherit the first-render theme. Hub and chat may diverge.
+MOBILE_HUB_LIGHT_BG_RGB = (243, 243, 241)
+MOBILE_HUB_DARK_BG_RGB = (12, 12, 12)
+MOBILE_CHAT_LIGHT_BG_RGB = (249, 249, 247)
+MOBILE_CHAT_DARK_BG_RGB = (11, 11, 11)
+DESKTOP_HUB_LIGHT_BG_RGB = (249, 249, 247)
+DESKTOP_HUB_DARK_BG_RGB = (13, 13, 13)
+DESKTOP_CHAT_LIGHT_BG_RGB = (249, 249, 247)
+DESKTOP_CHAT_DARK_BG_RGB = (13, 13, 13)
+
+# --- Surface translucency over the window ---
+# Hub alpha -> --hub-glass; chat alpha -> --chat-pane-bg.
+DESKTOP_HUB_LIGHT_BG_ALPHA = 0.88
+DESKTOP_HUB_DARK_BG_ALPHA = 0.90
+DESKTOP_CHAT_LIGHT_BG_ALPHA = 0.94
+DESKTOP_CHAT_DARK_BG_ALPHA = 0.95
 
 
 # Every TEXT_*_CHANNELS constant defined above is a role; nothing else has
@@ -91,28 +108,6 @@ def _gray_channels(level: int) -> str:
 def _gray_rgb_string(level: int) -> str:
     value = max(0, min(255, int(level)))
     return f"rgb({value},{value},{value})"
-
-
-MOBILE_HUB_LIGHT_BG_RGB = (243, 243, 241)
-MOBILE_HUB_DARK_BG_RGB = (12, 12, 12)
-MOBILE_CHAT_LIGHT_BG_RGB = (249, 249, 247)
-MOBILE_CHAT_DARK_BG_RGB = (11, 11, 11)
-# Desktop page background, one value per (surface, theme). Theme-independent
-# constants so the runtime [data-theme] toggle blocks can reference them
-# without picking up whatever theme the page first rendered under. Hub and
-# chat are separate decisions, free to diverge.
-DESKTOP_HUB_LIGHT_BG_RGB = (249, 249, 247)
-DESKTOP_HUB_DARK_BG_RGB = (13, 13, 13)
-DESKTOP_CHAT_LIGHT_BG_RGB = (249, 249, 247)
-DESKTOP_CHAT_DARK_BG_RGB = (13, 13, 13)
-# How translucent each surface reads over the window. Color + alpha are one
-# decision about how the pane looks, kept adjacent so tuning is one edit.
-# Hub alpha drives --hub-glass (the sidebar glass etc.); chat alpha drives
-# --chat-pane-bg (the .desk-main backdrop behind the transparent iframe).
-DESKTOP_HUB_LIGHT_BG_ALPHA = 0.88
-DESKTOP_HUB_DARK_BG_ALPHA = 0.90
-DESKTOP_CHAT_LIGHT_BG_ALPHA = 0.94
-DESKTOP_CHAT_DARK_BG_ALPHA = 0.95
 
 
 def resolve_theme_fg_level(theme: str = "dark") -> int:
