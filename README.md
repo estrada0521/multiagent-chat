@@ -108,9 +108,9 @@ Clicking an uncommitted change opens it in git's configured diff viewer (`git di
 | `⌥⌘9` | Switch to a compact size |
 | `⌥⌘H` | Keep the window height matched to the latest message |
 | `⌥⌘P` | Keep above other windows |
-| `⌥⌘↑` | Move to the top, centered |
-| `⌥⌘←` | Move to the top left |
-| `⌥⌘→` | Move to the top right |
+| `⌥⌘↑` | Move to the top edge |
+| `⌥⌘←` | Move to the left edge |
+| `⌥⌘→` | Move to the right edge |
 | `⌥⌘B` | Toggle the Hub sidebar outward, keeping the chat area in place |
 | `⌥⌘E` | Toggle the right pane outward, keeping the chat area in place |
 | `⌘B` | Toggle the Hub sidebar |
