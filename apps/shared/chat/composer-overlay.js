@@ -162,4 +162,15 @@
         if (shouldIgnoreComposerMouseShortcut(event.target)) return;
         event.preventDefault();
       }, { capture: true });
+      // Enter anywhere in the transcript opens the composer (Esc still closes).
+      document.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter") return;
+        if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
+        if (event.isComposing || event.keyCode === 229) return;
+        if (isComposerOverlayOpen() || !canComposeInSession()) return;
+        const active = document.activeElement;
+        if (active && active.matches && active.matches("input, textarea, select, button, a, summary, [contenteditable='true']")) return;
+        event.preventDefault();
+        openComposerOverlay({ immediateFocus: true });
+      });
     }
