@@ -144,6 +144,9 @@
     // chat frame reports the height it needs, and we resize the window to it
     // (width and x untouched). Between messages the user is free to resize.
     const DESK_FIT_BOTTOM_BUFFER = 16;
+    // Mirrors DEFAULT_WINDOW_SIZE in tauri_app/src-tauri/src/main.rs -- the
+    // height Fit Height restores on exit.
+    const DESK_DEFAULT_WINDOW_HEIGHT = 896;
     let _deskAutoWindowHeight = false;
     let _deskLastFitTarget = 0;
     // Set on entering Fit Height: the first fit resize also snaps the window to
@@ -187,11 +190,18 @@
     // compact width -- the ⌥⌘9 width that always got paired with it by hand --
     // folded into the first fit resize (see _deskFitWidthSnapPending), and pins
     // the window, since Fit Height is only useful kept in front. Leaving the
-    // mode unpins and doesn't touch the width.
+    // mode unpins and restores the default height (the width and position at
+    // that point are kept -- entry shrank the height, so exit grows it back).
     function toggleDeskAutoWindowHeight() {
       if (_deskAutoWindowHeight) {
         setDeskAutoWindowHeight(false);
         applyDeskAlwaysOnTop(false);
+        const invoke = getTauriInvoke();
+        if (typeof invoke === "function") {
+          invoke("set_window_height", { height: DESK_DEFAULT_WINDOW_HEIGHT }).catch((err) => {
+            showDeskHubMessage(`fit height exit resize failed: ${err}`, { error: true });
+          });
+        }
         return;
       }
       resetDeskChatView();
