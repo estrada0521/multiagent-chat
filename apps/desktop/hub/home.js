@@ -455,6 +455,11 @@
         switchToDeskActiveSession(Number(event.code.slice(5)) - 1);
         return;
       }
+      if (event.metaKey && event.shiftKey && !event.altKey && !event.ctrlKey && event.code === "KeyP") {
+        event.preventDefault();
+        postDeskChatFrameMessage({ type: "toggle-git-pin" });
+        return;
+      }
       if (!(event.metaKey || event.ctrlKey)) return;
       // event.code (physical key) instead of event.key: with metaKey held,
       // some WebViews don't reliably report the shift-modified character for

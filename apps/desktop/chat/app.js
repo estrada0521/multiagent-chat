@@ -835,6 +835,10 @@ __CHAT_INCLUDE:features/git-panel/panel.js__
         }
         return;
       }
+      if (event.data.type === "toggle-git-pin") {
+        if (hasDesktopRightPanelOverlay()) dpToggleGitSummaryPinned();
+        return;
+      }
       if (event.data.type === "desktop-chat-reset") {
         closeDesktopRightPanel();
         // Reset / Compact Window restore the default layout, which includes the
@@ -982,6 +986,11 @@ __CHAT_INCLUDE:features/git-panel/panel.js__
         if (event.metaKey && !event.altKey && !event.ctrlKey && !event.shiftKey && /^Digit[1-9]$/.test(event.code || "")) {
           event.preventDefault();
           window.parent?.postMessage({ type: "switch-session-shortcut", index: Number(event.code.slice(5)) - 1 }, "*");
+          return;
+        }
+        if (event.metaKey && event.shiftKey && !event.altKey && !event.ctrlKey && event.code === "KeyP") {
+          event.preventDefault();
+          if (hasDesktopRightPanelOverlay()) dpToggleGitSummaryPinned();
           return;
         }
         if (!(event.metaKey || event.ctrlKey)) return;
