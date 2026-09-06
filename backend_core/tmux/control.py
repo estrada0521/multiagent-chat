@@ -468,9 +468,9 @@ def create_session(
     for args in (
         ["set-option", "-t", tmux_name, "-g", "remain-on-exit", "on"],
         ["set-option", "-t", tmux_name, "-g", "mouse", "on"],
-        ["set-option", "-t", tmux_name, "-g", "pane-border-style", "fg='#38393D'"],
-        ["set-option", "-t", tmux_name, "-g", "pane-active-border-style", "fg='#38393D'"],
-        ["set-option", "-t", tmux_name, "-g", "status-style", "bg='#38393D',fg='#ACB4BE'"],
+        ["set-option", "-t", tmux_name, "-g", "pane-border-style", "fg=#38393D"],
+        ["set-option", "-t", tmux_name, "-g", "pane-active-border-style", "fg=#38393D"],
+        ["set-option", "-t", tmux_name, "-g", "status-style", "bg=#38393D,fg=#ACB4BE"],
         ["set-option", "-t", tmux_name, "-g", "history-limit", "50000"],
     ):
         _run(prefix, args)
