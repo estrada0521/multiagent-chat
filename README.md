@@ -45,9 +45,9 @@ This builds and launches the Tauri App. The Hub is started by the Tauri App and 
 
 Choose a workspace from `New Session` in the Hub.
 
-A unified log continues across changes in session name, workspace, and participating Agents. `New Session` starts another log; when to do that is up to the human. To rename a session, rename its `~/.agent-window/session/{session_name}` folder. To change its workspace, archive it, reload the Hub, edit `workspace` in its `.meta` file, and revive it. Renaming a session does not restart its chat server or change its URL.
+A unified log continues across changes in session name, workspace, and participating Agents. `New Session` starts another log; when to do that is up to the human.
 
-Archive, revive, and delete sessions from the Hub.
+Archive, revive, delete, rename, and change a session's workspace from the Hub (right-click a session in the sidebar). Renaming does not restart the chat server or change the URL.
 
 ## Add an Agent
 

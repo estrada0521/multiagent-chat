@@ -45,9 +45,9 @@ Tauri Appをbuildして起動します。HubはTauri Appから起動され、既
 
 Hubの `New Session` からworkspaceを選択します。
 
-一つの統一ログは、session名、workspace、参加Agentが変わっても続きます。`New Session` は別のlogを始める操作であり、いつそうするかは人間が決めます。session名を変更する場合は `~/.agent-window/session/{session_name}` のフォルダ名を変更します。workspaceを変更する場合は、archive、Hubのreload、`.meta` の `workspace` の書き換え、reviveの順で行います。session名を変更してもchat serverは再起動せず、URLも変わりません。
+一つの統一ログは、session名、workspace、参加Agentが変わっても続きます。`New Session` は別のlogを始める操作であり、いつそうするかは人間が決めます。
 
-HubからsessionのArchive、revive、削除を行えます。
+sessionのArchive、revive、削除、rename、workspaceの変更はHubから行えます（サイドバーのsessionを右クリック）。renameしてもchat serverは再起動せず、URLも変わりません。
 
 ## Agentを足す
 
