@@ -11,7 +11,7 @@ DESKTOP_TEXT_SIZE = 13
 MOBILE_TEXT_SIZE = 13
 TEXT_SIZE_MIN = 8
 TEXT_SIZE_MAX = 16
-MESSAGE_MAX_WIDTH = 640
+MESSAGE_MAX_WIDTH_EM = 49.2
 DESKTOP_DARK_BODY_WEIGHT = 300
 DESKTOP_DARK_CODE_WEIGHT = 300
 DESKTOP_LIGHT_BODY_WEIGHT = 400
@@ -101,12 +101,9 @@ def chat_font_style(*, text_size: object = DESKTOP_TEXT_SIZE) -> str:
     :root {{
       --text-size: {size}px;
       --text-line-height: {TEXT_LINE_HEIGHT_RATIO:g};
-      --message-max-width: {MESSAGE_MAX_WIDTH}px;
+      --message-max-width: {MESSAGE_MAX_WIDTH_EM:g}em;
       --font-main: {MESSAGE_FONT};
       --font-code: {CODE_FONT};
-    }}
-    .shell {{
-      max-width: var(--message-max-width);
     }}
     .composer {{
       width: min(var(--composer-overlay-max-width, var(--message-max-width)), calc(100vw - 24px));

@@ -5,7 +5,6 @@ __CHAT_INCLUDE:../../../shared/chat/markdown-theme-vars.css__
       color-scheme: __COLOR_SCHEME__;
       --app-shell-height: 100dvh;
       --page-side-pad: 14px;
-      --message-max-width: 600px;
       --message-user-indent: min(28%, 280px);
       --chrome-icon-btn-size: 24px;
       --chrome-icon-size: 15px;
@@ -255,7 +254,6 @@ __CHAT_INCLUDE:../../../shared/chat/markdown-theme-vars.css__
     .shell {
       position: relative;
       width: 100%;
-      max-width: 600px;
       height: var(--app-shell-height, 100dvh);
       margin: 0 auto;
       display: flex;
@@ -275,7 +273,6 @@ __CHAT_INCLUDE:../../../shared/chat/markdown-theme-vars.css__
       content: none;
     }
     html[data-hub-iframe-chat="1"] .shell {
-      max-width: none;
       margin: 0;
       width: 100%;
       min-width: 0;
