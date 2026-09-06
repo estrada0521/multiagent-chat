@@ -16,15 +16,14 @@ from workspace_sync import git as workspace_git
 
 
 class _Query:
-    def __init__(self, records, warnings, state="ok", detail=""):
+    def __init__(self, records, state="ok", detail=""):
         self.records = records
-        self.warnings = warnings
         self.state = state
         self.detail = detail
 
     @property
     def non_archived_names(self):
-        return set(self.records) | set(self.warnings)
+        return set(self.records)
 
 
 class ArchivedWorkspaceTests(unittest.TestCase):
@@ -63,17 +62,6 @@ class ArchivedWorkspaceTests(unittest.TestCase):
         self.assertEqual(detail, "cleanup failed")
         self.assertFalse(owns_restart)
         launch.assert_not_called()
-
-    def test_warning_session_meta_is_not_reparsed_as_archived(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            session_dir = root / "broken-session"
-            session_dir.mkdir()
-            (session_dir / ".meta").write_text("[]", encoding="utf-8")
-            with patch("hub_backend.session_query.agent_window_session_root", return_value=root):
-                sessions = archived_sessions(excluded_names={"broken-session"})
-
-            self.assertEqual(sessions, [])
 
     def test_archived_sessions_keep_logs_when_meta_has_no_workspace(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -163,7 +151,7 @@ class ArchivedWorkspaceTests(unittest.TestCase):
             workspace = Path(tmp) / "Even-Parity"
             workspace.mkdir()
             with (
-                patch("hub_backend.session_api.active_session_records_query", return_value=_Query({}, {})),
+                patch("hub_backend.session_api.active_session_records_query", return_value=_Query({})),
                 patch(
                     "hub_backend.session_api.archived_session_records",
                     return_value={

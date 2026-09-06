@@ -11,41 +11,29 @@ class SessionMetaError(ValueError):
     pass
 
 
-def workspace_claim_conflict_message(workspace: str, sessions: list[str]) -> str:
-    return f"Multiple sessions claim workspace {workspace}: {', '.join(sessions)}"
-
-
-class WorkspaceClaimConflict(SessionMetaError):
-    def __init__(self, workspace: str, sessions: list[str]):
-        self.workspace = workspace
-        self.sessions = list(sessions)
-        super().__init__(workspace_claim_conflict_message(workspace, self.sessions))
-
-
 def session_workspace_claims(
     *,
     exclude_session: str = "",
-) -> tuple[dict[str, list[tuple[str, str]]], list[tuple[str, str]]]:
-    """Group valid workspace claims and report unreadable session metadata."""
+) -> dict[str, tuple[str, str]]:
+    """Map each normalized workspace to its session and recorded path."""
     exclude = str(exclude_session or "").strip()
     root = agent_window_session_root()
-    claims: dict[str, list[tuple[str, str]]] = {}
-    errors: list[tuple[str, str]] = []
+    claims: dict[str, tuple[str, str]] = {}
     if not root.is_dir():
-        return claims, errors
+        return claims
     for entry in sorted(root.iterdir()):
         if not entry.is_dir() or entry.name == exclude:
             continue
-        try:
-            workspace = session_workspace(entry.name)
-        except SessionMetaError as exc:
-            errors.append((entry.name, str(exc)))
-            continue
+        workspace = session_workspace(entry.name)
         if not workspace:
             continue
         normalized = str(Path(workspace).expanduser().resolve())
-        claims.setdefault(normalized, []).append((entry.name, workspace))
-    return claims, errors
+        if normalized in claims:
+            raise SessionMetaError(
+                f"workspace {normalized} is claimed by both {claims[normalized][0]} and {entry.name}"
+            )
+        claims[normalized] = (entry.name, workspace)
+    return claims
 
 
 def find_session_for_workspace(workspace: Path | str, *, exclude_session: str = "") -> str | None:
@@ -54,16 +42,8 @@ def find_session_for_workspace(workspace: Path | str, *, exclude_session: str = 
     tmux session itself is gone, so this covers archived sessions too.
     """
     target = str(Path(workspace).expanduser().resolve())
-    claims, errors = session_workspace_claims(exclude_session=exclude_session)
-    if errors:
-        raise SessionMetaError("; ".join(detail for _name, detail in errors))
-    matches = claims.get(target, [])
-    if not matches:
-        return None
-    names = [name for name, _raw_workspace in matches]
-    if len(names) > 1:
-        raise WorkspaceClaimConflict(target, names)
-    return names[0]
+    claim = session_workspace_claims(exclude_session=exclude_session).get(target)
+    return claim[0] if claim else None
 
 
 def _parse_tmux_environment_output(output: str) -> dict[str, str]:
@@ -148,8 +128,8 @@ def set_session_workspace(session_name: str, workspace: str) -> None:
 
     Nothing else: the port a viewer derives from the workspace only matters
     for a session that's currently open, and Change Workspace is offered only
-    for an archived session that isn't. A resulting workspace collision is the
-    existing open-time warning's job, not this call's.
+    for an archived session that isn't. Workspace ownership remains unique
+    across active and archived sessions.
     """
     name = str(session_name or "").strip()
     ws = str(workspace or "").strip()
@@ -164,6 +144,9 @@ def set_session_workspace(session_name: str, workspace: str) -> None:
         raise SessionMetaError(f"invalid session meta: {meta_path}") from exc
     if not isinstance(raw, dict):
         raise SessionMetaError(f"invalid session meta: {meta_path}")
+    owner = find_session_for_workspace(ws, exclude_session=name)
+    if owner:
+        raise SessionMetaError(f"A session already exists for this workspace: {owner}")
     raw["workspace"] = ws
     write_json_atomically(meta_path, raw, indent=2)
 

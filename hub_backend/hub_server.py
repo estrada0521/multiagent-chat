@@ -567,7 +567,6 @@ class Handler(BaseHTTPRequestHandler):
     def _get_sessions(self, _parsed):
         query = active_session_records_query(hub)
         active_map = query.records
-        warnings = list(query.warnings.values())
         active = []
         for record in active_map.values():
             workspace = str(record.get("workspace") or "").strip()
@@ -596,7 +595,6 @@ class Handler(BaseHTTPRequestHandler):
         self._send_json(200, {
             "active_sessions": active,
             "archived_sessions": archived,
-            "warning_sessions": warnings,
             "tmux_state": query.state,
             "tmux_detail": query.detail,
         })

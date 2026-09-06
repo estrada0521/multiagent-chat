@@ -7,7 +7,7 @@ import subprocess
 import time
 from pathlib import Path
 
-from backend_core.access.session_meta import SessionMetaError, WorkspaceClaimConflict, find_session_for_workspace
+from backend_core.access.session_meta import SessionMetaError, find_session_for_workspace
 from backend_core.access.settings import (
     SESSION_NAME_MAX_LENGTH,
     port_is_bindable,
@@ -52,8 +52,6 @@ def _session_name_for_workspace(workspace: str) -> tuple[str, str]:
 def _workspace_claim_failure(workspace: str) -> tuple[int, str] | None:
     try:
         owner = find_session_for_workspace(workspace)
-    except WorkspaceClaimConflict as exc:
-        return 409, str(exc)
     except SessionMetaError as exc:
         return 500, str(exc)
     if owner:

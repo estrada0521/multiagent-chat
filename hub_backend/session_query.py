@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from backend_core.access.session_meta import session_workspace_claims, workspace_claim_conflict_message
+from backend_core.access.session_meta import session_workspace_claims
 from backend_core.access.settings import agent_window_session_root, session_log_path
 from backend_core.tmux.resolve import normalize_workspace
 
@@ -19,13 +19,12 @@ _PREVIEW_TAIL_CHUNK_BYTES = 64 * 1024
 @dataclass(frozen=True)
 class SessionQueryResult:
     records: dict[str, dict]
-    warnings: dict[str, dict]
     state: str
     detail: str = ""
 
     @property
     def non_archived_names(self) -> set[str]:
-        return set(self.records) | set(self.warnings)
+        return set(self.records)
 
 
 def _compact_message_preview(entry: dict[str, Any]) -> dict[str, str]:
@@ -144,13 +143,6 @@ def build_session_record(
     }
 
 
-def build_warning_session_record(*, name: str, warning: str) -> dict:
-    return {
-        "name": name,
-        "warning": warning,
-    }
-
-
 class _TmuxQueryTimeout(RuntimeError):
     pass
 
@@ -193,31 +185,15 @@ def live_tmux_sessions_query(runtime: Any) -> tuple[dict[str, tuple[str, int]], 
     return workspace_to_tmux, "ok", ""
 
 
-def collect_repo_sessions(runtime: Any) -> tuple[list[dict], list[dict], str, str]:
-    claims, claim_errors = session_workspace_claims()
-    unique_claims: list[tuple[str, str, str]] = []
-    warnings: list[dict] = [
-        build_warning_session_record(name=name, warning=detail)
-        for name, detail in claim_errors
-    ]
-    for normalized_workspace, claimants in claims.items():
-        claimant_names = [name for name, _workspace in claimants]
-        if len(claimants) > 1:
-            warning = workspace_claim_conflict_message(normalized_workspace, claimant_names)
-            for name, _workspace in claimants:
-                warnings.append(build_warning_session_record(name=name, warning=warning))
-            continue
-        name, workspace = claimants[0]
-        unique_claims.append((normalized_workspace, name, workspace))
-    warnings.sort(key=lambda item: item["name"])
-
+def collect_repo_sessions(runtime: Any) -> tuple[list[dict], str, str]:
+    claims = session_workspace_claims()
     workspace_to_tmux, state, detail = live_tmux_sessions_query(runtime)
     if state != "ok":
-        return [], warnings, state, detail
+        return [], state, detail
 
     sessions: list[tuple[int, dict]] = []
 
-    for normalized_workspace, name, workspace in unique_claims:
+    for normalized_workspace, (name, workspace) in claims.items():
         tmux_session = workspace_to_tmux.get(normalized_workspace)
         if not tmux_session:
             continue
@@ -230,14 +206,13 @@ def collect_repo_sessions(runtime: Any) -> tuple[list[dict], list[dict], str, st
         )
 
     sessions.sort(key=lambda item: item[0], reverse=True)
-    return [record for _created_epoch, record in sessions], warnings, "ok", ""
+    return [record for _created_epoch, record in sessions], "ok", ""
 
 
 def active_session_records_query(runtime: Any) -> SessionQueryResult:
-    sessions, warnings, state, detail = collect_repo_sessions(runtime)
+    sessions, state, detail = collect_repo_sessions(runtime)
     return SessionQueryResult(
         records={item["name"]: item for item in sessions},
-        warnings={item["name"]: item for item in warnings},
         state=state,
         detail=detail,
     )

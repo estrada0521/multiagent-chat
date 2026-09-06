@@ -490,16 +490,8 @@
       opacity: 1;
     }
 
-    .mob-session-row.archived-row .mob-row-name,
-    .mob-warning-row .mob-row-name {
+    .mob-session-row.archived-row .mob-row-name {
       color: var(--session-dim-fg);
-    }
-
-    .mob-warning-row .mob-session-row {
-      cursor: default;
-    }
-    .mob-warning-row .mob-session-row:active::before {
-      opacity: 0;
     }
     .mob-session-row.is-selected .mob-row-name,
     .mob-session-row.is-selected .mob-row-preview {

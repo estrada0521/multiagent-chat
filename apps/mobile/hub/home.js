@@ -555,7 +555,7 @@
     (function () {
       const wrap = document.getElementById("mobListWrap");
       if (!wrap) return;
-      let _mobSessionsCache = { active: [], warnings: [], archived: [] };
+      let _mobSessionsCache = { active: [], archived: [] };
       let _mobSessionsRequestSeq = 0;
       let _mobSessionsRenderedOnce = false;
 
@@ -693,7 +693,7 @@
         });
       };
 
-      const renderRows = (active, warnings, archived) => {
+      const renderRows = (active, archived) => {
         let html = "";
         if (active.length) {
           html += `<div class="mob-section-label">Active</div>`;
@@ -721,23 +721,12 @@
               `</div></div>`;
           }).join("");
         }
-        if (warnings.length) {
-          html += `<div class="mob-section-label">Warning</div>`;
-          html += warnings.map((s) =>
-            `<div class="swipe-row mob-warning-row" data-session-name="${esc(s.name)}">` +
-              `<div class="mob-session-row" data-session-name="${esc(s.name)}" aria-disabled="true">` +
-                `<div class="mob-row-head"><div class="mob-row-name">${esc(s.name)}</div></div>` +
-                `<div class="mob-row-preview">${esc(s.warning)}</div>` +
-              `</div>` +
-            `</div>`
-          ).join("");
-        }
-        if (!active.length && !warnings.length && !archived.length) {
+        if (!active.length && !archived.length) {
           html += `<div class="mob-empty">No sessions found</div>`;
         }
         wrap.innerHTML = html;
         syncMobileSelectedSessionRows();
-        wrap.querySelectorAll(".swipe-row:not(.mob-warning-row)").forEach(initSwipeRow);
+        wrap.querySelectorAll(".swipe-row").forEach(initSwipeRow);
       };
       const refresh = async (force) => {
         const requestSeq = ++_mobSessionsRequestSeq;
@@ -747,13 +736,11 @@
           const data = await res.json();
           if (requestSeq !== _mobSessionsRequestSeq) return;
           const activeSessions = data.active_sessions;
-          const warningSessions = data.warning_sessions;
           const archivedSessions = data.archived_sessions;
-          _mobSessionsCache = { active: activeSessions, warnings: warningSessions, archived: archivedSessions };
+          _mobSessionsCache = { active: activeSessions, archived: archivedSessions };
 
           const sig = JSON.stringify({
             active: activeSessions,
-            warnings: warningSessions,
             archived: archivedSessions,
           });
           if (!force && window._lastMobRenderSig === sig) {
@@ -763,12 +750,12 @@
           }
           window._lastMobRenderSig = sig;
 
-          renderRows(activeSessions, warningSessions, archivedSessions);
+          renderRows(activeSessions, archivedSessions);
           _mobSessionsRenderedOnce = true;
           releaseHubLaunchShellAfterRender();
         } catch (_) {
           if (requestSeq !== _mobSessionsRequestSeq) return;
-          if (_mobSessionsRenderedOnce || _mobSessionsCache.active.length || _mobSessionsCache.warnings.length || _mobSessionsCache.archived.length) return;
+          if (_mobSessionsRenderedOnce || _mobSessionsCache.active.length || _mobSessionsCache.archived.length) return;
           wrap.innerHTML = `<div class="mob-empty">Failed to load sessions</div>`;
           if (_hubLaunchShellPending) failHubReadyWait("Failed to load sessions");
         }

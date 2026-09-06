@@ -718,7 +718,7 @@
       dispatchDeskNativeMenuAction(detail);
     });
 
-    let _hubSessionsCache = { active: [], warnings: [], archived: [] };
+    let _hubSessionsCache = { active: [], archived: [] };
     let _deskPreviewRevisions = new Map();
     const _deskUnreadSessions = new Set();
     let _deskSessionsRequestSeq = 0;
@@ -1366,7 +1366,7 @@
       persistDeskSelection("");
       setDeskSelectionInUrl("");
       clearDeskChatFrame();
-      renderDesktopSessions(_hubSessionsCache.active, _hubSessionsCache.warnings, _hubSessionsCache.archived);
+      renderDesktopSessions(_hubSessionsCache.active, _hubSessionsCache.archived);
     }
 
     function openChatInDesk(url, name) {
@@ -1394,7 +1394,7 @@
       } else {
         setDeskChatLoading(false);
       }
-      renderDesktopSessions(_hubSessionsCache.active, _hubSessionsCache.warnings, _hubSessionsCache.archived);
+      renderDesktopSessions(_hubSessionsCache.active, _hubSessionsCache.archived);
     }
 
     function resolveSessionChatUrl(openHref, { force = false } = {}) {
@@ -1414,7 +1414,7 @@
       updateDeskWindowTitle(name);
       persistDeskSelection(name);
       setDeskSelectionInUrl(name);
-      renderDesktopSessions(_hubSessionsCache.active, _hubSessionsCache.warnings, _hubSessionsCache.archived);
+      renderDesktopSessions(_hubSessionsCache.active, _hubSessionsCache.archived);
       setDeskChatLoading(true);
       const openToken = ++_deskOpenToken;
       try {
@@ -1570,24 +1570,6 @@
             `</div>` +
           `</div>` +
         `</div>`;
-    }
-
-    function renderDeskWarningRow(session) {
-      const sessionName = String(session.name || "");
-      const warning = String(session.warning);
-      return `<div class="desk-swipe-row desk-warning-row" data-session-name="${esc(sessionName)}">` +
-        `<div class="desk-swipe-track">` +
-          `<div class="desk-session-row desk-warning-session-row" data-session-name="${esc(sessionName)}" aria-disabled="true">` +
-            `<div class="desk-row-head"><div class="desk-row-main">` +
-              `<span class="desk-row-bullet" aria-hidden="true"><i></i></span>` +
-              `<div class="desk-row-stack">` +
-                `<div class="desk-row-name">${esc(sessionName)}</div>` +
-                `<div class="desk-row-preview">${esc(warning)}</div>` +
-              `</div>` +
-            `</div></div>` +
-          `</div>` +
-        `</div>` +
-      `</div>`;
     }
 
     function closeDeskSwipeRow(wrapper, animate = true) {
@@ -1916,7 +1898,7 @@
       });
     }
 
-    function renderDesktopSessions(active, warnings, archived) {
+    function renderDesktopSessions(active, archived) {
       if (!_deskSessionList) return;
       let html = "";
       if (active.length) {
@@ -1927,11 +1909,7 @@
         html += `<div class="desk-section-label">Archived</div>`;
         html += archived.map((session) => renderDeskSessionRow(session, true)).join("");
       }
-      if (warnings.length) {
-        html += `<div class="desk-section-label">Warning</div>`;
-        html += warnings.map(renderDeskWarningRow).join("");
-      }
-      if (!active.length && !warnings.length && !archived.length) {
+      if (!active.length && !archived.length) {
         html = `<div class="desk-empty-list">No sessions found</div>`;
       }
       _deskSessionList.innerHTML = html;
@@ -2012,29 +1990,27 @@
         if (!response.ok) throw new Error("failed");
         const data = await response.json();
         const active = data.active_sessions;
-        const warnings = data.warning_sessions;
         const archived = data.archived_sessions;
-        _hubSessionsCache = { active, warnings, archived };
+        _hubSessionsCache = { active, archived };
         if (requestSeq === _deskSessionsRequestSeq) {
           updateDeskUnreadSessions(active);
           if (_deskSelectedSessionName) updateDeskWindowTitle(_deskSelectedSessionName);
 
           const signature = JSON.stringify({
             active,
-            warnings,
             archived,
             selected: _deskSelectedSessionName,
           });
           if (!_deskSessionRename && (force || window._lastHubRenderSig !== signature)) {
             window._lastHubRenderSig = signature;
-            renderDesktopSessions(active, warnings, archived);
+            renderDesktopSessions(active, archived);
           }
           _deskSessionsRenderedOnce = true;
         }
         if (!skipRestore) maybeRestoreDeskSelection();
       } catch (_) {
         if (requestSeq !== _deskSessionsRequestSeq) return;
-        if (_deskSessionsRenderedOnce || _hubSessionsCache.active.length || _hubSessionsCache.warnings.length || _hubSessionsCache.archived.length) return;
+        if (_deskSessionsRenderedOnce || _hubSessionsCache.active.length || _hubSessionsCache.archived.length) return;
         if (_deskSessionList) {
           _deskSessionList.innerHTML = `<div class="desk-empty-list">Failed to load sessions</div>`;
         }
