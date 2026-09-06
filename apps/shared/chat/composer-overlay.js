@@ -128,17 +128,27 @@
       _stickyToBottom = true;
       scrollConversationToBottom("smooth");
     };
+    const jumpConversationToTop = () => {
+      // Top of what's loaded, not the first entry ever -- the transcript is a
+      // tail window and older batches auto-load on the way up.
+      _pollScrollLockTop = null;
+      _pollScrollAnchor = null;
+      _stickyToBottom = false;
+      _programmaticScroll = true;
+      timeline.scrollTo({ top: 0, behavior: "smooth" });
+      requestAnimationFrame(() => { _programmaticScroll = false; });
+    };
     scrollToBottomBtn.addEventListener("click", jumpConversationToBottom);
-    // ⌘↓ is the keyboard version of the jump-to-bottom button. The transcript
-    // is an inner scroll container, so the native ⌘↓ never reaches it; skip
-    // only when a text field wants the caret-to-end it would otherwise do.
+    // ⌘↑ / ⌘↓ are the keyboard version of jumping the transcript to its ends.
+    // It is an inner scroll container, so the native ⌘↑/⌘↓ never reach it; skip
+    // only when a text field wants the caret move it would otherwise do.
     document.addEventListener("keydown", (event) => {
       if (!event.metaKey || event.altKey || event.ctrlKey || event.shiftKey) return;
-      if (event.key !== "ArrowDown") return;
+      if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
       const active = document.activeElement;
       if (active && active.matches && active.matches("input, textarea, [contenteditable='true']")) return;
       event.preventDefault();
-      jumpConversationToBottom();
+      (event.key === "ArrowDown" ? jumpConversationToBottom : jumpConversationToTop)();
     });
     composerFabBtn?.addEventListener("click", () => {
       openComposerOverlay({ immediateFocus: canComposeInSession() });
