@@ -113,7 +113,7 @@
     }
     html[data-hub-iframe-chat="1"] #scrollToBottomBtn,
     html[data-hub-iframe-chat="1"] #composerFabBtn {
-      bottom: var(--floating-btn-bottom, 160px);
+      bottom: var(--floating-btn-bottom, 18%);
     }
     .composer {
       position: relative;

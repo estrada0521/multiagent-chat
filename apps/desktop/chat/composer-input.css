@@ -276,7 +276,9 @@
     #scrollToBottomBtn,
     #composerFabBtn {
       position: fixed;
-      bottom: var(--floating-btn-bottom, 160px);
+      /* 18% of the window height -- ~160px at the 896px preset height that
+         both size presets (Restore / Compact) use. */
+      bottom: var(--floating-btn-bottom, 18%);
       /* Centre via left, not translateX(-50%), so the Fit Height tuck (which
          swaps to right: 8px) is a plain snap with no transform to animate.
          -19px == -(width / 2). */

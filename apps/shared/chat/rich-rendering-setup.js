@@ -1,6 +1,5 @@
     const updateScrollBtnPos = () => {
       const shell = document.querySelector(".shell");
-      shell.style.setProperty("--floating-btn-bottom", "160px");
       shell.style.setProperty("--composer-height", "0px");
     };
     const mathRenderOptions = {
