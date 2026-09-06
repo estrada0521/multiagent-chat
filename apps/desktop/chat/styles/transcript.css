@@ -607,7 +607,7 @@
     .message-thinking-row {
       display: flex;
       align-items: flex-start;
-      gap: 10px;
+      gap: 0.77em;
       padding: 0.46em 20px 0.46em 0;
       color: var(--muted);
       font-size: inherit;
@@ -627,8 +627,7 @@
       justify-content: center;
       gap: 6px;
       flex-shrink: 0;
-      height: 1.45em;
-      transform: translateY(1px);
+      height: 1.6em;
       position: sticky;
       left: 0;
       z-index: 1;
