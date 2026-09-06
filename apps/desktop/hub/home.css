@@ -1227,6 +1227,20 @@
       height: 13px;
       opacity: 1;
     }
+    .desk-new-session-toggle .desk-row-kbd {
+      margin-left: auto;
+      margin-right: 6px;
+      flex: none;
+      font-size: 11px;
+      color: var(--muted);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 150ms ease;
+    }
+    .desk-new-session-toggle:hover .desk-row-kbd,
+    .desk-new-session-toggle:focus-visible .desk-row-kbd {
+      opacity: 1;
+    }
     .desk-new-session-toggle .desk-row-leading-icon svg {
       stroke-width: 2;
     }
