@@ -122,11 +122,23 @@
         }
       }
     };
-    scrollToBottomBtn.addEventListener("click", () => {
+    const jumpConversationToBottom = () => {
       _pollScrollLockTop = null;
       _pollScrollAnchor = null;
       _stickyToBottom = true;
       scrollConversationToBottom("smooth");
+    };
+    scrollToBottomBtn.addEventListener("click", jumpConversationToBottom);
+    // ⌘↓ is the keyboard version of the jump-to-bottom button. The transcript
+    // is an inner scroll container, so the native ⌘↓ never reaches it; skip
+    // only when a text field wants the caret-to-end it would otherwise do.
+    document.addEventListener("keydown", (event) => {
+      if (!event.metaKey || event.altKey || event.ctrlKey || event.shiftKey) return;
+      if (event.key !== "ArrowDown") return;
+      const active = document.activeElement;
+      if (active && active.matches && active.matches("input, textarea, [contenteditable='true']")) return;
+      event.preventDefault();
+      jumpConversationToBottom();
     });
     composerFabBtn?.addEventListener("click", () => {
       openComposerOverlay({ immediateFocus: canComposeInSession() });
