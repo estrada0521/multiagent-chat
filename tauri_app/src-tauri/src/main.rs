@@ -679,9 +679,17 @@ fn set_traffic_lights_hidden(window: &tauri::WebviewWindow, hidden: bool) {
 }
 
 #[tauri::command]
-fn set_window_height(window: tauri::WebviewWindow, height: f64) -> Result<(), String> {
+fn set_window_height(
+    window: tauri::WebviewWindow,
+    height: f64,
+    snap_compact_width: Option<bool>,
+) -> Result<(), String> {
     // Width and x stay; only the height (and, if it would spill off the
     // bottom, y) change. Clamped to a sane floor and the monitor height.
+    // snap_compact_width also pulls the width to the compact size and recenters
+    // x -- the one-shot the Fit Height toggle fires on entry so the window
+    // lands at its final size in a single resize instead of visibly stopping at
+    // the compact width first.
     let scale_factor = window.scale_factor().map_err(|err| err.to_string())?;
     let monitor = window
         .current_monitor()
@@ -700,6 +708,12 @@ fn set_window_height(window: tauri::WebviewWindow, height: f64) -> Result<(), St
     // set_window_height is only used by Fit Height mode, where the floor is
     // deliberately near-zero (set_fit_height_min lowers the window minimum).
     let h = height.max(FIT_WINDOW_MIN_HEIGHT).min(monitor_size.height);
+    let (w, x) = if snap_compact_width.unwrap_or(false) {
+        let w = COMPACT_WINDOW_WIDTH.min(monitor_size.width);
+        (w, monitor_pos.x + ((monitor_size.width - w) / 2.0).max(0.0))
+    } else {
+        (cur_size.width, cur_pos.x)
+    };
     let mut y = cur_pos.y;
     if y + h > monitor_pos.y + monitor_size.height {
         y = monitor_pos.y + monitor_size.height - h;
@@ -708,10 +722,10 @@ fn set_window_height(window: tauri::WebviewWindow, height: f64) -> Result<(), St
         y = monitor_pos.y;
     }
     window
-        .set_size(tauri::LogicalSize::new(cur_size.width, h))
+        .set_size(tauri::LogicalSize::new(w, h))
         .map_err(|err| err.to_string())?;
     window
-        .set_position(tauri::LogicalPosition::new(cur_pos.x, y))
+        .set_position(tauri::LogicalPosition::new(x, y))
         .map_err(|err| err.to_string())
 }
 

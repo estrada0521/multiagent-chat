@@ -250,6 +250,11 @@
       justify-content: center;
       border-radius: 0;
     }
+    /* The window is too short to fit the "session (port)" label without
+       clipping it in half, so drop it in Fit Height. */
+    html[data-tauri-app="1"][data-auto-window-height="1"] .desk-session-title-text {
+      display: none;
+    }
     html[data-tauri-app="1"][data-auto-window-height="1"] .page-menu-btn svg,
     html[data-tauri-app="1"][data-auto-window-height="1"] .desk-settings-icon-btn svg,
     html[data-tauri-app="1"][data-auto-window-height="1"] .desk-chat-menu-btn svg,

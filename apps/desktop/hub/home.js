@@ -146,6 +146,10 @@
     const DESK_FIT_BOTTOM_BUFFER = 16;
     let _deskAutoWindowHeight = false;
     let _deskLastFitTarget = 0;
+    // Set on entering Fit Height: the first fit resize also snaps the window to
+    // the compact width, so entry is one motion instead of a visible width jump
+    // followed by a height shrink.
+    let _deskFitWidthSnapPending = false;
     function pushDeskAutoWindowHeight() {
       try {
         _deskChatFrame?.contentWindow?.postMessage(
@@ -179,20 +183,19 @@
       applyDeskFitHeightMin();
       pushDeskAutoWindowHeight();
     }
+    // Entering Fit Height (⌥⌘H or the menu item) snaps the window to the
+    // compact width -- the ⌥⌘9 width that always got paired with it by hand --
+    // folded into the first fit resize (see _deskFitWidthSnapPending), and pins
+    // the window, since Fit Height is only useful kept in front. Leaving the
+    // mode unpins and doesn't touch the width.
     function toggleDeskAutoWindowHeight() {
-      setDeskAutoWindowHeight(!_deskAutoWindowHeight);
-    }
-    // Pressing ⌥⌘H to enter Fit Height snaps the window to the compact width
-    // first -- the ⌥⌘9 -> ⌥⌘H sequence that always gets done by hand -- and
-    // pins the window, since Fit Height is only useful kept in front. Leaving
-    // the mode unpins and doesn't touch the width.
-    async function toggleDeskAutoWindowHeightFromShortcut() {
       if (_deskAutoWindowHeight) {
         setDeskAutoWindowHeight(false);
         applyDeskAlwaysOnTop(false);
         return;
       }
-      await compactDeskWindowState();
+      resetDeskChatView();
+      _deskFitWidthSnapPending = true;
       setDeskAutoWindowHeight(true);
       applyDeskAlwaysOnTop(true);
     }
@@ -207,11 +210,15 @@
       // transient bad iframe measurement can't blow the target up to full screen.
       const overhead = Math.min(240, Math.max(0, window.innerHeight - iframeH));
       const target = Math.round(content + overhead + DESK_FIT_BOTTOM_BUFFER);
+      // On the first fit after entering the mode, pull the window to the
+      // compact width in the same resize (see toggleDeskAutoWindowHeight).
+      const snapWidth = _deskFitWidthSnapPending;
+      _deskFitWidthSnapPending = false;
       // The composer predict + ResizeObserver paths both fire per keystroke;
       // drop the redundant second call so it isn't two invokes per line.
-      if (Math.abs(target - _deskLastFitTarget) < 4) return;
+      if (!snapWidth && Math.abs(target - _deskLastFitTarget) < 4) return;
       _deskLastFitTarget = target;
-      invoke("set_window_height", { height: target }).catch((err) => {
+      invoke("set_window_height", { height: target, snapCompactWidth: snapWidth }).catch((err) => {
         showDeskHubMessage(`fit height failed: ${err}`, { error: true });
       });
     }
@@ -356,7 +363,7 @@
         }
         if (event.code === "KeyH") {
           event.preventDefault();
-          void toggleDeskAutoWindowHeightFromShortcut();
+          void toggleDeskAutoWindowHeight();
           return;
         }
         if (event.code === "KeyR") {
@@ -641,7 +648,7 @@
         return;
       }
       if (detail.action === "toggleAutoWindowHeight") {
-        toggleDeskAutoWindowHeight();
+        void toggleDeskAutoWindowHeight();
         return;
       }
       if (detail.action === "theme") {
@@ -1994,7 +2001,7 @@
         return;
       }
       if (event.data && event.data.type === "auto-window-height-shortcut") {
-        void toggleDeskAutoWindowHeightFromShortcut();
+        void toggleDeskAutoWindowHeight();
         return;
       }
       if (event.data && event.data.type === "move-window-shortcut") {
