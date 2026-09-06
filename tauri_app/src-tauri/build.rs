@@ -13,6 +13,7 @@ fn main() {
             "show_session_switcher_menu",
             "show_git_changes_menu",
             "show_file_context_menu",
+            "show_session_context_menu",
         ]),
     ))
     .expect("failed to run Tauri build script")

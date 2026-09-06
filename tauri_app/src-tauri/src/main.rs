@@ -80,6 +80,13 @@ struct FileContextMenuPayload {
     reveal_enabled: bool,
 }
 
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct SessionContextMenuPayload {
+    x: f64,
+    y: f64,
+}
+
 #[tauri::command]
 fn open_external_url(url: String) -> Result<(), String> {
     let parsed = Url::parse(&url).map_err(|err| format!("invalid external URL: {err}"))?;
@@ -571,6 +578,28 @@ fn show_file_context_menu(
         .separator()
         .item(&copy_absolute)
         .item(&copy_relative)
+        .build()
+        .map_err(|err| err.to_string())?;
+
+    window
+        .popup_menu_at(&menu, tauri::LogicalPosition::new(payload.x, payload.y))
+        .map_err(|err| err.to_string())
+}
+
+#[tauri::command]
+fn show_session_context_menu(
+    window: tauri::WebviewWindow,
+    app: tauri::AppHandle,
+    payload: SessionContextMenuPayload,
+) -> Result<(), String> {
+    let rename = MenuItemBuilder::with_id(
+        format!("{}action:renameSession", NATIVE_MENU_PREFIX),
+        "Rename",
+    )
+    .build(&app)
+    .map_err(|err| err.to_string())?;
+    let menu = MenuBuilder::new(&app)
+        .item(&rename)
         .build()
         .map_err(|err| err.to_string())?;
 
@@ -1099,7 +1128,8 @@ fn main() {
             set_fit_height_min,
             show_session_switcher_menu,
             show_git_changes_menu,
-            show_file_context_menu
+            show_file_context_menu,
+            show_session_context_menu
         ])
         .on_menu_event(|app, event| {
             emit_native_menu_action(app, event.id().as_ref());

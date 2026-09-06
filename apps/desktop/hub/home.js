@@ -585,6 +585,10 @@
         }
         return;
       }
+      if (detail.action === "renameSession") {
+        if (_deskContextSessionName) beginDeskSessionRename(_deskContextSessionName);
+        return;
+      }
       if (detail.action === "textSize") {
         const mode = String(detail.mode || "");
         if (mode === "increase") {
@@ -660,6 +664,8 @@
     let _deskOpenToken = 0;
     let _deskSidebarWidth = DESK_DEFAULT_SIDEBAR_WIDTH;
     let _deskOpenSwipeRow = null;
+    let _deskContextSessionName = "";
+    let _deskSessionRename = null;
     let _deskNewSessionStarting = false;
     let _deskHubMessageTimer = 0;
 
@@ -1553,6 +1559,96 @@
       }
     }
 
+    async function renameDeskSession(oldName, requestedName) {
+      const newName = String(requestedName || "").trim();
+      if (!oldName) return false;
+      if (oldName === newName) return true;
+      showDeskHubMessage();
+      try {
+        const response = await fetch("/rename-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+          body: new URLSearchParams({ old_name: oldName, new_name: newName }).toString(),
+          cache: "no-store",
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.ok) {
+          throw new Error(data.error || "Failed to rename session.");
+        }
+        const renamed = String(data.new_name || newName);
+        hubChatUrls.forget(buildSessionOpenHref(oldName, false));
+        hubChatUrls.forget(buildSessionOpenHref(oldName, true));
+        if (_deskUnreadSessions.delete(oldName)) _deskUnreadSessions.add(renamed);
+        if (_deskSelectedSessionName === oldName) {
+          _deskSelectedSessionName = renamed;
+          updateDeskWindowTitle(renamed);
+          persistDeskSelection(renamed);
+          setDeskSelectionInUrl(renamed);
+        }
+        return true;
+      } catch (err) {
+        showDeskHubMessage(err?.message || "Failed to rename session.", { error: true });
+        return false;
+      }
+    }
+
+    function beginDeskSessionRename(sessionName) {
+      if (_deskSessionRename) _deskSessionRename.cancel();
+      const row = Array.from(_deskSessionList?.querySelectorAll(".desk-action-session-row") || [])
+        .find((candidate) => candidate.dataset.sessionName === sessionName);
+      const nameEl = row?.querySelector(".desk-row-name");
+      if (!row || !nameEl) return;
+
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className = "desk-row-rename-input";
+      input.value = sessionName;
+      input.setAttribute("aria-label", `Rename ${sessionName}`);
+      nameEl.replaceWith(input);
+      row.classList.add("is-renaming");
+
+      let settling = false;
+      const cancel = () => {
+        if (_deskSessionRename?.input !== input) return;
+        _deskSessionRename = null;
+        row.classList.remove("is-renaming");
+        if (input.isConnected) input.replaceWith(nameEl);
+      };
+      const commit = async () => {
+        if (_deskSessionRename?.input !== input || settling) return;
+        settling = true;
+        input.disabled = true;
+        const renamed = await renameDeskSession(sessionName, input.value);
+        if (renamed) {
+          _deskSessionRename = null;
+          await refreshHubSessions(true, { skipRestore: true });
+          return;
+        }
+        settling = false;
+        input.disabled = false;
+        requestAnimationFrame(() => {
+          input.focus();
+          input.select();
+        });
+      };
+      _deskSessionRename = { input, cancel };
+      input.addEventListener("keydown", (event) => {
+        event.stopPropagation();
+        if (event.key === "Enter") {
+          event.preventDefault();
+          void commit();
+        } else if (event.key === "Escape") {
+          event.preventDefault();
+          cancel();
+        }
+      });
+      input.addEventListener("blur", () => { void commit(); });
+      input.addEventListener("click", (event) => event.stopPropagation());
+      input.addEventListener("contextmenu", (event) => event.stopPropagation());
+      input.focus();
+      input.select();
+    }
+
     function initDeskSwipeRow(wrapper) {
       if (!wrapper || wrapper.dataset.swipeBound === "1") return;
       const track = wrapper.querySelector(".desk-swipe-track");
@@ -1766,7 +1862,7 @@
             archived,
             selected: _deskSelectedSessionName,
           });
-          if (force || window._lastHubRenderSig !== signature) {
+          if (!_deskSessionRename && (force || window._lastHubRenderSig !== signature)) {
             window._lastHubRenderSig = signature;
             renderDesktopSessions(active, warnings, archived);
           }
@@ -2108,6 +2204,22 @@
     if (_deskSessionList) {
       _deskSessionList.addEventListener("scroll", updateDeskSessionListFade, { passive: true });
       window.addEventListener("resize", updateDeskSessionListFade, { passive: true });
+      _deskSessionList.addEventListener("contextmenu", (event) => {
+        const row = event.target.closest(".desk-action-session-row");
+        const invoke = getTauriInvoke();
+        const sessionName = row?.dataset.sessionName || "";
+        if (!sessionName || typeof invoke !== "function") return;
+        event.preventDefault();
+        _deskContextSessionName = sessionName;
+        invoke("show_session_context_menu", {
+          payload: {
+            x: Math.round(event.clientX),
+            y: Math.round(event.clientY),
+          },
+        }).catch((err) => {
+          showDeskHubMessage(String(err || "Failed to open session menu."), { error: true });
+        });
+      });
       _deskSessionList.addEventListener("click", (event) => {
         const hoverAction = event.target.closest("[data-desk-hover-action]");
         if (hoverAction) {

@@ -4,7 +4,7 @@ import json
 import time
 from urllib.parse import parse_qs
 
-from backend_core.access.settings import save_hub_settings
+from backend_core.access.settings import agent_window_session_root, save_hub_settings
 from hub_backend.chat_supervisor import (
     delete_archived_session,
     ensure_chat_server,
@@ -180,3 +180,27 @@ def post_settings(handler, _parsed, ctx) -> None:
     data = handler._read_form()
     save_hub_settings(data)
     handler._send_json(200, {"ok": True})
+
+
+def post_rename_session(handler, _parsed, _ctx) -> None:
+    data = handler._read_form()
+    old_name = str(data.get("old_name") or "").strip()
+    new_name = str(data.get("new_name") or "").strip()
+    if any(not name or name in {".", ".."} or "/" in name or "\0" in name for name in (old_name, new_name)):
+        handler._send_json(409, {"ok": False, "error": "Session name is not a valid folder name."})
+        return
+    source = agent_window_session_root() / old_name
+    target = agent_window_session_root() / new_name
+    if not source.is_dir():
+        handler._send_json(409, {"ok": False, "error": f"Session not found: {old_name}"})
+        return
+    if old_name != new_name and (target.exists() or target.is_symlink()):
+        handler._send_json(409, {"ok": False, "error": f"A session named {new_name} already exists."})
+        return
+    try:
+        if old_name != new_name:
+            source.rename(target)
+    except OSError as exc:
+        handler._send_json(409, {"ok": False, "error": str(exc)})
+        return
+    handler._send_json(200, {"ok": True, "old_name": old_name, "new_name": new_name})

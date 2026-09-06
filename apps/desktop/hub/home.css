@@ -1183,6 +1183,35 @@
       flex: 0 0 auto;
       max-width: 100%;
     }
+    .desk-row-rename-input {
+      flex: 1 1 0;
+      width: 100%;
+      min-width: 0;
+      height: 1.2em;
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      border: none;
+      border-radius: 0;
+      outline: none;
+      background: linear-gradient(var(--icon-fg), var(--icon-fg)) left bottom / 100% 1px no-repeat;
+      color: var(--fg);
+      font: inherit;
+      font-size: var(--text-size, 13px);
+      line-height: 1.2;
+      letter-spacing: -0.01em;
+    }
+    .desk-action-session-row.is-renaming .desk-row-stack {
+      padding-right: 0;
+      gap: 0;
+    }
+    .desk-action-session-row.is-renaming .desk-row-preview {
+      display: none;
+    }
+    .desk-action-session-row.is-renaming .desk-row-hover-action {
+      opacity: 0;
+      pointer-events: none;
+    }
     .desk-new-session-toggle .desk-row-stack {
       flex: 1;
       min-width: 0;

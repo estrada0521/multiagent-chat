@@ -39,6 +39,7 @@ from hub_backend.actions import (
     get_kill_session as _get_kill_session_action,
     get_open_session as _get_open_session_action,
     get_revive_session as _get_revive_session_action,
+    post_rename_session as _post_rename_session_action,
     post_restart_hub as _post_restart_hub_action,
     post_settings as _post_settings_action,
 )
@@ -456,6 +457,7 @@ _GET_ROUTE_HANDLERS = {
 
 _POST_ROUTE_HANDLERS = {
     "/restart-hub": _post_restart_hub_action,
+    "/rename-session": _post_rename_session_action,
     "/settings": _post_settings_action,
     "/pick-workspace": _post_pick_workspace_action,
     "/start-session-draft": _post_start_session_draft_action,
