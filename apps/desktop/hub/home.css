@@ -562,11 +562,12 @@
       stroke: none;
     }
     /* Always on Top badge: a small dot on the settings button while pinned.
-       Scoped by id -- Reload Hub shares .desk-settings-icon-btn. */
-    html[data-always-on-top="1"] #deskSettingsBtn {
+       Scoped by id -- Reload Hub shares .desk-settings-icon-btn. Not in Fit
+       Height, where the window is pinned as part of the mode. */
+    html[data-always-on-top="1"]:not([data-auto-window-height="1"]) #deskSettingsBtn {
       position: relative;
     }
-    html[data-always-on-top="1"] #deskSettingsBtn::after {
+    html[data-always-on-top="1"]:not([data-auto-window-height="1"]) #deskSettingsBtn::after {
       content: "";
       position: absolute;
       top: 3px;
